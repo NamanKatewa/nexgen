@@ -1,74 +1,224 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
-}
-
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
-// Necessary for Next auth
-model Account {
-    id                       String  @id @default(cuid())
-    userId                   String
-    type                     String
-    provider                 String
-    providerAccountId        String
-    refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String? // @db.Text
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    refresh_token_expires_in Int?
-
-    @@unique([provider, providerAccountId])
-}
-
-model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
+  user_id       String       @id @default(uuid())
+  email         String       @unique
+  mobile_number String       @unique
+  password_hash String
+  first_name    String
+  last_name     String
+  client_id     String?      @unique
+  user_type     String       // 'Client', 'Admin', 'Employee'
+  status        String       // 'Active', 'Inactive'
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+
+  roles              UserRole[]
+  kyc                KYC?
+  wallet             Wallet?
+  orders             Order[]
+  transactions       Transaction[]
+  tickets            SupportTicket[]
+  employee           Employee?
+  payments           Payment[]
+  verifiedKYCs       KYC[]     @relation("VerifiedByAdmin")
+  verifiedPayments   Payment[] @relation("VerifiedByAdminPayments")
 }
 
-model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+model Role {
+  role_id    String     @id @default(uuid())
+  role_name  String
+  description String?
 
-    @@unique([identifier, token])
+  users UserRole[]
+}
+
+model UserRole {
+  user_id String
+  role_id String
+
+  user User @relation(fields: [user_id], references: [user_id])
+  role Role @relation(fields: [role_id], references: [role_id])
+
+  @@id([user_id, role_id])
+}
+
+model KYC {
+  kyc_id              String   @id @default(uuid())
+  user_id             String   @unique
+  document_type       String
+  document_number     String
+  document_image_url_1 String
+  document_image_url_2 String
+  kyc_status          String   // 'Pending', 'Approved', 'Rejected'
+  submission_date     DateTime
+  verification_date   DateTime?
+  verified_by_user_id String?
+  rejection_reason    String?
+
+  user        User @relation(fields: [user_id], references: [user_id])
+  verified_by User? @relation("VerifiedByAdmin", fields: [verified_by_user_id], references: [user_id])
+}
+
+model Wallet {
+  wallet_id String   @id @default(uuid())
+  user_id   String   @unique
+  balance   Decimal  @db.Decimal(10, 2)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user         User         @relation(fields: [user_id], references: [user_id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  transaction_id     String   @id @default(uuid())
+  wallet_id          String
+  user_id            String
+  transaction_type   String   // 'Recharge', 'Deduction', etc.
+  amount             Decimal  @db.Decimal(10, 2)
+  transaction_date   DateTime
+  payment_gateway_id String?
+  payment_status     String   // 'Pending', 'Completed', 'Failed'
+  order_id           String? @unique
+
+  wallet   Wallet   @relation(fields: [wallet_id], references: [wallet_id])
+  user     User     @relation(fields: [user_id], references: [user_id])
+  order    Order?   @relation(fields: [order_id], references: [order_id])
+  payment  Payment?
+}
+
+model Carrier {
+  carrier_id            String   @id @default(uuid())
+  carrier_name          String
+  api_key               String
+  tracking_api_endpoint String
+  rate_api_endpoint     String
+  status                String   // 'Active', 'Inactive'
+
+  rates     Rate[]
+  shipments Shipment[]
+}
+
+model Rate {
+  rate_id                    String   @id @default(uuid())
+  carrier_id                 String
+  service_type               String
+  min_weight                 Decimal  @db.Decimal(10, 2)
+  max_weight                 Decimal  @db.Decimal(10, 2)
+  min_dimension              Decimal  @db.Decimal(10, 2)
+  max_dimension              Decimal  @db.Decimal(10, 2)
+  base_rate                  Decimal  @db.Decimal(10, 2)
+  rate_per_kg                Decimal  @db.Decimal(10, 2)
+  user_specific_rate_adjustment Decimal? @db.Decimal(10, 2)
+  effective_date             DateTime
+  expiry_date                DateTime
+  origin_pincode_range       String
+  destination_pincode_range  String
+
+  carrier Carrier @relation(fields: [carrier_id], references: [carrier_id])
+}
+
+model Order {
+  order_id       String     @id @default(uuid())
+  user_id        String
+  order_date     DateTime   @default(now())
+  total_amount   Decimal    @db.Decimal(10, 2)
+  payment_status String     // 'Paid', 'Pending', 'Refunded'
+  order_status   String     // 'Pending Approval', 'Approved', etc.
+  rejection_reason String?
+  is_bulk_order  Boolean
+  created_at     DateTime   @default(now())
+  updated_at     DateTime   @updatedAt
+
+  user          User         @relation(fields: [user_id], references: [user_id])
+  shipments     Shipment[]
+  transaction   Transaction?
+}
+
+model Shipment {
+  shipment_id       String   @id @default(uuid())
+  order_id          String?
+  carrier_id        String
+  awb_lr_no         String   @unique
+  current_status    String   // 'Booked', 'In Transit', etc.
+  origin_address    String
+  destination_address String
+  recipient_name    String
+  recipient_mobile  String
+  package_weight    Decimal  @db.Decimal(10, 2)
+  package_dimensions String
+  shipping_cost     Decimal  @db.Decimal(10, 2)
+  label_url         String
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  order     Order?   @relation(fields: [order_id], references: [order_id])
+  carrier   Carrier  @relation(fields: [carrier_id], references: [carrier_id])
+  tracking  Tracking[]
+}
+
+model Tracking {
+  tracking_id        String   @id @default(uuid())
+  shipment_id        String
+  timestamp          DateTime
+  location           String
+  status_description String
+  carrier_update_code String
+  event_details      String
+
+  shipment Shipment @relation(fields: [shipment_id], references: [shipment_id])
+}
+
+model SupportTicket {
+  ticket_id              String   @id @default(uuid())
+  user_id                String
+  subject                String
+  description            String
+  status                 String   // 'Open', 'Closed', etc.
+  priority               String   // 'High', 'Medium', 'Low'
+  assigned_to_employee_id String?
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+  resolved_at            DateTime?
+
+  user       User      @relation(fields: [user_id], references: [user_id])
+  assigned_to Employee? @relation(fields: [assigned_to_employee_id], references: [employee_id])
+}
+
+model Employee {
+  employee_id String   @id @default(uuid())
+  user_id     String   @unique
+  employee_code String
+  designation String
+  department  String
+  hire_date   DateTime
+  status      String   // 'Active', 'Inactive'
+
+  user      User           @relation(fields: [user_id], references: [user_id])
+  tickets   SupportTicket[]
+}
+
+model Payment {
+  payment_id           String   @id @default(uuid())
+  transaction_id       String? @unique
+  user_id              String
+  amount               Decimal  @db.Decimal(10, 2)
+  payment_method       String
+  reference_number     String
+  payment_date         DateTime
+  verification_status  String   // 'Pending', 'Verified', 'Rejected'
+  verified_by_user_id  String?
+  verification_date    DateTime?
+
+  transaction    Transaction? @relation(fields: [transaction_id], references: [transaction_id])
+  user           User         @relation(fields: [user_id], references: [user_id])
+  verified_by    User?        @relation("VerifiedByAdminPayments", fields: [verified_by_user_id], references: [user_id])
 }
