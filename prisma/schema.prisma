@@ -208,7 +208,7 @@ model Employee {
 
 model Payment {
   payment_id           String   @id @default(uuid())
-  transaction_id       String? @unique
+  transaction_id       String?  @unique
   user_id              String
   amount               Decimal  @db.Decimal(10, 2)
   payment_method       String
