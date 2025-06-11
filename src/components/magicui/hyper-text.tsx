@@ -71,8 +71,11 @@ export function HyperText({
     }
 
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
+      (entries) => {
+        // 'entries' is now an array
+        const [entry] = entries; // Safely destructure the first entry
+        if (entry && entry.isIntersecting) {
+          // Check if 'entry' exists
           setTimeout(() => {
             setIsAnimating(true);
           }, delay);
@@ -103,14 +106,17 @@ export function HyperText({
 
       iterationCount.current = progress * maxIterations;
 
-      setDisplayText((currentText) =>
-        currentText.map((letter, index) =>
-          letter === " "
-            ? letter
-            : index <= iterationCount.current
-            ? children[index]
-            : characterSet[getRandomInt(characterSet.length)]
-        )
+      setDisplayText(
+        (currentText) =>
+          currentText
+            .map((letter, index) =>
+              letter === " "
+                ? letter
+                : index <= iterationCount.current
+                ? children[index]
+                : characterSet[getRandomInt(characterSet.length)]
+            )
+            .filter(Boolean) as string[] // Add .filter(Boolean) and cast to string[]
       );
 
       if (progress < 1) {
