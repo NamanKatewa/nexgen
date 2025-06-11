@@ -5,22 +5,108 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+enum USER_ROLE{
+  Client
+  Admin
+  Employee
 }
 
+enum USER_STATUS{
+  Active
+  Inactive
+}
+
+enum KYC_STATUS{
+  Pending
+  Approved
+  Rejected
+}
+
+enum TRANSACTION_TYPE{
+  Credit
+  Debit
+}
+
+enum PAYMENT_STATUS{
+  Pending
+  Completed
+  Failed
+}
+
+enum CARRIER_STATUS{
+  Active
+  Inactive
+}
+
+enum ORDER_PAYMENT_STATUS{
+  Paid
+  Pending
+  Refunded
+}
+
+enum ORDER_STATUS{
+  PendingApproval
+  Approved
+}
+
+enum SUPPORT_STATUS{
+  Open
+  Closed
+}
+
+enum SUPPORT_PRIORITY{
+  High
+  Medium
+  Low
+}
+
+enum EMPLOYEE_STATUS{
+  Active
+  Inactive
+}
+
+enum PAYMENT_VERIFICATION_STATUS{
+  Pending
+  Verified
+  Rejected
+}
+
+enum SHIPMENT_STATUS{
+  Booked
+  InTransit
+}
+
+enum BUSINESS_TYPE{
+  Retailer
+  Ecommerce
+  Franchise
+}
+
+enum ENTITY_TYPE{
+  Individual
+  SelfEmployement
+  ProprietorshipFirm
+  LimitedLiabilityParternship
+  PrivateLimitedCompany
+  PublicLimitedCompany
+  PartnershipFirm
+}
 model User {
   user_id       String       @id @default(uuid())
   email         String       @unique
   mobile_number String       @unique
   password_hash String
-  first_name    String
-  last_name     String
-  client_id     String?      @unique
-  user_type     String       // 'Client', 'Admin', 'Employee'
-  status        String       // 'Active', 'Inactive'
+  name    String
+  company_name  String
+  monthly_order String
+  business_type BUSINESS_TYPE
+  role          USER_ROLE @default(Client)
+  status        USER_STATUS  @default(Inactive)
   created_at    DateTime     @default(now())
   updated_at    DateTime     @updatedAt
 
-  roles              UserRole[]
   kyc                KYC?
   wallet             Wallet?
   orders             Order[]
@@ -32,32 +118,21 @@ model User {
   verifiedPayments   Payment[] @relation("VerifiedByAdminPayments")
 }
 
-model Role {
-  role_id    String     @id @default(uuid())
-  role_name  String
-  description String?
-
-  users UserRole[]
-}
-
-model UserRole {
-  user_id String
-  role_id String
-
-  user User @relation(fields: [user_id], references: [user_id])
-  role Role @relation(fields: [role_id], references: [role_id])
-
-  @@id([user_id, role_id])
-}
-
 model KYC {
   kyc_id              String   @id @default(uuid())
   user_id             String   @unique
-  document_type       String
-  document_number     String
-  document_image_url_1 String
-  document_image_url_2 String
-  kyc_status          String   // 'Pending', 'Approved', 'Rejected'
+  entity_name         String
+  entity_type         ENTITY_TYPE
+  website_url         String
+  billing_address     Json // Zip Code, City, State, Written Address
+  aadhar_number       String
+  aadhar_image_front String
+  aadhar_image_back String
+  pan_number  String
+  pan_image_front String
+  pan_image_back  String
+  gst Boolean @default(false)
+  kyc_status          KYC_STATUS
   submission_date     DateTime
   verification_date   DateTime?
   verified_by_user_id String?
@@ -82,11 +157,11 @@ model Transaction {
   transaction_id     String   @id @default(uuid())
   wallet_id          String
   user_id            String
-  transaction_type   String   // 'Recharge', 'Deduction', etc.
+  transaction_type   TRANSACTION_TYPE
   amount             Decimal  @db.Decimal(10, 2)
   transaction_date   DateTime
   payment_gateway_id String?
-  payment_status     String   // 'Pending', 'Completed', 'Failed'
+  payment_status     PAYMENT_STATUS
   order_id           String? @unique
 
   wallet   Wallet   @relation(fields: [wallet_id], references: [wallet_id])
@@ -101,7 +176,7 @@ model Carrier {
   api_key               String
   tracking_api_endpoint String
   rate_api_endpoint     String
-  status                String   // 'Active', 'Inactive'
+  status                CARRIER_STATUS
 
   rates     Rate[]
   shipments Shipment[]
@@ -131,8 +206,8 @@ model Order {
   user_id        String
   order_date     DateTime   @default(now())
   total_amount   Decimal    @db.Decimal(10, 2)
-  payment_status String     // 'Paid', 'Pending', 'Refunded'
-  order_status   String     // 'Pending Approval', 'Approved', etc.
+  payment_status ORDER_PAYMENT_STATUS
+  order_status   ORDER_STATUS
   rejection_reason String?
   is_bulk_order  Boolean
   created_at     DateTime   @default(now())
@@ -148,7 +223,7 @@ model Shipment {
   order_id          String?
   carrier_id        String
   awb_lr_no         String   @unique
-  current_status    String   // 'Booked', 'In Transit', etc.
+  current_status    SHIPMENT_STATUS
   origin_address    String
   destination_address String
   recipient_name    String
@@ -182,8 +257,8 @@ model SupportTicket {
   user_id                String
   subject                String
   description            String
-  status                 String   // 'Open', 'Closed', etc.
-  priority               String   // 'High', 'Medium', 'Low'
+  status                 SUPPORT_STATUS
+  priority               SUPPORT_STATUS
   assigned_to_employee_id String?
   created_at             DateTime @default(now())
   updated_at             DateTime @updatedAt
@@ -200,12 +275,11 @@ model Employee {
   designation String
   department  String
   hire_date   DateTime
-  status      String   // 'Active', 'Inactive'
+  status      EMPLOYEE_STATUS
 
   user      User           @relation(fields: [user_id], references: [user_id])
   tickets   SupportTicket[]
 }
-
 model Payment {
   payment_id           String   @id @default(uuid())
   transaction_id       String?  @unique
@@ -214,7 +288,7 @@ model Payment {
   payment_method       String
   reference_number     String
   payment_date         DateTime
-  verification_status  String   // 'Pending', 'Verified', 'Rejected'
+  verification_status  PAYMENT_VERIFICATION_STATUS
   verified_by_user_id  String?
   verification_date    DateTime?
 
