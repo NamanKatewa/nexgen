@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CSSProperties, ReactElement, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { CSSProperties, ReactElement } from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -118,7 +119,7 @@ export const SparklesText: React.FC<SparklesTextProps> = ({
           } else {
             return { ...star, lifespan: star.lifespan - 0.1 };
           }
-        }),
+        })
       );
     };
 
