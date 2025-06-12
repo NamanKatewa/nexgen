@@ -8,7 +8,7 @@ const Hero = () => {
   return (
     <div className="container mx-auto py-8 md:py-12">
       <div className="relative flex w-full flex-col items-center justify-between gap-2 md:gap-16">
-        <div className="absolute -top-16 left-1/2 -z-10 size-100 -translate-x-1/2 transform rounded-full bg-gradient-to-br from-pink-300 via-purple-300 to-blue-300 opacity-30 blur-3xl"></div>
+        <div className="absolute -top-16 left-1/2 -z-10 size-100 -translate-x-1/2 transform rounded-full bg-gradient-to-br from-blue-300 via-purple-300 to-blue-300 opacity-30 blur-3xl"></div>
         <div className="absolute left-1/4 top-1/2 -z-10 size-100 -translate-x-1/2 -translate-y-1/2 transform rounded-full bg-gradient-to-br from-green-300 via-teal-300 to-blue-300 opacity-30 blur-3xl"></div>
         <div className="absolute bottom-0 right-1/4 -z-10 size-100 translate-x-1/2 translate-y-1/2 transform rounded-full bg-gradient-to-br from-yellow-300 via-orange-300 to-red-300 opacity-30 blur-3xl"></div>
 
@@ -21,21 +21,21 @@ const Hero = () => {
               )}
             >
               <AnimatedGradientText
-                colorFrom="#f9872d"
-                colorTo="#013282"
+                colorFrom="#144288"
+                colorTo="#ccf5e6"
                 className="flex items-center justify-center px-6 py-2 text-sm font-medium transition ease-out md:text-base"
               >
                 <span className="w-full text-clip text-nowrap  bg-clip-text">
                   Introducing Next Generation of Courier Services
                 </span>
-                <ArrowRightIcon className="text-orange-400 ml-2 size-4 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
+                <ArrowRightIcon className="text-blue-400 ml-2 size-4 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
               </AnimatedGradientText>
             </div>
           </div>
 
           <div className="relative mt-6 flex flex-col items-center gap-12 md:mt-0 md:gap-16 xl:flex-row xl:items-start">
             <div className="flex flex-col items-center text-center xl:items-start xl:text-left">
-              <h1 className="mb-6 max-w-3xl bg-gradient-to-r from-orange-600 via-orange-400 to-orange-600 bg-clip-text text-4xl font-bold leading-tight text-transparent md:text-5xl lg:text-6xl">
+              <h1 className="mb-6 max-w-3xl bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 bg-clip-text text-4xl font-bold leading-tight text-transparent md:text-5xl lg:text-6xl">
                 The Only Courier Service You&apos;ll Ever Need
               </h1>
               <p className="mb-8 max-w-2xl text-lg text-gray-600 dark:text-gray-300">
@@ -45,7 +45,7 @@ const Hero = () => {
               </p>
               <Button
                 size={"lg"}
-                className="rounded-full cursor-pointer bg-orange-500 text-blue-100 font-semibold tracking-wider hover:bg-orange-400"
+                className="rounded-full cursor-pointer bg-blue-500 text-orange-100 font-semibold tracking-wider hover:bg-blue-400"
               >
                 Get Started
               </Button>

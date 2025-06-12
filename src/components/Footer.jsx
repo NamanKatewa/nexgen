@@ -22,7 +22,7 @@ const socialMediaIcons = [
 
 const Footer = () => {
   return (
-    <footer className="bg-amber-100 mt-16 py-16 shadow-lg text-blue-950">
+    <footer className="bg-blue-100 mt-16 py-16 shadow-lg text-blue-950">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 gap-16 md:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col items-start space-y-6">

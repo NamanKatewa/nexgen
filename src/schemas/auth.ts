@@ -2,13 +2,12 @@ import { z } from "zod";
 
 export const signupSchema = z.object({
   email: z.string().email(),
-  mobileNumber: z.number().min(10).max(10),
-  username: z.string().min(3),
+  mobileNumber: z.string().min(10).max(10),
   password: z.string().min(6),
   name: z.string().min(1),
   companyName: z.string(),
   monthlyOrder: z.string(),
-  businessType: z.string(),
+  businessType: z.enum(["Retailer", "Ecommerce", "Franchise"]),
 });
 
 export const loginSchema = z.object({
