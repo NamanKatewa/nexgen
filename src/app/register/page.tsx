@@ -1,0 +1,246 @@
+"use client";
+
+import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { api } from "~/trpc/react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardFooter,
+} from "~/components/ui/card";
+import { Alert, AlertDescription } from "~/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import Navbar from "~/components/Navbar";
+import Footer from "~/components/Footer";
+
+interface TSignupForm {
+  email: string;
+  password: string;
+  name: string;
+  mobileNumber: string;
+  companyName: string;
+  monthlyOrder: string;
+  businessType: "Retailer" | "Ecommerce" | "Franchise";
+}
+
+export default function SignupPage() {
+  const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter();
+
+  const signupMutation = api.auth.signup.useMutation({
+    onSuccess: (data) => {
+      localStorage.setItem("token", data.token);
+      document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
+
+      router.push("/dashboard");
+      router.refresh();
+    },
+    onError: (error) => {
+      if (error.message.includes("already exists")) {
+        setErrorMessage("An account with this email already exists.");
+      } else {
+        setErrorMessage(error.message || "An error occurred during signup.");
+      }
+    },
+  });
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<TSignupForm>();
+
+  const onSubmit = async (data: TSignupForm) => {
+    setErrorMessage("");
+    signupMutation.mutate(data);
+  };
+
+  return (
+    <>
+      <Navbar />
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-[500px]">
+          <CardHeader>
+            <h1 className="text-2xl font-semibold text-center">
+              Create Account
+            </h1>
+            <p className="text-sm text-center text-muted-foreground">
+              Enter your details to create your account
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {errorMessage && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  {...register("name", { required: "Name is required" })}
+                  disabled={signupMutation.isPending}
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-600">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address",
+                    },
+                  })}
+                  disabled={signupMutation.isPending}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mobileNumber">Mobile Number</Label>
+                <Input
+                  id="mobileNumber"
+                  {...register("mobileNumber", {
+                    required: "Mobile number is required",
+                    pattern: {
+                      value: /^[0-9]{10}$/,
+                      message: "Mobile number must be 10 digits",
+                    },
+                  })}
+                  disabled={signupMutation.isPending}
+                />
+                {errors.mobileNumber && (
+                  <p className="text-sm text-red-600">
+                    {errors.mobileNumber.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  {...register("password", {
+                    required: "Password is required",
+                    minLength: {
+                      value: 6,
+                      message: "Password must be at least 6 characters",
+                    },
+                  })}
+                  disabled={signupMutation.isPending}
+                />
+                {errors.password && (
+                  <p className="text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input
+                  id="companyName"
+                  {...register("companyName", {
+                    required: "Company name is required",
+                  })}
+                  disabled={signupMutation.isPending}
+                />
+                {errors.companyName && (
+                  <p className="text-sm text-red-600">
+                    {errors.companyName.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="monthlyOrder">Monthly Order Volume</Label>
+                <Input
+                  id="monthlyOrder"
+                  {...register("monthlyOrder", {
+                    required: "Monthly order is required",
+                  })}
+                  disabled={signupMutation.isPending}
+                />
+                {errors.monthlyOrder && (
+                  <p className="text-sm text-red-600">
+                    {errors.monthlyOrder.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="businessType">Business Type</Label>
+                <Select
+                  onValueChange={(value) =>
+                    setValue("businessType", value as any)
+                  }
+                  disabled={signupMutation.isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select business type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Retailer">Retailer</SelectItem>
+                    <SelectItem value="Ecommerce">Ecommerce</SelectItem>
+                    <SelectItem value="Franchise">Franchise</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.businessType && (
+                  <p className="text-sm text-red-600">
+                    {errors.businessType.message}
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={signupMutation.isPending}
+              >
+                {signupMutation.isPending
+                  ? "Creating account..."
+                  : "Create account"}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <p className="text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link href="/login" className="text-primary hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
+      <Footer />
+    </>
+  );
+}

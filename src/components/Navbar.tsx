@@ -1,16 +1,84 @@
 "use client";
 
-import { useState } from "react";
-import { LogIn, Menu } from "lucide-react";
+import { useState, useEffect } from "react";
+import { LogIn, Menu, LogOut, LayoutDashboard } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { motion } from "motion/react";
+import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "~/components/ui/avatar";
+import { api } from "~/trpc/react";
 
 const NavItems = ["Home", "Services", "Contact Us", "Track", "Rate Calculator"];
 
+interface UserInfo {
+  email: string;
+  role: string;
+  name?: string;
+}
+
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const { data: user, isLoading } = api.auth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const utils = api.useUtils();
+
+  const handleLogout = async () => {
+    // Clear tokens
+
+    localStorage.removeItem("token");
+
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+    // Invalidate all queries
+
+    await utils.invalidate();
+
+    // Navigate
+
+    router.push("/");
+
+    router.refresh();
+  };
+  const getDashboardRoute = () => {
+    if (!user) return "/dashboard";
+
+    return user.role === "Admin" ? "/admin/dashboard" : "/dashboard";
+  };
+
+  const getInitials = (name?: string, email?: string) => {
+    if (name && name.trim()) {
+      const initials = name
+        .trim()
+        .split(" ")
+        .map((n) => n[0])
+        .filter(Boolean) // Remove any undefined values
+        .join("")
+        .toUpperCase();
+
+      return initials.slice(0, 2) || "U";
+    }
+
+    if (email && email.trim()) {
+      return email.trim()[0]?.toUpperCase() || "U";
+    }
+
+    return "U";
+  };
 
   return (
     <motion.nav
@@ -69,17 +137,59 @@ const Navbar = () => {
         </div>
 
         <div className="hidden lg:order-3 lg:flex">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link href="/login">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 border-blue-200 text-blue-500 transition-colors duration-200 ease-in-out hover:bg-blue-50 hover:text-blue-600 cursor-pointer"
-              >
-                <LogIn className="h-4 w-4" />
-                <span>Login</span>
-              </Button>
-            </Link>
-          </motion.div>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-10 w-10 rounded-full"
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-blue-100 text-blue-600">
+                      {getInitials(user.name, user.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user.name || "User"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => router.push(getDashboardRoute())}
+                >
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  <span>Dashboard</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link href="/login">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 border-blue-200 text-blue-500 transition-colors duration-200 ease-in-out hover:bg-blue-50 hover:text-blue-600 cursor-pointer"
+                  disabled={isLoading}
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span>Login</span>
+                </Button>
+              </Link>
+            </motion.div>
+          )}
         </div>
       </div>
 
@@ -122,12 +232,35 @@ const Navbar = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, delay: 0.35 }}
           >
-            <Link href="/login">
-              <Button variant="outline" className="cursor-pointer">
-                <LogIn className="h-4 w-4" />
-                <span>Login</span>
-              </Button>
-            </Link>
+            {user ? (
+              <div className="space-y-2">
+                <Link href={getDashboardRoute()}>
+                  <Button variant="outline" className="w-32">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  className="w-32"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Link href="/login">
+                <Button
+                  variant="outline"
+                  className="cursor-pointer"
+                  disabled={isLoading}
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  <span>Login</span>
+                </Button>
+              </Link>
+            )}
           </motion.li>
         </ul>
       </motion.div>

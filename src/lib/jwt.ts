@@ -5,6 +5,8 @@ import { env } from "~/env";
 interface JwtUserPayload {
   id: string;
   role: string;
+  email: string;
+  name: string;
 }
 
 export const signToken = (payload: JwtUserPayload) => {
@@ -18,6 +20,8 @@ export const verifyToken = (token: string): JwtUserPayload => {
     return {
       id: decoded.id as string,
       role: decoded.role as string,
+      email: decoded.email as string,
+      name: decoded.name as string,
     };
   }
 

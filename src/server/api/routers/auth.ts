@@ -1,10 +1,30 @@
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { signupSchema, loginSchema } from "~/schemas/auth";
 import { hash, compare } from "bcryptjs";
 import { db } from "~/server/db";
 import { signToken } from "~/lib/jwt";
 
 export const authRouter = createTRPCRouter({
+  getCurrentUser: protectedProcedure.query(async ({ ctx }) => {
+    return {
+      id: ctx.user.user_id,
+      email: ctx.user.email,
+      role: ctx.user.role,
+      name: ctx.user.name,
+    };
+  }),
+
+  me: publicProcedure.query(async ({ ctx }) => {
+    if (!ctx.user) return null;
+
+    return {
+      id: ctx.user.user_id,
+      email: ctx.user.email,
+      role: ctx.user.role,
+      name: ctx.user.name,
+    };
+  }),
+
   signup: publicProcedure.input(signupSchema).mutation(async ({ input }) => {
     const userExists = await db.user.findUnique({
       where: { email: input.email },
@@ -24,8 +44,16 @@ export const authRouter = createTRPCRouter({
       },
     });
 
-    const token = signToken({ id: user.user_id, role: user.role });
-    return { token, user: { email: user.email, role: user.role } };
+    const token = signToken({
+      id: user.user_id,
+      role: user.role,
+      email: user.email,
+      name: user.name,
+    });
+    return {
+      token,
+      user: { email: user.email, role: user.role, name: user.name },
+    };
   }),
 
   login: publicProcedure.input(loginSchema).mutation(async ({ input }) => {
@@ -36,7 +64,15 @@ export const authRouter = createTRPCRouter({
     const isValidPass = await compare(input.password, user.password_hash);
     if (!isValidPass) throw new Error("Invalid credentials");
 
-    const token = signToken({ id: user.user_id, role: user.role });
-    return { token, user: { email: user.email, role: user.role } };
+    const token = signToken({
+      id: user.user_id,
+      role: user.role,
+      email: user.email,
+      name: user.name,
+    });
+    return {
+      token,
+      user: { email: user.email, role: user.role, name: user.name },
+    };
   }),
 });
