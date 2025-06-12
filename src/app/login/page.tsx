@@ -6,6 +6,7 @@ const Login = () => {
   return (
     <>
       <Navbar />
+      Login
       <Footer />
     </>
   );
