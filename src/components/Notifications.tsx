@@ -126,7 +126,7 @@ const Notification = ({ name, message, icon, time }: Item) => {
       )}
     >
       <div className="flex flex-row items-center gap-3">
-        <div className="flex size-12 items-center justify-center rounded-full bg-amber-100/40 backdrop-blur-sm">
+        <div className="flex size-12 items-center justify-center rounded-full bg-blue-400/40 backdrop-blur-sm">
           <span className="text-2xl">{icon}</span>
         </div>
         <div className="flex flex-grow flex-col overflow-hidden">
@@ -154,7 +154,7 @@ const Notifications = ({ className }: { className?: string }) => {
         className
       )}
     >
-      <div className="bg-orange-100/40 p-4 text-blue-950 backdrop-blur-sm dark:text-white">
+      <div className="bg-blue-400/80 p-4 text-blue-950 backdrop-blur-sm dark:text-white">
         <h2 className="text-lg font-semibold">Courier Updates</h2>
       </div>
       <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 flex-grow overflow-y-auto">

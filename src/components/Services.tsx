@@ -335,7 +335,7 @@ const services = [
 const Services = () => {
   return (
     <section className="flex flex-col gap-10">
-      <h2 className="text-center text-2xl font-bold tracking-[-0.02rem] text-black drop-shadow-sm">
+      <h2 className="text-center text-2xl font-bold tracking-[-0.02rem] text-blue-950 drop-shadow-sm">
         <SparklesText>What we do</SparklesText>
       </h2>
       <CourierServices />
