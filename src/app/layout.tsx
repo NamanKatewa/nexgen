@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import Navbar from "~/components/Navbar";
+import Footer from "~/components/Footer";
 
 export const metadata: Metadata = {
   title: "NexGen Courier Services",
@@ -22,7 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable}`}>
       <body className="bg-blue-50">
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <Navbar />
+          {children}
+          <Footer />
+        </TRPCReactProvider>
       </body>
     </html>
   );

@@ -11,6 +11,7 @@ export const authRouter = createTRPCRouter({
       email: ctx.user.email,
       role: ctx.user.role,
       name: ctx.user.name,
+      status: ctx.user.status,
     };
   }),
 
@@ -22,6 +23,7 @@ export const authRouter = createTRPCRouter({
       email: ctx.user.email,
       role: ctx.user.role,
       name: ctx.user.name,
+      status: ctx.user.status,
     };
   }),
 
@@ -49,10 +51,16 @@ export const authRouter = createTRPCRouter({
       role: user.role,
       email: user.email,
       name: user.name,
+      status: user.status,
     });
     return {
       token,
-      user: { email: user.email, role: user.role, name: user.name },
+      user: {
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        status: user.status,
+      },
     };
   }),
 
@@ -69,10 +77,16 @@ export const authRouter = createTRPCRouter({
       role: user.role,
       email: user.email,
       name: user.name,
+      status: user.status,
     });
     return {
       token,
-      user: { email: user.email, role: user.role, name: user.name },
+      user: {
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        status: user.status,
+      },
     };
   }),
 });

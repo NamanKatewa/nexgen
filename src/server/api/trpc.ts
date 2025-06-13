@@ -15,7 +15,13 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
 
       user = await db.user.findUnique({
         where: { user_id: payload.id },
-        select: { user_id: true, email: true, role: true, name: true },
+        select: {
+          user_id: true,
+          email: true,
+          role: true,
+          name: true,
+          status: true,
+        },
       });
     } catch (error) {
       console.error("Invalid token:", error);

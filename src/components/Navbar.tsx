@@ -38,17 +38,11 @@ const Navbar = () => {
   const utils = api.useUtils();
 
   const handleLogout = async () => {
-    // Clear tokens
-
     localStorage.removeItem("token");
 
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-    // Invalidate all queries
-
     await utils.invalidate();
-
-    // Navigate
 
     router.push("/");
 
@@ -66,7 +60,7 @@ const Navbar = () => {
         .trim()
         .split(" ")
         .map((n) => n[0])
-        .filter(Boolean) // Remove any undefined values
+        .filter(Boolean)
         .join("")
         .toUpperCase();
 

@@ -14,8 +14,6 @@ import {
 } from "~/components/ui/card";
 import { useState } from "react";
 import Image from "next/image";
-import Navbar from "~/components/Navbar";
-import Footer from "~/components/Footer";
 import { api } from "~/trpc/react";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -75,106 +73,102 @@ const Login = () => {
   };
 
   return (
-    <>
-      <Navbar />
-      <div className="flex h-screen flex-col items-center">
-        <div className="mb-8 mt-8 p-4 md:mt-12 lg:mt-24">
-          <Image src={"/logo.png"} alt="logo" width={150} height={70} />
-        </div>
-
-        <Card className="w-full max-w-[400px] bg-amber-100/20 p-6 shadow-lg backdrop-blur-md md:p-8">
-          <CardHeader className="space-y-1">
-            <h1 className="text-center text-2xl font-semibold tracking-tight text-blue-950">
-              Welcome back
-            </h1>
-            <p className="text-center text-sm text-blue-900">
-              Enter your credentials to login
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="space-y-4 text-blue-950"
-            >
-              {errorMessage && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address",
-                    },
-                  })}
-                  disabled={isLoading}
-                />
-                {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  {...register("password", {
-                    required: "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "Password must be at least 6 characters",
-                    },
-                  })}
-                  disabled={isLoading}
-                />
-                {errors.password && (
-                  <p className="text-sm text-red-600">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading || loginMutation.isPending}
-              >
-                {isLoading || loginMutation.isPending
-                  ? "Signing in..."
-                  : "Sign in"}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-gray-500">
-              Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-primary hover:underline">
-                Create account
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+    <div className="flex h-screen flex-col items-center">
+      <div className="mb-8 mt-8 p-4 md:mt-12 lg:mt-24">
+        <Image src={"/logo.png"} alt="logo" width={150} height={70} />
       </div>
-      <Footer />
-    </>
+
+      <Card className="w-full max-w-[400px] bg-amber-100/20 p-6 shadow-lg backdrop-blur-md md:p-8">
+        <CardHeader className="space-y-1">
+          <h1 className="text-center text-2xl font-semibold tracking-tight text-blue-950">
+            Welcome back
+          </h1>
+          <p className="text-center text-sm text-blue-900">
+            Enter your credentials to login
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4 text-blue-950"
+          >
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address",
+                  },
+                })}
+                disabled={isLoading}
+              />
+              {errors.email && (
+                <p className="text-sm text-red-600">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters",
+                  },
+                })}
+                disabled={isLoading}
+              />
+              {errors.password && (
+                <p className="text-sm text-red-600">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || loginMutation.isPending}
+            >
+              {isLoading || loginMutation.isPending
+                ? "Signing in..."
+                : "Sign in"}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-gray-500">
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-primary hover:underline">
+              Create account
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

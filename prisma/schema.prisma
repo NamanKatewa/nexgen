@@ -103,7 +103,7 @@ model User {
   monthly_order String
   business_type BUSINESS_TYPE
   role          USER_ROLE @default(Client)
-  status        USER_STATUS  @default(Inactive)
+  status        USER_STATUS  @default(Active)
   created_at    DateTime     @default(now())
   updated_at    DateTime     @updatedAt
 

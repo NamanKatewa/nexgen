@@ -27,12 +27,28 @@ export function middleware(request: NextRequest) {
     }
   };
 
+  if (token) {
+    const payload = decodeToken(token);
+
+    if (payload && payload.status === "Inactive" && pathname !== "/inactive") {
+      return NextResponse.redirect(new URL("/inactive", request.url));
+    }
+
+    if (payload && payload.status !== "Inactive" && pathname === "/inactive") {
+      const dashboardUrl =
+        payload.role === "Admin" ? "/admin/dashboard" : "/dashboard";
+      return NextResponse.redirect(new URL(dashboardUrl, request.url));
+    }
+  }
+
   if (token && isAuthPage) {
     const payload = decodeToken(token);
     if (payload && payload.role) {
-      const dashboardUrl =
-        payload.role === "admin" ? "/admin/dashboard" : "/dashboard";
-      return NextResponse.redirect(new URL(dashboardUrl, request.url));
+      if (payload.status !== "Inactive") {
+        const dashboardUrl =
+          payload.role === "Admin" ? "/admin/dashboard" : "/dashboard";
+        return NextResponse.redirect(new URL(dashboardUrl, request.url));
+      }
     }
   }
 
@@ -46,7 +62,12 @@ export function middleware(request: NextRequest) {
     }
 
     const payload = decodeToken(token);
-    if (!payload || payload.role !== "admin") {
+
+    if (payload && payload.status === "Inactive") {
+      return NextResponse.redirect(new URL("/inactive", request.url));
+    }
+
+    if (!payload || payload.role !== "Admin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
@@ -61,5 +82,6 @@ export const config = {
     "/dashboard/:path*",
     "/admin/:path*",
     "/profile/:path*",
+    "/inactive",
   ],
 };
