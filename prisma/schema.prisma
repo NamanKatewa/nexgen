@@ -20,6 +20,7 @@ enum USER_STATUS{
 
 enum KYC_STATUS{
   Pending
+  Submitted
   Approved
   Rejected
 }
