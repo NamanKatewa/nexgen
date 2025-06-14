@@ -49,6 +49,8 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
                 ? localStorage.getItem("token")
                 : undefined;
 
+            console.log("[TOKEN]", token);
+
             if (token) {
               headers.set("authorization", `Bearer ${token}`);
             }

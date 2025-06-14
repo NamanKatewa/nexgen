@@ -3,6 +3,7 @@ import { signupSchema, loginSchema } from "~/schemas/auth";
 import { hash, compare } from "bcryptjs";
 import { db } from "~/server/db";
 import { signToken } from "~/lib/jwt";
+import { cookies } from "next/headers";
 
 export const authRouter = createTRPCRouter({
   me: publicProcedure.query(async ({ ctx }) => {
@@ -43,6 +44,17 @@ export const authRouter = createTRPCRouter({
       name: user.name,
       status: user.status,
     });
+
+    (await cookies()).set({
+      name: "token",
+      value: token,
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
     return {
       token,
       user: {
@@ -69,6 +81,16 @@ export const authRouter = createTRPCRouter({
       name: user.name,
       status: user.status,
     });
+    (await cookies()).set({
+      name: "token",
+      value: token,
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
     return {
       token,
       user: {
@@ -78,5 +100,9 @@ export const authRouter = createTRPCRouter({
         status: user.status,
       },
     };
+  }),
+  logout: protectedProcedure.mutation(async () => {
+    (await cookies()).set({ name: "token", value: "", maxAge: 0, path: "/" });
+    return true;
   }),
 });
