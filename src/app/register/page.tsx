@@ -30,11 +30,13 @@ import { signupSchema, type TSignupSchema } from "~/schemas/auth";
 export default function SignupPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
+  const utils = api.useUtils();
 
   const signupMutation = api.auth.signup.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       localStorage.setItem("token", data.token);
       document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
+      await utils.auth.me.invalidate;
 
       router.push("/dashboard");
       router.refresh();

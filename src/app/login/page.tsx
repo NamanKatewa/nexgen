@@ -31,7 +31,6 @@ const Login = () => {
     onSuccess: async (data) => {
       localStorage.setItem("token", data.token);
       document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
-
       await utils.auth.me.invalidate();
 
       if (data.user.role === "Admin") {
