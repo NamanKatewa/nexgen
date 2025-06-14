@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { LogIn, Menu, LogOut, LayoutDashboard } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,12 +19,6 @@ import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { api } from "~/trpc/react";
 
 const NavItems = ["Home", "Services", "Contact Us", "Track", "Rate Calculator"];
-
-interface UserInfo {
-  email: string;
-  role: string;
-  name?: string;
-}
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

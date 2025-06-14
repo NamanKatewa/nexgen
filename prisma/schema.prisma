@@ -107,33 +107,33 @@ model User {
   created_at    DateTime     @default(now())
   updated_at    DateTime     @updatedAt
 
-  kyc                KYC?
+  kyc                Kyc?
   wallet             Wallet?
   orders             Order[]
   transactions       Transaction[]
   tickets            SupportTicket[]
   employee           Employee?
   payments           Payment[]
-  verifiedKYCs       KYC[]     @relation("VerifiedByAdmin")
+  verifiedKYCs       Kyc[]     @relation("VerifiedByAdmin")
   verifiedPayments   Payment[] @relation("VerifiedByAdminPayments")
 }
 
-model KYC {
+model Kyc {
   kyc_id              String   @id @default(uuid())
   user_id             String   @unique
-  entity_name         String
-  entity_type         ENTITY_TYPE
-  website_url         String
-  billing_address     Json // Zip Code, City, State, Written Address
-  aadhar_number       String
-  aadhar_image_front String
-  aadhar_image_back String
-  pan_number  String
-  pan_image_front String
-  pan_image_back  String
+  entity_name         String?
+  entity_type         ENTITY_TYPE?
+  website_url         String?
+  billing_address     Json? // Zip Code, City, State, Written Address
+  aadhar_number       String?
+  aadhar_image_front String?
+  aadhar_image_back String?
+  pan_number  String?
+  pan_image_front String?
+  pan_image_back  String?
   gst Boolean @default(false)
-  kyc_status          KYC_STATUS
-  submission_date     DateTime
+  kyc_status          KYC_STATUS @default(Pending)
+  submission_date     DateTime?
   verification_date   DateTime?
   verified_by_user_id String?
   rejection_reason    String?

@@ -5,16 +5,6 @@ import { db } from "~/server/db";
 import { signToken } from "~/lib/jwt";
 
 export const authRouter = createTRPCRouter({
-  getCurrentUser: protectedProcedure.query(async ({ ctx }) => {
-    return {
-      id: ctx.user.user_id,
-      email: ctx.user.email,
-      role: ctx.user.role,
-      name: ctx.user.name,
-      status: ctx.user.status,
-    };
-  }),
-
   me: publicProcedure.query(async ({ ctx }) => {
     if (!ctx.user) return null;
 
