@@ -12,15 +12,17 @@ export function middleware(request: NextRequest) {
 
   const decodeToken = (token: string) => {
     try {
-      const parts = token.split(".");
-      if (parts.length !== 3 || !parts[1]) return null;
-      return JSON.parse(atob(parts[1]));
+      const base64 = token.split(".")[1];
+      if (!base64) return null;
+
+      const json = Buffer.from(base64, "base64url").toString();
+      return JSON.parse(json);
     } catch {
       return null;
     }
   };
 
-  const payload = !isTokenInvalid ? decodeToken(token!) : null;
+  const payload = isTokenInvalid ? null : decodeToken(token as string);
 
   const isKycRoute = pathname === "/dashboard/kyc";
   const isDashboardRoute = pathname.startsWith("/dashboard");
@@ -39,7 +41,7 @@ export function middleware(request: NextRequest) {
 
   if (payload?.status !== "Inactive" && pathname === "/inactive") {
     const redirectUrl =
-      payload.role === "Admin" ? "/admin/dashboard" : "/dashboard";
+      payload?.role === "Admin" ? "/admin/dashboard" : "/dashboard";
     return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
@@ -51,10 +53,8 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  if (isAdminRoute) {
-    if (!payload || payload.role !== "Admin") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+  if (isAdminRoute && payload?.role !== "Admin") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   if (
