@@ -96,7 +96,7 @@ enum ENTITY_TYPE{
 model User {
   user_id       String       @id @default(uuid())
   email         String       @unique
-  mobile_number String       @unique
+  mobile_number String       
   password_hash String
   name    String
   company_name  String
