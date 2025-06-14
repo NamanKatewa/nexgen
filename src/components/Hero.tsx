@@ -46,7 +46,7 @@ const Hero = () => {
               </p>
               <Link
                 href="/register"
-                className="px-5 py-2 rounded-full cursor-pointer bg-blue-500 text-orange-100 font-semibold tracking-wider hover:bg-blue-400"
+                className="px-5 py-3 rounded-xl cursor-pointer bg-blue-500 text-orange-100 font-semibold tracking-wider hover:bg-blue-600"
               >
                 Get Started
               </Link>
