@@ -3,6 +3,7 @@ import { cn } from "~/lib/utils";
 import { ArrowRightIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import Notifications from "~/components/Notifications";
+import Link from "next/link";
 
 const Hero = () => {
   return (
@@ -43,12 +44,12 @@ const Hero = () => {
                 exceptional customer service. We&apos;re revolutionizing the
                 courier industry, one package at a time.
               </p>
-              <Button
-                size={"lg"}
-                className="rounded-full cursor-pointer bg-blue-500 text-orange-100 font-semibold tracking-wider hover:bg-blue-400"
+              <Link
+                href="/register"
+                className="px-5 py-2 rounded-full cursor-pointer bg-blue-500 text-orange-100 font-semibold tracking-wider hover:bg-blue-400"
               >
                 Get Started
-              </Button>
+              </Link>
             </div>
             <Notifications className="w-full max-w-md xl:max-w-lg" />
           </div>
