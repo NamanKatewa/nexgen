@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
@@ -18,16 +19,12 @@ import { api } from "~/trpc/react";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
-interface TLoginForm {
-  email: string;
-  password: string;
-}
+import { loginSchema, type TLoginSchema } from "~/schemas/auth";
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
-
   const utils = api.useUtils();
 
   const loginMutation = api.auth.login.useMutation({
@@ -60,16 +57,14 @@ const Login = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<TLoginForm>();
+  } = useForm<TLoginSchema>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const onSubmit = async (data: TLoginForm) => {
+  const onSubmit = (data: TLoginSchema) => {
     setIsLoading(true);
     setErrorMessage("");
-
-    loginMutation.mutate({
-      email: data.email,
-      password: data.password,
-    });
+    loginMutation.mutate(data);
   };
 
   return (
@@ -89,6 +84,7 @@ const Login = () => {
         </CardHeader>
         <CardContent>
           <form
+            noValidate
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-4 text-blue-950"
           >
@@ -105,13 +101,7 @@ const Login = () => {
                 id="email"
                 type="email"
                 placeholder="name@example.com"
-                {...register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Invalid email address",
-                  },
-                })}
+                {...register("email")}
                 disabled={isLoading}
               />
               {errors.email && (
@@ -132,13 +122,7 @@ const Login = () => {
               <Input
                 id="password"
                 type="password"
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Password must be at least 6 characters",
-                  },
-                })}
+                {...register("password")}
                 disabled={isLoading}
               />
               {errors.password && (

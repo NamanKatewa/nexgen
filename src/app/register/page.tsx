@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -23,17 +24,8 @@ import {
 } from "~/components/ui/card";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import type { BUSINESS_TYPE } from "@prisma/client";
 
-interface TSignupForm {
-  email: string;
-  password: string;
-  name: string;
-  mobileNumber: string;
-  companyName: string;
-  monthlyOrder: string;
-  businessType: BUSINESS_TYPE;
-}
+import { signupSchema, type TSignupSchema } from "~/schemas/auth";
 
 export default function SignupPage() {
   const [errorMessage, setErrorMessage] = useState("");
@@ -61,24 +53,32 @@ export default function SignupPage() {
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm<TSignupForm>();
+  } = useForm<TSignupSchema>({
+    resolver: zodResolver(signupSchema),
+  });
 
-  const onSubmit = async (data: TSignupForm) => {
+  const onSubmit = (data: TSignupSchema) => {
     setErrorMessage("");
     signupMutation.mutate(data);
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-[500px]">
+      <Card className="w-full max-w-[500px] bg-amber-100/20">
         <CardHeader>
-          <h1 className="text-2xl font-semibold text-center">Create Account</h1>
-          <p className="text-sm text-center text-muted-foreground">
+          <h1 className="text-2xl font-semibold text-center text-blue-950">
+            Create Account
+          </h1>
+          <p className="text-sm text-center text-blue-900">
             Enter your details to create your account
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+            className="space-y-4 text-blue-950"
+          >
             {errorMessage && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -90,7 +90,7 @@ export default function SignupPage() {
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
-                {...register("name", { required: "Name is required" })}
+                {...register("name")}
                 disabled={signupMutation.isPending}
               />
               {errors.name && (
@@ -103,13 +103,7 @@ export default function SignupPage() {
               <Input
                 id="email"
                 type="email"
-                {...register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Invalid email address",
-                  },
-                })}
+                {...register("email")}
                 disabled={signupMutation.isPending}
               />
               {errors.email && (
@@ -121,13 +115,8 @@ export default function SignupPage() {
               <Label htmlFor="mobileNumber">Mobile Number</Label>
               <Input
                 id="mobileNumber"
-                {...register("mobileNumber", {
-                  required: "Mobile number is required",
-                  pattern: {
-                    value: /^[0-9]{10}$/,
-                    message: "Mobile number must be 10 digits",
-                  },
-                })}
+                {...register("mobileNumber")}
+                maxLength={10}
                 disabled={signupMutation.isPending}
               />
               {errors.mobileNumber && (
@@ -142,13 +131,7 @@ export default function SignupPage() {
               <Input
                 id="password"
                 type="password"
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Password must be at least 6 characters",
-                  },
-                })}
+                {...register("password")}
                 disabled={signupMutation.isPending}
               />
               {errors.password && (
@@ -162,9 +145,7 @@ export default function SignupPage() {
               <Label htmlFor="companyName">Company Name</Label>
               <Input
                 id="companyName"
-                {...register("companyName", {
-                  required: "Company name is required",
-                })}
+                {...register("companyName")}
                 disabled={signupMutation.isPending}
               />
               {errors.companyName && (
@@ -178,9 +159,7 @@ export default function SignupPage() {
               <Label htmlFor="monthlyOrder">Monthly Order Volume</Label>
               <Input
                 id="monthlyOrder"
-                {...register("monthlyOrder", {
-                  required: "Monthly order is required",
-                })}
+                {...register("monthlyOrder")}
                 disabled={signupMutation.isPending}
               />
               {errors.monthlyOrder && (
