@@ -10,14 +10,16 @@ import {
 import { Button } from "~/components/ui/button";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
+import { api } from "~/trpc/react";
 
 export default function SubmittedPage() {
   const router = useRouter();
+  const utils = api.useUtils();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    router.refresh();
+    utils.auth.me.invalidate();
     router.push("/");
   };
   return (
