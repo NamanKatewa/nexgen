@@ -72,7 +72,7 @@ const Login = () => {
         <Image src={"/logo.png"} alt="logo" width={150} height={70} />
       </div>
 
-      <Card className="w-full max-w-[400px] bg-amber-100/20 p-6 shadow-lg backdrop-blur-md md:p-8">
+      <Card className="w-full max-w-[400px] bg-blue-100/20 p-6 shadow-lg backdrop-blur-md md:p-8">
         <CardHeader className="space-y-1">
           <h1 className="text-center text-2xl font-semibold tracking-tight text-blue-950">
             Welcome back

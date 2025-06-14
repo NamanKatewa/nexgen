@@ -66,7 +66,7 @@ export default function SignupPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-[500px] bg-amber-100/20">
+      <Card className="w-full max-w-[500px] bg-blue-100/20">
         <CardHeader>
           <h1 className="text-2xl font-semibold text-center text-blue-950">
             Create Account
