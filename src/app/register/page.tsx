@@ -23,6 +23,7 @@ import {
 } from "~/components/ui/card";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import type { BUSINESS_TYPE } from "@prisma/client";
 
 interface TSignupForm {
   email: string;
@@ -31,7 +32,7 @@ interface TSignupForm {
   mobileNumber: string;
   companyName: string;
   monthlyOrder: string;
-  businessType: "Retailer" | "Ecommerce" | "Franchise";
+  businessType: BUSINESS_TYPE;
 }
 
 export default function SignupPage() {
