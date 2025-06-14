@@ -5,71 +5,72 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
 
+  const isTokenInvalid = !token || token === "undefined";
+
   const authPages = ["/login", "/register"];
   const isAuthPage = authPages.includes(pathname);
-
-  const protectedRoutes = ["/dashboard", "/admin/dashboard", "/profile"];
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
 
   const decodeToken = (token: string) => {
     try {
       const parts = token.split(".");
-      if (parts.length !== 3) return null;
-
-      const payload = parts[1];
-      if (!payload) return null;
-
-      return JSON.parse(atob(payload));
+      if (parts.length !== 3 || !parts[1]) return null;
+      return JSON.parse(atob(parts[1]));
     } catch {
       return null;
     }
   };
 
-  if (token) {
-    const payload = decodeToken(token);
+  const payload = !isTokenInvalid ? decodeToken(token!) : null;
 
-    if (payload && payload.status === "Inactive" && pathname !== "/inactive") {
-      return NextResponse.redirect(new URL("/inactive", request.url));
-    }
+  const isKycRoute = pathname === "/dashboard/kyc";
+  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isAdminRoute = pathname.startsWith("/admin");
 
-    if (payload && payload.status !== "Inactive" && pathname === "/inactive") {
-      const dashboardUrl =
-        payload.role === "Admin" ? "/admin/dashboard" : "/dashboard";
-      return NextResponse.redirect(new URL(dashboardUrl, request.url));
-    }
-  }
-
-  if (token && isAuthPage) {
-    const payload = decodeToken(token);
-    if (payload && payload.role) {
-      if (payload.status !== "Inactive") {
-        const dashboardUrl =
-          payload.role === "Admin" ? "/admin/dashboard" : "/dashboard";
-        return NextResponse.redirect(new URL(dashboardUrl, request.url));
-      }
-    }
-  }
-
-  if (!token && isProtectedRoute) {
+  if (
+    isTokenInvalid &&
+    (isDashboardRoute || isAdminRoute || pathname === "/profile")
+  ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (pathname.startsWith("/admin")) {
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", request.url));
+  if (payload?.status === "Inactive" && pathname !== "/inactive") {
+    return NextResponse.redirect(new URL("/inactive", request.url));
+  }
+
+  if (payload?.status !== "Inactive" && pathname === "/inactive") {
+    const redirectUrl =
+      payload.role === "Admin" ? "/admin/dashboard" : "/dashboard";
+    return NextResponse.redirect(new URL(redirectUrl, request.url));
+  }
+
+  if (!isTokenInvalid && isAuthPage) {
+    if (payload?.role && payload?.status !== "Inactive") {
+      const redirectUrl =
+        payload.role === "Admin" ? "/admin/dashboard" : "/dashboard";
+      return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
+  }
 
-    const payload = decodeToken(token);
-
-    if (payload && payload.status === "Inactive") {
-      return NextResponse.redirect(new URL("/inactive", request.url));
-    }
-
+  if (isAdminRoute) {
     if (!payload || payload.role !== "Admin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
+  }
+
+  if (
+    isDashboardRoute &&
+    !isKycRoute &&
+    payload?.role !== "Admin" &&
+    payload?.kyc_status !== "Approved"
+  ) {
+    return NextResponse.redirect(new URL("/dashboard/kyc", request.url));
+  }
+
+  if (
+    isKycRoute &&
+    (payload?.kyc_status === "Approved" || payload?.role === "Admin")
+  ) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();

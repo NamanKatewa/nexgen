@@ -37,12 +37,20 @@ export const authRouter = createTRPCRouter({
       },
     });
 
+    const kyc = await db.kyc.create({
+      data: {
+        user: { connect: { user_id: user.user_id } },
+      },
+      select: { kyc_status: true },
+    });
+
     const token = signToken({
       id: user.user_id,
       role: user.role,
       email: user.email,
       name: user.name,
       status: user.status,
+      kyc_status: kyc.kyc_status,
     });
 
     (await cookies()).set({
@@ -62,6 +70,7 @@ export const authRouter = createTRPCRouter({
         role: user.role,
         name: user.name,
         status: user.status,
+        kyc_status: kyc.kyc_status,
       },
     };
   }),
@@ -74,12 +83,22 @@ export const authRouter = createTRPCRouter({
     const isValidPass = await compare(input.password, user.password_hash);
     if (!isValidPass) throw new Error("Invalid credentials");
 
+    const kyc = await db.kyc.findUnique({
+      where: {
+        user_id: user.user_id,
+      },
+      select: { kyc_status: true },
+    });
+
+    if (!kyc) throw new Error("Invalid KYC");
+
     const token = signToken({
       id: user.user_id,
       role: user.role,
       email: user.email,
       name: user.name,
       status: user.status,
+      kyc_status: kyc.kyc_status,
     });
     (await cookies()).set({
       name: "token",
@@ -98,6 +117,7 @@ export const authRouter = createTRPCRouter({
         role: user.role,
         name: user.name,
         status: user.status,
+        kyc_status: kyc.kyc_status,
       },
     };
   }),

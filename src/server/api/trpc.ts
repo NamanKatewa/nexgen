@@ -13,7 +13,7 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
     try {
       const payload = verifyToken(token);
 
-      user = await db.user.findUnique({
+      const baseUser = await db.user.findUnique({
         where: { user_id: payload.id },
         select: {
           user_id: true,
@@ -23,6 +23,12 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
           status: true,
         },
       });
+      const kyc = await db.kyc.findUnique({
+        where: { user_id: baseUser?.user_id },
+        select: { kyc_status: true },
+      });
+
+      user = { ...baseUser, kyc_status: kyc?.kyc_status };
     } catch (error) {
       console.error("Invalid token:", error);
     }
