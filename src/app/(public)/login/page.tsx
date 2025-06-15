@@ -17,12 +17,14 @@ import { useState } from "react";
 import Image from "next/image";
 import { api } from "~/trpc/react";
 import { Alert, AlertDescription } from "~/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 
 import { loginSchema, type TLoginSchema } from "~/schemas/auth";
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordValue, setPasswordValue] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
   const utils = api.useUtils();
@@ -118,12 +120,28 @@ const Login = () => {
                   Forgot password?
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                {...register("password")}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  disabled={isLoading}
+                  className="pr-10"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-sm text-red-600">
                   {errors.password.message}

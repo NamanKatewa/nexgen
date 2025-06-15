@@ -23,7 +23,7 @@ import {
   CardFooter,
 } from "~/components/ui/card";
 import { Alert, AlertDescription } from "~/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 
 import { signupSchema, type TSignupSchema } from "~/schemas/auth";
 
@@ -31,6 +31,7 @@ export default function SignupPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const utils = api.useUtils();
 
@@ -138,12 +139,28 @@ export default function SignupPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                {...register("password")}
-                disabled={signupMutation.isPending}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  disabled={signupMutation.isPending}
+                  className="pr-10"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-sm text-red-600">
                   {errors.password.message}
