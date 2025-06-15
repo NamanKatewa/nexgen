@@ -29,6 +29,8 @@ import { signupSchema, type TSignupSchema } from "~/schemas/auth";
 
 export default function SignupPage() {
   const [errorMessage, setErrorMessage] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const router = useRouter();
   const utils = api.useUtils();
 
@@ -37,7 +39,6 @@ export default function SignupPage() {
       localStorage.setItem("token", data.token);
       document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
       await utils.auth.me.invalidate;
-
       router.push("/dashboard");
       router.refresh();
     },
@@ -61,6 +62,13 @@ export default function SignupPage() {
 
   const onSubmit = (data: TSignupSchema) => {
     setErrorMessage("");
+    setConfirmPasswordError("");
+
+    if (data.password !== confirmPassword) {
+      setConfirmPasswordError("Passwords do not match");
+      return;
+    }
+
     signupMutation.mutate(data);
   };
 
@@ -140,6 +148,20 @@ export default function SignupPage() {
                 <p className="text-sm text-red-600">
                   {errors.password.message}
                 </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={signupMutation.isPending}
+              />
+              {confirmPasswordError && (
+                <p className="text-sm text-red-600">{confirmPasswordError}</p>
               )}
             </div>
 
