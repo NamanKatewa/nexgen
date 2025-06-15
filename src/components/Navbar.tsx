@@ -185,7 +185,7 @@ const Navbar = () => {
         {isMobileMenuOpen && (
           <motion.div
             key="mobile-menu"
-            className="fixed top-16 left-0 z-40 flex h-[calc(100vh-4rem)] w-full flex-col justify-between bg-blue-50 lg:hidden"
+            className="fixed top-16 left-0 z-50 flex h-[calc(100vh-4rem)] w-full flex-col justify-between bg-blue-50 lg:hidden"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}

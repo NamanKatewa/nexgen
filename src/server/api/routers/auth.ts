@@ -1,9 +1,14 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { signupSchema, loginSchema } from "~/schemas/auth";
+import {
+  signupSchema,
+  loginSchema,
+  forgotPasswordSchema,
+} from "~/schemas/auth";
 import { hash, compare } from "bcryptjs";
 import { db } from "~/server/db";
 import { signToken } from "~/lib/jwt";
 import { cookies } from "next/headers";
+import { sendEmail } from "~/lib/email";
 
 export const authRouter = createTRPCRouter({
   me: publicProcedure.query(async ({ ctx }) => {
@@ -125,4 +130,15 @@ export const authRouter = createTRPCRouter({
     (await cookies()).set({ name: "token", value: "", maxAge: 0, path: "/" });
     return true;
   }),
+  forgotPassword: publicProcedure
+    .input(forgotPasswordSchema)
+    .mutation(async ({ input }) => {
+      const user = await db.user.findUnique({ where: { email: input.email } });
+
+      if (!user) throw new Error("No user with this email.");
+
+      const mail = await sendEmail({ to: user.email, subject: "Test" });
+      if (mail) return true;
+      throw new Error("Somethine Went Wrong.");
+    }),
 });

@@ -18,5 +18,10 @@ export const loginSchema = z.object({
   password: z.string().min(6, "Invalid Password"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid Email Address"),
+});
+
 export type TLoginSchema = z.infer<typeof loginSchema>;
 export type TSignupSchema = z.infer<typeof signupSchema>;
+export type TForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
