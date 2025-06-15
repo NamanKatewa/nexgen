@@ -297,3 +297,11 @@ model Payment {
   user           User         @relation(fields: [user_id], references: [user_id])
   verified_by    User?        @relation("VerifiedByAdminPayments", fields: [verified_by_user_id], references: [user_id])
 }
+
+model PasswordReset {
+  reset_id   String   @id @default(cuid())
+  email      String   @unique
+  otp        String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+}

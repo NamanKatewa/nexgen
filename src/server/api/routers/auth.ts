@@ -3,12 +3,15 @@ import {
   signupSchema,
   loginSchema,
   forgotPasswordSchema,
+  resetPasswordWithOtpSchema,
 } from "~/schemas/auth";
 import { hash, compare } from "bcryptjs";
 import { db } from "~/server/db";
 import { signToken } from "~/lib/jwt";
 import { cookies } from "next/headers";
 import { sendEmail } from "~/lib/email";
+import { generateOTP } from "~/lib/utils";
+import { addMinutes } from "date-fns";
 
 export const authRouter = createTRPCRouter({
   me: publicProcedure.query(async ({ ctx }) => {
@@ -105,6 +108,7 @@ export const authRouter = createTRPCRouter({
       status: user.status,
       kyc_status: kyc.kyc_status,
     });
+
     (await cookies()).set({
       name: "token",
       value: token,
@@ -126,19 +130,60 @@ export const authRouter = createTRPCRouter({
       },
     };
   }),
+
   logout: protectedProcedure.mutation(async () => {
     (await cookies()).set({ name: "token", value: "", maxAge: 0, path: "/" });
     return true;
   }),
+
   forgotPassword: publicProcedure
     .input(forgotPasswordSchema)
     .mutation(async ({ input }) => {
       const user = await db.user.findUnique({ where: { email: input.email } });
-
       if (!user) throw new Error("No user with this email.");
 
-      const mail = await sendEmail({ to: user.email, subject: "Test" });
+      const otp = generateOTP();
+      const expiry = addMinutes(new Date(), 10);
+
+      const reset = await db.passwordReset.upsert({
+        where: { email: input.email },
+        update: { otp, expiresAt: expiry },
+        create: { email: input.email, otp, expiresAt: expiry },
+      });
+
+      if (!reset) throw new Error("Database Error");
+
+      const mail = await sendEmail({
+        to: user.email,
+        subject: "Password Reset OTP",
+        html: `<p>Your OTP is <strong>${otp}</strong>. It expires in 10 minutes.</p>`,
+      });
+
       if (mail) return true;
-      throw new Error("Somethine Went Wrong.");
+      throw new Error("Something Went Wrong.");
+    }),
+
+  resetPasswordWithOtp: publicProcedure
+    .input(resetPasswordWithOtpSchema)
+    .mutation(async ({ input }) => {
+      const record = await db.passwordReset.findUnique({
+        where: { email: input.email },
+      });
+
+      if (!record || record.otp !== input.otp)
+        throw new Error("Invalid or expired OTP");
+
+      if (record.expiresAt < new Date()) throw new Error("OTP expired");
+
+      const hashedPassword = await hash(input.password, 10);
+
+      await db.user.update({
+        where: { email: input.email },
+        data: { password_hash: hashedPassword },
+      });
+
+      await db.passwordReset.delete({ where: { email: input.email } });
+
+      return true;
     }),
 });
