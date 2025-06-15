@@ -47,6 +47,7 @@ export const kycRouter = createTRPCRouter({
             pan_image_back: panBackUrl,
             gst: input.gst,
             kyc_status: "Submitted",
+            submission_date: new Date(),
           },
         });
 
