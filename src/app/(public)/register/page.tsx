@@ -170,13 +170,29 @@ export default function SignupPage() {
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={signupMutation.isPending}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={signupMutation.isPending}
+                  className="pr-10"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
               {confirmPasswordError && (
                 <p className="text-sm text-red-600">{confirmPasswordError}</p>
               )}
@@ -200,6 +216,7 @@ export default function SignupPage() {
               <Label htmlFor="monthlyOrder">Monthly Order Volume</Label>
               <Input
                 id="monthlyOrder"
+                type="number"
                 {...register("monthlyOrder")}
                 disabled={signupMutation.isPending}
               />

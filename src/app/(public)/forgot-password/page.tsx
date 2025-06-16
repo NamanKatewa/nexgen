@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, MailCheck, Eye, EyeOff } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
@@ -17,6 +17,11 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "~/components/ui/input-otp";
 
 export default function ResetPage() {
   const router = useRouter();
@@ -119,8 +124,19 @@ export default function ResetPage() {
               onSubmit={emailForm.handleSubmit(handleEmailSubmit)}
               className="space-y-4 text-blue-950"
             >
-              <Label>Email</Label>
-              <Input type="email" {...emailForm.register("email")} />
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  {...emailForm.register("email")}
+                  aria-invalid={!!emailForm.formState.errors.email}
+                />
+                {emailForm.formState.errors.email && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {emailForm.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
               <Button
                 type="submit"
                 className="w-full"
@@ -136,29 +152,62 @@ export default function ResetPage() {
               onSubmit={resetForm.handleSubmit(handleResetSubmit)}
               className="space-y-4 text-blue-950"
             >
-              <Label>OTP</Label>
-              <Input maxLength={6} {...resetForm.register("otp")} />
-              <Label>New Password</Label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  {...resetForm.register("password")}
-                  className="pr-10"
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
+              <div>
+                <Label>OTP</Label>
+                <Controller
+                  control={resetForm.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <InputOTP
+                      maxLength={6}
+                      value={field.value}
+                      onChange={field.onChange}
+                    >
+                      <InputOTPGroup>
+                        {Array.from({ length: 6 }).map((_, index) => (
+                          <InputOTPSlot key={index} index={index} />
+                        ))}
+                      </InputOTPGroup>
+                    </InputOTP>
                   )}
-                </button>
+                />
+                {resetForm.formState.errors.otp && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {resetForm.formState.errors.otp.message}
+                  </p>
+                )}
               </div>
+
+              <div>
+                <Label>New Password</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    {...resetForm.register("password")}
+                    className="pr-10"
+                    autoComplete="current-password"
+                    aria-invalid={!!resetForm.formState.errors.password}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {resetForm.formState.errors.password && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {resetForm.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+
               <Button
                 type="submit"
                 className="w-full"
@@ -166,6 +215,7 @@ export default function ResetPage() {
               >
                 {resetPassword.isPending ? "Resetting..." : "Reset Password"}
               </Button>
+
               <Button
                 type="button"
                 variant="secondary"

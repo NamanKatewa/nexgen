@@ -26,6 +26,11 @@ import { AlertCircle } from "lucide-react";
 import { ENTITY_TYPE } from "@prisma/client";
 import Link from "next/link";
 import { api } from "~/trpc/react";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "~/components/ui/input-otp";
 
 export default function KycFormPage() {
   const router = useRouter();
@@ -58,6 +63,7 @@ export default function KycFormPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<TKycSchema>({
     resolver: zodResolver(submitKycSchema),
@@ -236,12 +242,32 @@ export default function KycFormPage() {
             <div className="flex flex-wrap gap-10 mb-10">
               <div className="space-y-2">
                 <Label>Aadhar Number</Label>
-                <Input
-                  {...register("aadharNumber")}
+                <InputOTP
                   maxLength={12}
-                  inputMode="numeric"
+                  value={watch("aadharNumber")}
+                  onChange={(val) => setValue("aadharNumber", val)}
                   disabled={isLoading}
-                />
+                  pattern="\d*"
+                  inputMode="numeric"
+                >
+                  <InputOTPGroup>
+                    {[0, 1, 2, 3].map((i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
+                  <span className="px-2">-</span>
+                  <InputOTPGroup>
+                    {[4, 5, 6, 7].map((i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
+                  <span className="px-2">-</span>
+                  <InputOTPGroup>
+                    {[8, 9, 10, 11].map((i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
                 {errors.aadharNumber && (
                   <p className="text-sm text-red-600">
                     {errors.aadharNumber.message}
@@ -305,16 +331,18 @@ export default function KycFormPage() {
             <div className="flex flex-wrap gap-10 mb-10">
               <div className="space-y-2">
                 <Label>PAN Number</Label>
-                <Input
-                  {...register("panNumber")}
+                <InputOTP
                   maxLength={10}
+                  value={watch("panNumber")}
+                  onChange={(val) => setValue("panNumber", val.toUpperCase())}
                   disabled={isLoading}
-                  onInput={(e) => {
-                    const input = e.target as HTMLInputElement;
-                    input.value = input.value.toUpperCase();
-                  }}
-                  className="capitalize"
-                />
+                  pattern="[A-Z0-9]*"
+                  className="uppercase"
+                >
+                  {[...Array(10)].map((_, i) => (
+                    <InputOTPSlot key={i} index={i} />
+                  ))}
+                </InputOTP>
                 {errors.panNumber && (
                   <p className="text-sm text-red-600">
                     {errors.panNumber.message}

@@ -8,19 +8,6 @@ const base64ImageSchema = z.object({
   size: z.number().max(5 * 1024 * 1024, "Max file siez is 5MB."),
 });
 
-// const fileInputSchema = z
-//   .union([
-//     z.instanceof(File, { message: "File is required." }),
-//     z.undefined(),
-//     z.null(),
-//   ])
-//   .refine((file) => !file || file?.type?.startsWith("image/"), {
-//     message: "Must be an image.",
-//   })
-//   .refine((file) => !file || file?.size <= 5 * 1024 * 1024, {
-//     message: "Max file size is 5MB.",
-//   });
-
 export const submitKycSchema = z
   .object({
     entityName: z.string().min(1, "Entity name is required"),
@@ -50,7 +37,12 @@ export const submitKycSchema = z
       .length(12, "Aadhar number must be exactly 12 digits"),
     aadharImageFront: base64ImageSchema.optional(),
     aadharImageBack: base64ImageSchema.optional(),
-    panNumber: z.string().length(10, "PAN number must be exactly 10 digits"),
+    panNumber: z
+      .string()
+      .regex(
+        /^[A-Z]{5}[0-9]{4}[A-Z]$/,
+        "PAN number must be in the format: 5 letters, 4 digits, 1 letter"
+      ),
     panImageFront: base64ImageSchema.optional(),
     panImageBack: base64ImageSchema.optional(),
     gst: z.boolean(),
