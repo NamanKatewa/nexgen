@@ -80,4 +80,15 @@ export const submitKycSchema = z
     }
   });
 
+export const verifyKycSchema = z.object({
+  kycId: z.string().min(1),
+});
+
+export const rejectKycSchema = z.object({
+  kycId: z.string().min(1),
+  reason: z.string(),
+});
+
 export type TKycSchema = z.infer<typeof submitKycSchema>;
+export type TKycVerifySchema = z.infer<typeof verifyKycSchema>;
+export type TKycRejectSchema = z.infer<typeof rejectKycSchema>;
