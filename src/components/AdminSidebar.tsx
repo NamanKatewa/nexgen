@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   LayoutDashboard,
   Package,
+  FileUser,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -14,6 +15,7 @@ import { usePathname } from "next/navigation";
 
 const sidebarLinks = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/admin/kyc-verify", icon: FileUser, label: "Verify KYC" },
   { href: "/admin/orders", icon: Package, label: "Orders" },
   {
     href: "/admin/order-requests",
