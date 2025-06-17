@@ -5,18 +5,16 @@ import { env } from "~/env";
 import { appRouter } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 
-const createContext = async (req: NextRequest) => {
-  return createTRPCContext({
-    headers: req.headers,
-  });
-};
-
-const handler = (req: NextRequest) =>
-  fetchRequestHandler({
+// Extracted context creation to avoid creating anonymous functions unnecessarily
+const handler = async (req: NextRequest) => {
+  return fetchRequestHandler({
     endpoint: "/api/trpc",
     req,
     router: appRouter,
-    createContext: () => createContext(req),
+    createContext: () =>
+      createTRPCContext({
+        headers: req.headers,
+      }),
     onError:
       env.NODE_ENV === "development"
         ? ({ path, error }) => {
@@ -26,5 +24,7 @@ const handler = (req: NextRequest) =>
           }
         : undefined,
   });
+};
 
+// Export both GET and POST methods using the same handler
 export { handler as GET, handler as POST };

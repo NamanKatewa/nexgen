@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { cn } from "~/lib/utils";
 import { AnimatedList } from "~/components/magicui/animated-list";
 
@@ -10,7 +11,7 @@ interface Item {
   time: string;
 }
 
-let notifications = [
+const notifications: Item[] = [
   {
     name: "Delhivery",
     message: "Shipment created and awaiting pickup.",
@@ -115,35 +116,35 @@ let notifications = [
   },
 ];
 
-const Notification = ({ name, message, icon, time }: Item) => {
-  return (
-    <figure
-      className={cn(
-        "relative mx-auto min-h-fit w-full max-w-[400px] cursor-pointer overflow-hidden rounded-xl p-4",
-        "transition-all duration-200 ease-in-out hover:bg-white/10 dark:hover:bg-gray-800/30",
-        "bg-white/5 dark:bg-gray-900/5",
-        "border-b border-gray-200/10 dark:border-gray-700/10"
-      )}
-    >
-      <div className="flex flex-row items-center gap-3">
-        <div className="flex size-12 items-center justify-center rounded-full bg-blue-400/40 backdrop-blur-sm">
-          <span className="text-2xl">{icon}</span>
-        </div>
-        <div className="flex flex-grow flex-col overflow-hidden">
-          <figcaption className="flex flex-row items-center justify-between whitespace-pre text-lg font-medium text-blue-950">
-            <span className="text-sm sm:text-lg">{name}</span>
-            <span className="text-xs text-blue-950">{time}</span>
-          </figcaption>
-          <p className="truncate text-sm font-normal text-blue-950">
-            {message}
-          </p>
-        </div>
+const Notification = memo(({ name, message, icon, time }: Item) => (
+  <figure
+    className={cn(
+      "relative mx-auto min-h-fit w-full max-w-[400px] cursor-pointer overflow-hidden rounded-xl p-4",
+      "transition-all duration-200 ease-in-out hover:bg-white/10 dark:hover:bg-gray-800/30",
+      "bg-white/5 dark:bg-gray-900/5",
+      "border-b border-gray-200/10 dark:border-gray-700/10"
+    )}
+  >
+    <div className="flex flex-row items-center gap-3">
+      <div className="flex size-12 items-center justify-center rounded-full bg-blue-400/40 backdrop-blur-sm">
+        <span className="text-2xl">{icon}</span>
       </div>
-    </figure>
-  );
-};
+      <div className="flex flex-grow flex-col overflow-hidden">
+        <figcaption className="flex flex-row items-center justify-between whitespace-pre text-lg font-medium text-blue-950">
+          <span className="text-sm sm:text-lg">{name}</span>
+          <span className="text-xs text-blue-950">{time}</span>
+        </figcaption>
+        <p className="truncate text-sm font-normal text-blue-950">{message}</p>
+      </div>
+    </div>
+  </figure>
+));
 
-const Notifications = ({ className }: { className?: string }) => {
+Notification.displayName = "Notification";
+
+const Notifications: React.FC<{ className?: string }> = ({ className }) => {
+  const memoizedNotifications = useMemo(() => notifications, []);
+
   return (
     <div
       className={cn(
@@ -159,8 +160,14 @@ const Notifications = ({ className }: { className?: string }) => {
       </div>
       <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 flex-grow overflow-y-auto">
         <AnimatedList>
-          {notifications.map((item, idx) => (
-            <Notification {...item} key={idx} />
+          {memoizedNotifications.map((item, idx) => (
+            <Notification
+              key={`${item.name}-${idx}`} // still index-based, but scoped better
+              name={item.name}
+              message={item.message}
+              icon={item.icon}
+              time={item.time}
+            />
           ))}
         </AnimatedList>
       </div>

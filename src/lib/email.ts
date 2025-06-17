@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { env } from "~/env";
 
+// Create transporter once
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -19,18 +20,19 @@ export async function sendEmail({
   subject: string;
   html?: string;
   text?: string;
-}) {
+}): Promise<boolean> {
   try {
-    const info = await transporter.sendMail({
-      from: "Nexgen Courier Services",
+    await transporter.sendMail({
+      from: `"Nexgen Courier Services" <${env.EMAIL_USER}>`, // More reliable
       to,
       subject,
       text,
       html,
     });
+
     return true;
   } catch (error) {
-    console.log(error);
+    console.error("Email sending failed:", (error as Error).message);
     return false;
   }
 }

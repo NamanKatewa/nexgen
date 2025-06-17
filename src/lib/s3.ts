@@ -21,36 +21,40 @@ export async function uploadFileToS3(
   file: Base64File,
   folder: string
 ): Promise<string> {
+  const { data, name, type } = file;
+
+  const base64Content = data.split(",")[1];
+  if (!base64Content) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Invalid Base64 data for file: ${name}`,
+    });
+  }
+
+  const fileBuffer = Buffer.from(base64Content, "base64");
+  const timestamp = Date.now();
+  const sanitizedFileName = name.replace(/\s+/g, "_");
+  const key = `${folder}/${timestamp}-${sanitizedFileName}`;
+
   try {
-    const base64Content = file.data.split(",")[1];
-
-    if (!base64Content) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Invalid Base64 data for file: ${file.name}`,
-      });
-    }
-
-    const fileBuffer = Buffer.from(base64Content, "base64");
-    const fileName = `${folder}/${Date.now()}-${file.name}`;
-
     await s3.send(
       new PutObjectCommand({
         Bucket: env.S3_BUCKET_NAME,
-        Key: fileName,
+        Key: key,
         Body: fileBuffer,
-        ContentType: file.type,
+        ContentType: type,
       })
     );
-    return `https://${env.S3_BUCKET_NAME}.s3.${env.S3_REGION}.amazonaws.com/${fileName}`;
+
+    return `https://${env.S3_BUCKET_NAME}.s3.${env.S3_REGION}.amazonaws.com/${key}`;
   } catch (error) {
-    console.error("Error uploadin file to S3:", error);
-    if (error instanceof TRPCError) {
-      throw error;
-    }
+    console.error("Error uploading file to S3:", error);
+
+    if (error instanceof TRPCError) throw error;
+
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: `Failed to upload ${file.name} to S3`,
+      message: `Failed to upload ${name} to S3`,
       cause: error,
     });
   }

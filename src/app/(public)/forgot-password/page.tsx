@@ -14,7 +14,7 @@ import {
   type TForgotPasswordSchema,
   type TResetPasswordWithOtpSchema,
 } from "~/schemas/auth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import {
@@ -25,6 +25,7 @@ import {
 
 export default function ResetPage() {
   const router = useRouter();
+
   const [step, setStep] = useState<"email" | "reset">("email");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -38,12 +39,12 @@ export default function ResetPage() {
 
   const resetForm = useForm<TResetPasswordWithOtpSchema>({
     resolver: zodResolver(resetPasswordWithOtpSchema),
-    defaultValues: { email, otp: "", password: "" },
+    defaultValues: { email: "", otp: "", password: "" },
   });
 
   useEffect(() => {
-    resetForm.setValue("email", email);
-  }, [email, resetForm]);
+    if (step === "reset") resetForm.setValue("email", email);
+  }, [email, resetForm, step]);
 
   useEffect(() => {
     if (step !== "reset" || resendTimer <= 0) return;
@@ -69,54 +70,62 @@ export default function ResetPage() {
 
   useEffect(() => {
     if (resetPassword.isSuccess) {
-      const timeout = setTimeout(() => {
-        router.push("/login");
-      }, 5000);
+      const timeout = setTimeout(() => router.push("/login"), 5000);
       return () => clearTimeout(timeout);
     }
   }, [resetPassword.isSuccess, router]);
 
-  const handleEmailSubmit = (data: TForgotPasswordSchema) => {
-    setEmail(data.email);
-    setErrorMessage("");
-    setMessage("");
-    forgotPassword.mutate(data);
-  };
+  const handleEmailSubmit = useCallback(
+    (data: TForgotPasswordSchema) => {
+      setEmail(data.email);
+      setMessage("");
+      setErrorMessage("");
+      forgotPassword.mutate(data);
+    },
+    [forgotPassword]
+  );
 
-  const handleResetSubmit = (data: TResetPasswordWithOtpSchema) => {
-    setErrorMessage("");
-    setMessage("");
-    resetPassword.mutate(data);
-  };
+  const handleResetSubmit = useCallback(
+    (data: TResetPasswordWithOtpSchema) => {
+      setMessage("");
+      setErrorMessage("");
+      resetPassword.mutate(data);
+    },
+    [resetPassword]
+  );
 
-  const resend = () => {
+  const resend = useCallback(() => {
     if (!email || forgotPassword.isPending) return;
     forgotPassword.mutate({ email });
     setResendTimer(60);
-  };
+  }, [email, forgotPassword]);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-[500px] bg-blue-100/20">
+      <Card className="w-full max-w-md bg-blue-100/20">
         <CardHeader>
           <h1 className="text-2xl font-semibold text-center text-blue-950">
             Forgot Password
           </h1>
         </CardHeader>
         <CardContent>
-          {errorMessage && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          )}
-          {message && (
-            <Alert variant="default" className="bg-green-300 mb-4">
-              <MailCheck className="h-4 w-4" />
-              <AlertDescription className="text-blue-950">
-                {message}
-              </AlertDescription>
-            </Alert>
+          {(errorMessage || message) && (
+            <div className="mb-4 space-y-2">
+              {errorMessage && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+              {message && (
+                <Alert variant="default" className="bg-green-300">
+                  <MailCheck className="h-4 w-4" />
+                  <AlertDescription className="text-blue-950">
+                    {message}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
           )}
 
           {step === "email" && (
@@ -125,8 +134,9 @@ export default function ResetPage() {
               className="space-y-4 text-blue-950"
             >
               <div>
-                <Label>Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
+                  id="email"
                   type="email"
                   {...emailForm.register("email")}
                   aria-invalid={!!emailForm.formState.errors.email}
@@ -153,7 +163,7 @@ export default function ResetPage() {
               className="space-y-4 text-blue-950"
             >
               <div>
-                <Label>OTP</Label>
+                <Label htmlFor="otp">OTP</Label>
                 <Controller
                   control={resetForm.control}
                   name="otp"
@@ -179,18 +189,19 @@ export default function ResetPage() {
               </div>
 
               <div>
-                <Label>New Password</Label>
+                <Label htmlFor="password">New Password</Label>
                 <div className="relative">
                   <Input
+                    id="password"
                     type={showPassword ? "text" : "password"}
                     {...resetForm.register("password")}
                     className="pr-10"
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     aria-invalid={!!resetForm.formState.errors.password}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
+                    onClick={() => setShowPassword((p) => !p)}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
                     tabIndex={-1}
                   >

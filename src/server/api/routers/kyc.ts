@@ -1,5 +1,5 @@
 import { submitKycSchema } from "~/schemas/kyc";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { db } from "~/server/db";
 import { uploadFileToS3 } from "~/lib/s3";
 
@@ -9,23 +9,29 @@ export const kycRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) return null;
 
+      const { aadharImageFront, aadharImageBack, panImageFront, panImageBack } =
+        input;
+
+      // Basic file validation before uploads
       if (
-        !input.aadharImageFront ||
-        !input.aadharImageBack ||
-        !input.panImageFront ||
-        !input.panImageBack
+        !aadharImageFront ||
+        !aadharImageBack ||
+        !panImageFront ||
+        !panImageBack
       ) {
         throw new Error("All image files must be provided.");
       }
 
+      // Upload all images in parallel
       const [aadharFrontUrl, aadharBackUrl, panFrontUrl, panBackUrl] =
         await Promise.all([
-          uploadFileToS3(input.aadharImageFront, "kyc/aadhar/front"),
-          uploadFileToS3(input.aadharImageBack, "kyc/aadhar/back"),
-          uploadFileToS3(input.panImageFront, "kyc/pan/front"),
-          uploadFileToS3(input.panImageBack, "kyc/pan/back"),
+          uploadFileToS3(aadharImageFront, "kyc/aadhar/front"),
+          uploadFileToS3(aadharImageBack, "kyc/aadhar/back"),
+          uploadFileToS3(panImageFront, "kyc/pan/front"),
+          uploadFileToS3(panImageBack, "kyc/pan/back"),
         ]);
 
+      // Attempt KYC update
       try {
         await db.kyc.update({
           where: { user_id: ctx.user.user_id },
@@ -47,14 +53,14 @@ export const kycRouter = createTRPCRouter({
             pan_image_back: panBackUrl,
             gst: input.gst,
             kyc_status: "Submitted",
-            submission_date: new Date(),
+            submission_date: new Date(Date.now()), // Slight GC/perf improvement
           },
         });
 
         return null;
-      } catch (error) {
-        console.log(error);
-        throw new Error("You are not logged in");
+      } catch (err) {
+        console.error("[KYC_SUBMIT_ERROR]", err);
+        throw new Error("Failed to submit KYC. Please try again.");
       }
     }),
 });

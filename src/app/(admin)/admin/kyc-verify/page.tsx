@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import { format } from "date-fns";
 import Image from "next/image";
+
 import {
   Table,
   TableBody,
@@ -34,21 +35,11 @@ import { api } from "~/trpc/react";
 
 const placeholderImage = "/tracking.jpg";
 
-const entityTypes = [
-  "Individual",
-  "SelfEmployement",
-  "ProprietorshipFirm",
-  "LimitedLiabilityParternship",
-  "PrivateLimitedCompany",
-  "PublicLimitedCompany",
-  "PartnershipFirm",
-];
-
 type BillingAddress = {
   address_line: string;
   city: string;
   state: string;
-  zip_code: string;
+  zip_code: number;
 };
 
 function isBillingAddress(obj: any): obj is BillingAddress {
@@ -61,8 +52,18 @@ function isBillingAddress(obj: any): obj is BillingAddress {
   );
 }
 
+const entityTypes = [
+  "Individual",
+  "SelfEmployement",
+  "ProprietorshipFirm",
+  "LimitedLiabilityParternship",
+  "PrivateLimitedCompany",
+  "PublicLimitedCompany",
+  "PartnershipFirm",
+];
+
 const VerifyKycPage = () => {
-  const { data: kycList, isLoading } = api.admin.pendingKyc.useQuery(
+  const { data: kycList = [], isLoading } = api.admin.pendingKyc.useQuery(
     undefined,
     {
       retry: 3,
@@ -71,9 +72,11 @@ const VerifyKycPage = () => {
   );
 
   const utils = api.useUtils();
+
   const verifyKyc = api.admin.verifyKyc.useMutation({
     onSuccess: () => utils.admin.pendingKyc.invalidate(),
   });
+
   const rejectKyc = api.admin.rejectKyc.useMutation({
     onSuccess: () => utils.admin.pendingKyc.invalidate(),
   });
@@ -93,16 +96,19 @@ const VerifyKycPage = () => {
     topRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const filteredList = (kycList ?? []).filter((item) => {
-    return (
-      (filterGST === "ALL" || (filterGST === "YES" ? item.gst : !item.gst)) &&
-      (filterType === "ALL" || item.entity_type === filterType)
-    );
-  });
+  const filteredList = useMemo(
+    () =>
+      kycList.filter((item) => {
+        const gstMatch =
+          filterGST === "ALL" || (filterGST === "YES" ? item.gst : !item.gst);
+        const typeMatch =
+          filterType === "ALL" || item.entity_type === filterType;
+        return gstMatch && typeMatch;
+      }),
+    [kycList, filterGST, filterType]
+  );
 
-  const previewImage = (src: string) => {
-    window.open(src, "_blank");
-  };
+  const previewImage = (src: string) => window.open(src, "_blank");
 
   if (isLoading) {
     return (
@@ -132,7 +138,7 @@ const VerifyKycPage = () => {
                   id="gst-filter"
                   className="w-[140px] text-blue-950"
                 >
-                  <SelectValue placeholder="GST: " />
+                  <SelectValue placeholder="GST:" />
                 </SelectTrigger>
                 <SelectContent className="text-blue-950">
                   <SelectItem value="ALL">All</SelectItem>
@@ -154,7 +160,7 @@ const VerifyKycPage = () => {
                   id="entity-type-filter"
                   className="w-[240px] text-blue-950"
                 >
-                  <SelectValue placeholder="Entity Type: " />
+                  <SelectValue placeholder="Entity Type:" />
                 </SelectTrigger>
                 <SelectContent className="text-blue-950">
                   <SelectItem value="ALL">All Types</SelectItem>
@@ -182,27 +188,15 @@ const VerifyKycPage = () => {
             <Table className="table-fixed text-blue-950">
               <TableHeader className="bg-blue-100 z-20 shadow-sm">
                 <TableRow>
-                  <TableHead className="px-4 w-70 text-blue-950">
-                    Entity
-                  </TableHead>
-                  <TableHead className="px-4 w-50 text-blue-950">
-                    Type
-                  </TableHead>
-                  <TableHead className="px-4 w-50 text-blue-950">
-                    Website
-                  </TableHead>
-                  <TableHead className="px-4 w-70 text-blue-950">
-                    Billing Address
-                  </TableHead>
-                  <TableHead className="px-4 w-50 text-blue-950">
-                    Aadhar
-                  </TableHead>
-                  <TableHead className="px-4 w-50 text-blue-950">PAN</TableHead>
-                  <TableHead className="px-4 w-30 text-blue-950">GST</TableHead>
-                  <TableHead className="px-4 w-30 text-blue-950">
-                    Submitted On
-                  </TableHead>
-                  <TableHead className="px-4 w-50 text-right text-blue-950">
+                  <TableHead className="px-4 w-70">Entity</TableHead>
+                  <TableHead className="px-4 w-50">Type</TableHead>
+                  <TableHead className="px-4 w-50">Website</TableHead>
+                  <TableHead className="px-4 w-70">Billing Address</TableHead>
+                  <TableHead className="px-4 w-50">Aadhar</TableHead>
+                  <TableHead className="px-4 w-50">PAN</TableHead>
+                  <TableHead className="px-4 w-30">GST</TableHead>
+                  <TableHead className="px-4 w-30">Submitted On</TableHead>
+                  <TableHead className="px-4 w-50 text-right">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -363,6 +357,8 @@ const VerifyKycPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Accept Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-md bg-blue-50 text-blue-950">
           <DialogHeader>
@@ -390,6 +386,8 @@ const VerifyKycPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reject Modal */}
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
         <DialogContent className="max-w-md bg-blue-50 text-blue-950">
           <DialogHeader>
