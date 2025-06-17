@@ -1,15 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
-
-import { api } from "~/trpc/react";
-import { loginSchema, type TLoginSchema } from "~/schemas/auth";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -19,22 +13,21 @@ import {
   CardHeader,
   CardFooter,
 } from "~/components/ui/card";
+import { useState } from "react";
+import Image from "next/image";
+import { api } from "~/trpc/react";
 import { Alert, AlertDescription } from "~/components/ui/alert";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
+
+import { loginSchema, type TLoginSchema } from "~/schemas/auth";
 
 const Login = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordValue, setPasswordValue] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-
   const router = useRouter();
   const utils = api.useUtils();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<TLoginSchema>({
-    resolver: zodResolver(loginSchema),
-  });
 
   const loginMutation = api.auth.login.useMutation({
     onSuccess: async (data) => {
@@ -42,9 +35,12 @@ const Login = () => {
       document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
       await utils.auth.me.invalidate();
 
-      router.push(
-        data.user.role === "Admin" ? "/admin/dashboard" : "/dashboard"
-      );
+      if (data.user.role === "Admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/dashboard");
+      }
+      router.refresh();
     },
     onError: (error) => {
       if (error.message.includes("Invalid credentials")) {
@@ -54,27 +50,28 @@ const Login = () => {
       } else {
         setErrorMessage(error.message || "An error occurred during login.");
       }
+      setIsLoading(false);
     },
   });
 
-  const isSubmitting = loginMutation.isPending;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<TLoginSchema>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const onSubmit = useCallback(
-    (data: TLoginSchema) => {
-      setErrorMessage("");
-      loginMutation.mutate(data);
-    },
-    [loginMutation]
-  );
-
-  const togglePasswordVisibility = useCallback(() => {
-    setShowPassword((prev) => !prev);
-  }, []);
+  const onSubmit = (data: TLoginSchema) => {
+    setIsLoading(true);
+    setErrorMessage("");
+    loginMutation.mutate(data);
+  };
 
   return (
     <div className="flex h-screen flex-col items-center">
       <div className="mb-8 mt-8 p-4 md:mt-12 lg:mt-24">
-        <Image src="/logo.png" alt="logo" width={150} height={70} />
+        <Image src={"/logo.png"} alt="logo" width={150} height={70} />
       </div>
 
       <Card className="w-full max-w-[400px] bg-blue-100/20 p-6 shadow-lg backdrop-blur-md md:p-8">
@@ -86,7 +83,6 @@ const Login = () => {
             Enter your credentials to login
           </p>
         </CardHeader>
-
         <CardContent>
           <form
             noValidate
@@ -107,7 +103,7 @@ const Login = () => {
                 type="email"
                 placeholder="name@example.com"
                 {...register("email")}
-                disabled={isSubmitting}
+                disabled={isLoading}
               />
               {errors.email && (
                 <p className="text-sm text-red-600">{errors.email.message}</p>
@@ -124,22 +120,20 @@ const Login = () => {
                   Forgot password?
                 </Link>
               </div>
-
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
                   {...register("password")}
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                   className="pr-10"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  onClick={togglePasswordVisibility}
+                  onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
                   tabIndex={-1}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -148,7 +142,6 @@ const Login = () => {
                   )}
                 </button>
               </div>
-
               {errors.password && (
                 <p className="text-sm text-red-600">
                   {errors.password.message}
@@ -156,12 +149,17 @@ const Login = () => {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Signing in..." : "Sign in"}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || loginMutation.isPending}
+            >
+              {isLoading || loginMutation.isPending
+                ? "Signing in..."
+                : "Sign in"}
             </Button>
           </form>
         </CardContent>
-
         <CardFooter className="flex justify-center">
           <p className="text-sm text-gray-500">
             Don&apos;t have an account?{" "}

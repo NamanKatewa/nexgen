@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -56,33 +56,29 @@ export default function PrivacyPolicy() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    setMousePosition({ x: e.clientX, y: e.clientY });
-  }, []);
-
   useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+
     window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [handleMouseMove]);
 
-  const backgroundStyle = useMemo(
-    () => ({
-      filter: "blur(150px)",
-      transform: `translate(${mousePosition.x * 0.01}px, ${
-        mousePosition.y * 0.01
-      }px)`,
-    }),
-    [mousePosition]
-  );
-
-  const toggleSection = useCallback((index: number) => {
-    setExpandedIndex((prev) => (prev === index ? null : index));
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
-      <div className="absolute inset-0" style={backgroundStyle} />
-
+      <div
+        className="absolute inset-0 "
+        style={{
+          filter: "blur(150px)",
+          transform: `translate(${mousePosition.x * 0.01}px, ${
+            mousePosition.y * 0.01
+          }px)`,
+        }}
+      />
       <div className="relative z-10 mx-auto max-w-3xl">
         <motion.h1
           className="mb-8 text-center text-3xl font-bold text-blue-950"
@@ -92,44 +88,39 @@ export default function PrivacyPolicy() {
         >
           Privacy Policy
         </motion.h1>
-
-        {sections.map((section, index) => {
-          const isExpanded = expandedIndex === index;
-          return (
-            <motion.div
-              key={index}
-              layout
-              className="mb-4 overflow-hidden rounded-lg bg-blue-200/20 shadow-sm backdrop-blur-lg"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+        {sections.map((section, index) => (
+          <motion.div
+            key={index}
+            className="mb-4 overflow-hidden rounded-lg bg-blue-200/20 shadow-sm backdrop-blur-lg"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+          >
+            <button
+              className="flex w-full items-center justify-between px-6 py-4 text-left focus:outline-none"
+              onClick={() =>
+                setExpandedIndex(expandedIndex === index ? null : index)
+              }
             >
-              <button
-                className="flex w-full items-center justify-between px-6 py-4 text-left focus:outline-none"
-                onClick={() => toggleSection(index)}
-                aria-expanded={isExpanded}
-              >
-                <h2 className="text-lg font-medium text-blue-950">
-                  {section.title}
-                </h2>
-                {isExpanded ? (
-                  <ChevronUp className="h-5 w-5 text-blue-950" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-blue-950" />
-                )}
-              </button>
-
-              <motion.div
-                initial={false}
-                animate={{ height: isExpanded ? "auto" : 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <p className="px-6 pb-4 text-blue-950">{section.content}</p>
-              </motion.div>
+              <h2 className="text-lg font-medium text-blue-950">
+                {section.title}
+              </h2>
+              {expandedIndex === index ? (
+                <ChevronUp className="h-5 w-5 text-blue-95" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-blue-95" />
+              )}
+            </button>
+            <motion.div
+              initial={false}
+              animate={{ height: expandedIndex === index ? "auto" : 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <p className="px-6 pb-4 text-blue-95">{section.content}</p>
             </motion.div>
-          );
-        })}
+          </motion.div>
+        ))}
       </div>
     </div>
   );

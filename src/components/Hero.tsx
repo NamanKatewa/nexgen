@@ -1,4 +1,3 @@
-import { memo, useMemo } from "react";
 import { AnimatedGradientText } from "~/components/magicui/animated-gradient-text";
 import { cn } from "~/lib/utils";
 import { ArrowRightIcon } from "lucide-react";
@@ -7,36 +6,18 @@ import Notifications from "~/components/Notifications";
 import Link from "next/link";
 
 const Hero = () => {
-  const gradientBlobs = useMemo(
-    () => (
-      <>
-        <div
-          className="absolute -top-16 left-1/2 -z-10 size-100 -translate-x-1/2 transform rounded-full bg-gradient-to-br from-blue-300 via-purple-300 to-blue-300 opacity-30 blur-3xl blob"
-          style={{ animationName: "blob-move-1" }}
-        />
-        <div
-          className="absolute left-1/4 top-1/2 -z-10 size-100 -translate-x-1/2 -translate-y-1/2 transform rounded-full bg-gradient-to-br from-green-300 via-teal-300 to-blue-300 opacity-30 blur-3xl blob"
-          style={{ animationName: "blob-move-2" }}
-        />
-        <div
-          className="absolute bottom-0 right-1/4 -z-10 size-100 translate-x-1/2 translate-y-1/2 transform rounded-full bg-gradient-to-br from-yellow-300 via-orange-300 to-red-300 opacity-30 blur-3xl blob"
-          style={{ animationName: "blob-move-3" }}
-        />
-      </>
-    ),
-    []
-  );
-
   return (
     <div className="container mx-auto py-8 md:py-12">
       <div className="relative flex w-full flex-col items-center justify-between gap-2 md:gap-16">
-        {gradientBlobs}
+        <div className="absolute -top-16 left-1/2 -z-10 size-100 -translate-x-1/2 transform rounded-full bg-gradient-to-br from-blue-300 via-purple-300 to-blue-300 opacity-30 blur-3xl"></div>
+        <div className="absolute left-1/4 top-1/2 -z-10 size-100 -translate-x-1/2 -translate-y-1/2 transform rounded-full bg-gradient-to-br from-green-300 via-teal-300 to-blue-300 opacity-30 blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 -z-10 size-100 translate-x-1/2 translate-y-1/2 transform rounded-full bg-gradient-to-br from-yellow-300 via-orange-300 to-red-300 opacity-30 blur-3xl"></div>
 
         <div className="flex w-full flex-col items-center justify-between gap-2 md:gap-16">
           <div className="z-10 flex items-center justify-center">
             <div
               className={cn(
-                "group rounded-full border border-orange-300 bg-orange-100/20 text-base transition-all duration-300 ease-in hover:cursor-pointer hover:bg-neutral-200/80 dark:border-white/5 dark:bg-neutral-900/80 dark:text-white/80 dark:hover:bg-neutral-800/80",
+                "group rounded-full border border-orange-300 bg-orange-100/20 text-base text-black-950 transition-all duration-300 ease-in hover:cursor-pointer hover:bg-neutral-200/80 dark:border-white/5 dark:bg-neutral-900/80 dark:text-white/80 dark:hover:bg-neutral-800/80",
                 "backdrop-blur-sm"
               )}
             >
@@ -45,14 +26,10 @@ const Hero = () => {
                 colorTo="#180480"
                 className="flex items-center justify-center px-6 py-2 text-sm font-medium transition ease-out md:text-base"
               >
-                <span className="w-full text-clip text-nowrap bg-clip-text">
+                <span className="w-full text-clip text-nowrap  bg-clip-text">
                   Introducing Next Generation of Courier Services
                 </span>
-                <ArrowRightIcon
-                  strokeWidth={1.5}
-                  className="ml-2 size-4 text-black transition-transform duration-300 ease-in-out group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
+                <ArrowRightIcon className="text-black ml-2 size-4 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
               </AnimatedGradientText>
             </div>
           </div>
@@ -70,7 +47,6 @@ const Hero = () => {
               <Link
                 href="/register"
                 className="px-5 py-3 rounded-xl cursor-pointer bg-blue-500 text-orange-100 font-semibold tracking-wider hover:bg-blue-600"
-                prefetch={false}
               >
                 Get Started
               </Link>
@@ -82,5 +58,4 @@ const Hero = () => {
     </div>
   );
 };
-
-export default memo(Hero);
+export default Hero;

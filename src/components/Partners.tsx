@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, memo, useRef } from "react";
+import { forwardRef, useRef } from "react";
 import { cn } from "~/lib/utils";
 import { AnimatedBeam } from "~/components/magicui/animated-beam";
 import { HyperText } from "~/components/magicui/hyper-text";
@@ -23,43 +23,18 @@ const Circle = forwardRef<
     </div>
   );
 });
+
 Circle.displayName = "Circle";
 
-const Partners = memo(() => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Declare refs individually to follow React rules of hooks
-  const ref1 = useRef<HTMLDivElement>(null);
-  const ref2 = useRef<HTMLDivElement>(null);
-  const ref3 = useRef<HTMLDivElement>(null);
-  const ref4 = useRef<HTMLDivElement>(null);
-  const ref5 = useRef<HTMLDivElement>(null);
-  const ref6 = useRef<HTMLDivElement>(null);
-  const ref7 = useRef<HTMLDivElement>(null);
-
-  const images = [
-    { src: "/partners/delhivery.png", alt: "delhivery", ref: ref1 },
-    {
-      src: "/partners/shadowfax.png",
-      alt: "shadowfax",
-      ref: ref2,
-      invert: true,
-    },
-    { src: "/partners/ekart.png", alt: "ekart", ref: ref3 },
-    { src: "/logo.png", alt: "logo", ref: ref4, border: true },
-    { src: "/partners/ecomexpress.png", alt: "ecomexpress", ref: ref5 },
-    { src: "/partners/xpressbees.png", alt: "xpressbees", ref: ref6 },
-    { src: "/partners/amazon-shipping.png", alt: "amazon-shipping", ref: ref7 },
-  ];
-
-  const beams = [
-    { from: ref1, to: ref4, curvature: -60, endYOffset: -8 },
-    { from: ref2, to: ref4, curvature: -60, endYOffset: -8 },
-    { from: ref3, to: ref4, curvature: 60, endYOffset: 8 },
-    { from: ref5, to: ref4, curvature: -60, endYOffset: -8, reverse: true },
-    { from: ref6, to: ref4, curvature: -60, endYOffset: -8, reverse: true },
-    { from: ref7, to: ref4, curvature: 60, endYOffset: 8, reverse: true },
-  ];
+const Partners = () => {
+  const containerRef = useRef(null);
+  const div1Ref = useRef(null);
+  const div2Ref = useRef(null);
+  const div3Ref = useRef(null);
+  const div4Ref = useRef(null);
+  const div5Ref = useRef(null);
+  const div6Ref = useRef(null);
+  const div7Ref = useRef(null);
 
   return (
     <section className="my-20 flex flex-col items-center">
@@ -68,110 +43,133 @@ const Partners = memo(() => {
       </HyperText>
 
       <div
-        ref={containerRef}
         className="relative mx-auto flex h-[500px] w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl p-8"
+        ref={containerRef}
       >
-        <div className="flex size-full max-h-[300px] flex-col items-stretch justify-between gap-10">
-          {/* Left row */}
+        <div className="flex size-full max-h-[300] flex-col items-stretch justify-between gap-10">
           <div className="flex flex-row items-center justify-between">
-            <Circle ref={ref1}>
+            <Circle ref={div1Ref}>
               <Image
-                src={images[0]!.src}
-                alt={images[0]!.alt}
-                width={80}
+                src="/partners/delhivery.png"
+                alt="delhivery"
                 height={80}
+                width={80}
                 className="rounded-full object-contain p-1"
-                loading="lazy"
               />
             </Circle>
-            <Circle ref={ref5}>
+            <Circle ref={div5Ref}>
               <Image
-                src={images[4]!.src}
-                alt={images[4]!.alt}
-                width={80}
+                src="/partners/ecomexpress.png"
+                alt="ecomexpress"
                 height={80}
+                width={80}
                 className="rounded-full object-contain p-1"
-                loading="lazy"
               />
             </Circle>
           </div>
-
-          {/* Middle row */}
           <div className="flex flex-row items-center justify-between">
-            <Circle ref={ref2}>
+            <Circle ref={div2Ref}>
               <Image
-                src={images[1]!.src}
-                alt={images[1]!.alt}
-                width={80}
+                src="/partners/shadowfax.png"
+                alt="shadowfax"
                 height={80}
+                width={80}
                 className="rounded-full object-contain p-1 invert"
-                loading="lazy"
               />
             </Circle>
-            <Circle ref={ref4} className="border-2 border-primary/20">
+            <Circle ref={div4Ref} className="border-2 border-primary/20">
               <Image
-                src={images[3]!.src}
-                alt={images[3]!.alt}
-                width={90}
+                src="/logo.png"
+                alt="logo"
                 height={90}
+                width={90}
                 className="rounded-full object-contain p-1"
-                priority
               />
             </Circle>
-            <Circle ref={ref6}>
+            <Circle ref={div6Ref}>
               <Image
-                src={images[5]!.src}
-                alt={images[5]!.alt}
-                width={80}
+                src="/partners/xpressbees.png"
+                alt="xpressbees"
                 height={80}
+                width={80}
                 className="rounded-full object-contain p-1"
-                loading="lazy"
               />
             </Circle>
           </div>
-
-          {/* Right row */}
           <div className="flex flex-row items-center justify-between">
-            <Circle ref={ref3}>
+            <Circle ref={div3Ref}>
               <Image
-                src={images[2]!.src}
-                alt={images[2]!.alt}
-                width={80}
+                src="/partners/ekart.png"
+                alt="ekart"
                 height={80}
+                width={80}
                 className="rounded-full object-contain p-1"
-                loading="lazy"
               />
             </Circle>
-            <Circle ref={ref7}>
+            <Circle ref={div7Ref}>
               <Image
-                src={images[6]!.src}
-                alt={images[6]!.alt}
-                width={80}
+                src="/partners/amazon-shipping.png"
+                alt="amazon-shipping"
                 height={80}
+                width={80}
                 className="rounded-full object-contain p-1"
-                loading="lazy"
               />
             </Circle>
           </div>
         </div>
-
-        {/* Render Beams */}
-        {beams.map((beam, idx) => (
-          <AnimatedBeam
-            key={idx}
-            containerRef={containerRef}
-            fromRef={beam.from}
-            toRef={beam.to}
-            curvature={beam.curvature}
-            endYOffset={beam.endYOffset}
-            reverse={beam.reverse}
-            pathWidth={4}
-          />
-        ))}
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={div1Ref}
+          toRef={div4Ref}
+          curvature={-60}
+          endYOffset={-8}
+          pathWidth={4}
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={div2Ref}
+          toRef={div4Ref}
+          curvature={-60}
+          endYOffset={-8}
+          pathWidth={4}
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={div3Ref}
+          toRef={div4Ref}
+          curvature={60}
+          endYOffset={8}
+          pathWidth={4}
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={div5Ref}
+          toRef={div4Ref}
+          curvature={-60}
+          endYOffset={-8}
+          reverse
+          pathWidth={4}
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={div6Ref}
+          toRef={div4Ref}
+          curvature={-60}
+          endYOffset={-8}
+          reverse
+          pathWidth={4}
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={div7Ref}
+          toRef={div4Ref}
+          curvature={60}
+          endYOffset={8}
+          reverse
+          pathWidth={4}
+        />
       </div>
     </section>
   );
-});
-Partners.displayName = "Partners";
-
+};
 export default Partners;

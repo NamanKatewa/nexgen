@@ -1,49 +1,39 @@
 "use client";
 
-import React, { useState, useCallback, memo } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-const sectionVariants = {
-  open: { height: "auto", opacity: 1, x: 0 },
-  closed: { height: 0, opacity: 0, x: -100 },
-};
-
-const ExpandableSection = memo(function ExpandableSection({
+const ExpandableSection = ({
   title,
   children,
 }: {
   title: string;
   children: React.ReactNode;
-}) {
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const toggleOpen = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
-
   return (
-    <div className="py-4 border-b border-blue-200">
+    <div className="border-b border-blue-200 py-4">
       <button
-        className="flex items-center justify-between w-full text-left"
-        onClick={toggleOpen}
+        className="flex w-full items-center justify-between text-left"
+        onClick={() => setIsOpen(!isOpen)}
       >
         <h3 className="text-lg font-semibold text-blue-950">{title}</h3>
         {isOpen ? (
-          <ChevronUp className="w-5 h-5" />
+          <ChevronUp className="h-5 w-5 " />
         ) : (
-          <ChevronDown className="w-5 h-5" />
+          <ChevronDown className="h-5 w-5 " />
         )}
       </button>
-      <AnimatePresence initial={false}>
+      <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial="closed"
-            animate="open"
-            exit="closed"
-            variants={sectionVariants}
+            initial={{ height: 0, opacity: 0, translateX: -100 }}
+            animate={{ height: "auto", opacity: 1, translateX: 0 }}
+            exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="mt-2 text-blue-950 overflow-hidden"
+            className="mt-2 text-blue-950"
           >
             {children}
           </motion.div>
@@ -51,17 +41,17 @@ const ExpandableSection = memo(function ExpandableSection({
       </AnimatePresence>
     </div>
   );
-});
+};
 
 export default function TermsAndConditions() {
   return (
     <div className="min-h-screen px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-3xl p-8 mx-auto bg-blue-100/20 rounded-lg shadow-lg backdrop-blur-sm">
+      <div className="mx-auto max-w-3xl rounded-lg bg-blue-100/20 p-8 shadow-lg backdrop-blur-sm">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-3xl font-extrabold text-center text-blue-950"
+          className="mb-8 text-center text-3xl font-extrabold text-blue-950"
         >
           Terms and Conditions
         </motion.h1>
@@ -95,7 +85,7 @@ export default function TermsAndConditions() {
           </ExpandableSection>
 
           <ExpandableSection title="3. User Responsibilities">
-            <ul className="pl-5 list-disc">
+            <ul className="list-disc pl-5">
               <li>
                 Ensure that the information provided for the delivery is
                 accurate and complete.
@@ -109,7 +99,7 @@ export default function TermsAndConditions() {
           </ExpandableSection>
 
           <ExpandableSection title="4. Fees and Payments">
-            <ul className="pl-5 list-disc">
+            <ul className="list-disc pl-5">
               <li>
                 Payment for our services must be made as per the agreed rates
                 and within the stipulated time frame.
@@ -122,7 +112,7 @@ export default function TermsAndConditions() {
           </ExpandableSection>
 
           <ExpandableSection title="5. Liability">
-            <ul className="pl-5 list-disc">
+            <ul className="list-disc pl-5">
               <li>
                 Nex Gen Courier Service is not liable for any loss or damage to
                 packages unless caused by our negligence.
@@ -135,7 +125,7 @@ export default function TermsAndConditions() {
           </ExpandableSection>
 
           <ExpandableSection title="6. Claims and Refunds">
-            <ul className="pl-5 list-disc">
+            <ul className="list-disc pl-5">
               <li>
                 Any claims for loss or damage must be reported within [specific
                 time frame] of delivery.

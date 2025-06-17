@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -64,40 +64,32 @@ const policies = [
 
 export default function PolicyPage() {
   const [expandedPolicy, setExpandedPolicy] = useState<number | null>(null);
-  const [expandedSections, setExpandedSections] = useState<
-    Record<number, number | null>
-  >({});
+  const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    setMousePosition({ x: e.clientX, y: e.clientY });
-  }, []);
-
   useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+
     window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [handleMouseMove]);
 
-  const backgroundStyle = useMemo(
-    () => ({
-      filter: "blur(150px)",
-      transform: `translate(${mousePosition.x * 0.01}px, ${
-        mousePosition.y * 0.01
-      }px)`,
-    }),
-    [mousePosition]
-  );
-
-  const toggleSection = (policyIndex: number, sectionIndex: number) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [policyIndex]: prev[policyIndex] === sectionIndex ? null : sectionIndex,
-    }));
-  };
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
-      <div className="absolute inset-0" style={backgroundStyle} />
+      <div
+        className="absolute inset-0 "
+        style={{
+          filter: "blur(150px)",
+          transform: `translate(${mousePosition.x * 0.01}px, ${
+            mousePosition.y * 0.01
+          }px)`,
+        }}
+      />
       <div className="relative z-10 mx-auto max-w-3xl">
         <motion.h1
           className="mb-8 text-center text-3xl font-bold text-blue-950"
@@ -107,11 +99,10 @@ export default function PolicyPage() {
         >
           Refund Policy
         </motion.h1>
-
         {policies.map((policy, policyIndex) => (
           <motion.div
             key={policyIndex}
-            className="mb-6 overflow-hidden rounded-lg bg-blue-100/20 shadow-sm backdrop-blur-lg"
+            className="mb-6 overflow-hidden rounded-lg bg-blue-100/20  shadow-sm backdrop-blur-lg"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: policyIndex * 0.1 }}
@@ -119,8 +110,8 @@ export default function PolicyPage() {
             <button
               className="flex w-full items-center justify-between px-6 py-4 text-left focus:outline-none"
               onClick={() =>
-                setExpandedPolicy((prev) =>
-                  prev === policyIndex ? null : policyIndex
+                setExpandedPolicy(
+                  expandedPolicy === policyIndex ? null : policyIndex
                 )
               }
             >
@@ -133,7 +124,6 @@ export default function PolicyPage() {
                 <ChevronDown className="h-6 w-6 text-blue-950" />
               )}
             </button>
-
             <motion.div
               initial={false}
               animate={{
@@ -146,12 +136,16 @@ export default function PolicyPage() {
                 <div key={sectionIndex} className="border-t border-blue-200">
                   <button
                     className="flex w-full items-center justify-between px-6 py-3 text-left focus:outline-none"
-                    onClick={() => toggleSection(policyIndex, sectionIndex)}
+                    onClick={() =>
+                      setExpandedSection(
+                        expandedSection === sectionIndex ? null : sectionIndex
+                      )
+                    }
                   >
                     <h3 className="text-lg font-medium text-blue-950">
                       {section.title}
                     </h3>
-                    {expandedSections[policyIndex] === sectionIndex ? (
+                    {expandedSection === sectionIndex ? (
                       <ChevronUp className="h-5 w-5 text-blue-950" />
                     ) : (
                       <ChevronDown className="h-5 w-5 text-blue-950" />
@@ -160,10 +154,7 @@ export default function PolicyPage() {
                   <motion.div
                     initial={false}
                     animate={{
-                      height:
-                        expandedSections[policyIndex] === sectionIndex
-                          ? "auto"
-                          : 0,
+                      height: expandedSection === sectionIndex ? "auto" : 0,
                     }}
                     transition={{ duration: 0.3 }}
                     className="overflow-hidden"
@@ -175,7 +166,6 @@ export default function PolicyPage() {
             </motion.div>
           </motion.div>
         ))}
-
         <div className="mt-8 text-center text-blue-950">
           <p>
             For any questions or concerns about our policies, please contact us

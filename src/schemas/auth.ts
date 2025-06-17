@@ -1,44 +1,33 @@
 import { z } from "zod";
 import { BUSINESS_TYPE } from "@prisma/client";
 
-// Reusable email schema for consistency
-const emailSchema = z.string().email("Invalid Email Address");
-
-// Reusable password schema for consistency
-const passwordSchema = z
-  .string()
-  .min(6, "Password must be at least 6 characters long");
-
 export const signupSchema = z.object({
-  email: emailSchema,
-  mobileNumber: z
-    .string()
-    .regex(/^\d{10}$/, "Mobile number should be exactly 10 digits"),
-  password: passwordSchema,
-  name: z.string().min(1, "Name is required"),
-  companyName: z.string().min(1, "Company name is required"),
-  monthlyOrder: z.string().min(1, "Amount of orders is required"),
+  email: z.string().email("Invalid Email Address"),
+  mobileNumber: z.string().length(10, "Should be 10 Digits"),
+  password: z.string().min(6, "Password must be atleast 6 characters long"),
+  name: z.string().min(1, "Name is Required"),
+  companyName: z.string().min(1, "Company Name is Required"),
+  monthlyOrder: z.string().min(1, "Amount of Orders is Required"),
   businessType: z.nativeEnum(BUSINESS_TYPE, {
-    required_error: "Business type is required",
+    required_error: "Business Type is Required",
   }),
 });
 
 export const loginSchema = z.object({
-  email: emailSchema,
-  password: passwordSchema,
+  email: z.string().email("Invalid Email Address"),
+  password: z.string().min(6, "Password must be atleast 6 characters long"),
 });
 
 export const forgotPasswordSchema = z.object({
-  email: emailSchema,
+  email: z.string().email("Invalid Email Address"),
 });
 
 export const resetPasswordWithOtpSchema = z.object({
-  email: emailSchema,
-  otp: z.string().length(6, "OTP must be 6 digits"),
-  password: passwordSchema,
+  email: z.string().email("Invalid Email Address"),
+  otp: z.string().length(6, "6 Digits OTP"),
+  password: z.string().min(6, "Password must be atleast 6 characters long"),
 });
 
-// Types
 export type TLoginSchema = z.infer<typeof loginSchema>;
 export type TSignupSchema = z.infer<typeof signupSchema>;
 export type TForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;

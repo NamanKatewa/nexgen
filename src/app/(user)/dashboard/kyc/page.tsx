@@ -26,7 +26,11 @@ import { AlertCircle } from "lucide-react";
 import { ENTITY_TYPE } from "@prisma/client";
 import Link from "next/link";
 import { api } from "~/trpc/react";
-import { InputOTP, InputOTPSlot } from "~/components/ui/input-otp";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "~/components/ui/input-otp";
 
 export default function KycFormPage() {
   const router = useRouter();
@@ -47,9 +51,9 @@ export default function KycFormPage() {
       setIsLoading(false);
       router.push("/dashboard/submitted");
     },
-    onError: () => {
+    onError() {
       setErrorMessage(
-        "Something went wrong. Try refreshing and submitting again."
+        "Something went wrong. Try refreshing and submmitting again."
       );
       setIsLoading(false);
     },
@@ -69,53 +73,53 @@ export default function KycFormPage() {
     },
   });
 
-  const fileToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
       reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
     });
+  };
 
   const handleFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>,
     fieldName: keyof TKycSchema,
     setPreview: React.Dispatch<React.SetStateAction<string | null>>
   ) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setValue(fieldName, undefined);
-      setPreview(null);
-      return;
-    }
+    const file = event.target.files?.[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
 
-    setPreview(URL.createObjectURL(file));
-
-    try {
-      const base64 = await fileToBase64(file);
-      setValue(fieldName, {
-        data: base64,
-        name: file.name,
-        type: file.type,
-        size: file.size,
-      });
-    } catch (err) {
-      console.error("Base64 conversion error:", err);
-      setErrorMessage("Failed to process image file.");
+      try {
+        const base64Data = await fileToBase64(file);
+        setValue(fieldName, {
+          data: base64Data,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
+      } catch (error) {
+        console.error("Error converting file to Base64:", error);
+        setErrorMessage("Failed to process image file");
+        setValue(fieldName, undefined);
+        setPreview(null);
+      }
+    } else {
       setValue(fieldName, undefined);
       setPreview(null);
     }
   };
 
-  const onSubmit = (data: TKycSchema) => {
+  const onSubmit = async (data: TKycSchema) => {
     setIsLoading(true);
     setErrorMessage("");
     kycSubmitMutation.mutate(data);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-blue-50">
-      <Card className="w-full max-w-4xl bg-blue-100/20 shadow-md">
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full bg-blue-100/20">
         <CardHeader>
           <h1 className="text-2xl font-semibold text-center text-blue-950">
             KYC Form
@@ -124,11 +128,10 @@ export default function KycFormPage() {
             Enter your business verification details
           </p>
         </CardHeader>
-
         <CardContent>
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="space-y-6 text-blue-950"
+            className="space-y-4 text-blue-950"
           >
             {errorMessage && (
               <Alert variant="destructive">
@@ -137,8 +140,7 @@ export default function KycFormPage() {
               </Alert>
             )}
 
-            {/* Entity Info */}
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex gap-10 mb-10">
               <div className="space-y-2">
                 <Label>Entity Name</Label>
                 <Input {...register("entityName")} disabled={isLoading} />
@@ -206,10 +208,9 @@ export default function KycFormPage() {
               </div>
             </div>
 
-            {/* Billing Address */}
             <div className="space-y-2">
               <Label>Billing Address</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-10 mb-10">
                 <Input
                   placeholder="Zip Code"
                   type="number"
@@ -226,8 +227,8 @@ export default function KycFormPage() {
                   {...register("billingAddress.state")}
                 />
                 <Input
+                  className="col-span-2"
                   placeholder="Address Line"
-                  className="md:col-span-2"
                   {...register("billingAddress.addressLine")}
                 />
               </div>
@@ -238,8 +239,7 @@ export default function KycFormPage() {
               )}
             </div>
 
-            {/* Aadhar Info */}
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex flex-wrap gap-10 mb-10">
               <div className="space-y-2">
                 <Label>Aadhar Number</Label>
                 <InputOTP
@@ -250,17 +250,23 @@ export default function KycFormPage() {
                   pattern="\d*"
                   inputMode="numeric"
                 >
-                  {[0, 1, 2, 3].map((i) => (
-                    <InputOTPSlot key={i} index={i} />
-                  ))}
+                  <InputOTPGroup>
+                    {[0, 1, 2, 3].map((i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
                   <span className="px-2">-</span>
-                  {[4, 5, 6, 7].map((i) => (
-                    <InputOTPSlot key={i} index={i} />
-                  ))}
+                  <InputOTPGroup>
+                    {[4, 5, 6, 7].map((i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
                   <span className="px-2">-</span>
-                  {[8, 9, 10, 11].map((i) => (
-                    <InputOTPSlot key={i} index={i} />
-                  ))}
+                  <InputOTPGroup>
+                    {[8, 9, 10, 11].map((i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
                 </InputOTP>
                 {errors.aadharNumber && (
                   <p className="text-sm text-red-600">
@@ -274,13 +280,13 @@ export default function KycFormPage() {
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
+                  onChange={(e) => {
                     handleFileChange(
                       e,
                       "aadharImageFront",
                       setAadharFrontPreview
-                    )
-                  }
+                    );
+                  }}
                 />
                 {aadharFrontPreview && (
                   <img
@@ -300,9 +306,13 @@ export default function KycFormPage() {
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
-                    handleFileChange(e, "aadharImageBack", setAadharBackPreview)
-                  }
+                  onChange={(e) => {
+                    handleFileChange(
+                      e,
+                      "aadharImageBack",
+                      setAadharBackPreview
+                    );
+                  }}
                 />
                 {aadharBackPreview && (
                   <img
@@ -318,8 +328,7 @@ export default function KycFormPage() {
               </div>
             </div>
 
-            {/* PAN Info */}
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex flex-wrap gap-10 mb-10">
               <div className="space-y-2">
                 <Label>PAN Number</Label>
                 <InputOTP
@@ -346,9 +355,9 @@ export default function KycFormPage() {
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
-                    handleFileChange(e, "panImageFront", setPanFrontPreview)
-                  }
+                  onChange={(e) => {
+                    handleFileChange(e, "panImageFront", setPanFrontPreview);
+                  }}
                 />
                 {panFrontPreview && (
                   <img
@@ -368,9 +377,9 @@ export default function KycFormPage() {
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
-                    handleFileChange(e, "panImageBack", setPanBackPreview)
-                  }
+                  onChange={(e) => {
+                    handleFileChange(e, "panImageBack", setPanBackPreview);
+                  }}
                 />
                 {panBackPreview && (
                   <img
@@ -386,7 +395,6 @@ export default function KycFormPage() {
               </div>
             </div>
 
-            {/* GST */}
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -403,7 +411,6 @@ export default function KycFormPage() {
             </Button>
           </form>
         </CardContent>
-
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
             Need help?{" "}

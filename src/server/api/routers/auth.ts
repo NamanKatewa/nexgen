@@ -12,33 +12,27 @@ import { cookies } from "next/headers";
 import { sendEmail } from "~/lib/email";
 import { generateOTP } from "~/lib/utils";
 import { addMinutes } from "date-fns";
-import { TRPCError } from "@trpc/server";
 
 export const authRouter = createTRPCRouter({
   me: publicProcedure.query(async ({ ctx }) => {
-    const user = ctx.user;
-    if (!user) return null;
+    if (!ctx.user) return null;
 
     return {
-      id: user.user_id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-      status: user.status,
+      id: ctx.user.user_id,
+      email: ctx.user.email,
+      role: ctx.user.role,
+      name: ctx.user.name,
+      status: ctx.user.status,
     };
   }),
 
   signup: publicProcedure.input(signupSchema).mutation(async ({ input }) => {
     const userExists = await db.user.findUnique({
       where: { email: input.email },
-      select: { user_id: true },
     });
-
-    if (userExists)
-      throw new TRPCError({ code: "CONFLICT", message: "User already exists" });
+    if (userExists) throw new Error("User already exists");
 
     const passwordHash = await hash(input.password, 10);
-
     const user = await db.user.create({
       data: {
         name: input.name,
@@ -52,7 +46,9 @@ export const authRouter = createTRPCRouter({
     });
 
     const kyc = await db.kyc.create({
-      data: { user: { connect: { user_id: user.user_id } } },
+      data: {
+        user: { connect: { user_id: user.user_id } },
+      },
       select: { kyc_status: true },
     });
 
@@ -65,8 +61,7 @@ export const authRouter = createTRPCRouter({
       kyc_status: kyc.kyc_status,
     });
 
-    const cookieStore = await cookies();
-    cookieStore.set({
+    (await cookies()).set({
       name: "token",
       value: token,
       httpOnly: true,
@@ -89,38 +84,21 @@ export const authRouter = createTRPCRouter({
   }),
 
   login: publicProcedure.input(loginSchema).mutation(async ({ input }) => {
-    const user = await db.user.findUnique({
-      where: { email: input.email },
-      select: {
-        user_id: true,
-        email: true,
-        role: true,
-        name: true,
-        status: true,
-        password_hash: true,
-      },
-    });
+    const user = await db.user.findUnique({ where: { email: input.email } });
 
-    if (!user || !user.password_hash)
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Invalid credentials",
-      });
+    if (!user || !user.password_hash) throw new Error("Invalid credentials");
 
     const isValidPass = await compare(input.password, user.password_hash);
-    if (!isValidPass)
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Invalid credentials",
-      });
+    if (!isValidPass) throw new Error("Invalid credentials");
 
     const kyc = await db.kyc.findUnique({
-      where: { user_id: user.user_id },
+      where: {
+        user_id: user.user_id,
+      },
       select: { kyc_status: true },
     });
 
-    if (!kyc)
-      throw new TRPCError({ code: "FORBIDDEN", message: "Invalid KYC" });
+    if (!kyc) throw new Error("Invalid KYC");
 
     const token = signToken({
       id: user.user_id,
@@ -131,8 +109,7 @@ export const authRouter = createTRPCRouter({
       kyc_status: kyc.kyc_status,
     });
 
-    const cookieStore = await cookies();
-    cookieStore.set({
+    (await cookies()).set({
       name: "token",
       value: token,
       httpOnly: true,
@@ -155,47 +132,35 @@ export const authRouter = createTRPCRouter({
   }),
 
   logout: protectedProcedure.mutation(async () => {
-    const cookieStore = await cookies();
-    cookieStore.set({ name: "token", value: "", maxAge: 0, path: "/" });
+    (await cookies()).set({ name: "token", value: "", maxAge: 0, path: "/" });
     return true;
   }),
 
   forgotPassword: publicProcedure
     .input(forgotPasswordSchema)
     .mutation(async ({ input }) => {
-      const user = await db.user.findUnique({
-        where: { email: input.email },
-        select: { email: true },
-      });
-
-      if (!user)
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No user with this email.",
-        });
+      const user = await db.user.findUnique({ where: { email: input.email } });
+      if (!user) throw new Error("No user with this email.");
 
       const otp = generateOTP();
-      const expiresAt = addMinutes(new Date(), 10);
+      const expiry = addMinutes(new Date(), 10);
 
-      await db.passwordReset.upsert({
+      const reset = await db.passwordReset.upsert({
         where: { email: input.email },
-        update: { otp, expiresAt },
-        create: { email: input.email, otp, expiresAt },
+        update: { otp, expiresAt: expiry },
+        create: { email: input.email, otp, expiresAt: expiry },
       });
 
-      const sent = await sendEmail({
+      if (!reset) throw new Error("Database Error");
+
+      const mail = await sendEmail({
         to: user.email,
         subject: "Password Reset OTP",
         html: `<p>Your OTP is <strong>${otp}</strong>. It expires in 10 minutes.</p>`,
       });
 
-      if (!sent)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Email failed to send.",
-        });
-
-      return true;
+      if (mail) return true;
+      throw new Error("Something Went Wrong.");
     }),
 
   resetPasswordWithOtp: publicProcedure
@@ -206,13 +171,9 @@ export const authRouter = createTRPCRouter({
       });
 
       if (!record || record.otp !== input.otp)
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid or expired OTP",
-        });
+        throw new Error("Invalid or expired OTP");
 
-      if (record.expiresAt < new Date())
-        throw new TRPCError({ code: "BAD_REQUEST", message: "OTP expired" });
+      if (record.expiresAt < new Date()) throw new Error("OTP expired");
 
       const hashedPassword = await hash(input.password, 10);
 

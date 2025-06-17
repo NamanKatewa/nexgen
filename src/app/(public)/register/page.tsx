@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useForm, type UseFormRegister } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
@@ -39,16 +39,16 @@ export default function SignupPage() {
     onSuccess: async (data) => {
       localStorage.setItem("token", data.token);
       document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
-      await utils.auth.me.invalidate();
+      await utils.auth.me.invalidate;
       router.push("/dashboard");
       router.refresh();
     },
     onError: (error) => {
-      setErrorMessage(
-        error.message.includes("already exists")
-          ? "An account with this email already exists."
-          : error.message || "An error occurred during signup."
-      );
+      if (error.message.includes("already exists")) {
+        setErrorMessage("An account with this email already exists.");
+      } else {
+        setErrorMessage(error.message || "An error occurred during signup.");
+      }
     },
   });
 
@@ -61,29 +61,17 @@ export default function SignupPage() {
     resolver: zodResolver(signupSchema),
   });
 
-  const onSubmit = useCallback(
-    (data: TSignupSchema) => {
-      setErrorMessage("");
-      setConfirmPasswordError("");
+  const onSubmit = (data: TSignupSchema) => {
+    setErrorMessage("");
+    setConfirmPasswordError("");
 
-      if (data.password !== confirmPassword) {
-        setConfirmPasswordError("Passwords do not match");
-        return;
-      }
+    if (data.password !== confirmPassword) {
+      setConfirmPasswordError("Passwords do not match");
+      return;
+    }
 
-      signupMutation.mutate(data);
-    },
-    [confirmPassword, signupMutation]
-  );
-
-  const togglePasswordVisibility = useCallback(() => {
-    setShowPassword((prev) => !prev);
-  }, []);
-
-  const businessTypeOptions = useMemo(
-    () => ["Retailer", "Ecommerce", "Franchise"],
-    []
-  );
+    signupMutation.mutate(data);
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -109,95 +97,138 @@ export default function SignupPage() {
               </Alert>
             )}
 
-            <Field label="Name" id="name" error={errors.name?.message}>
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
                 {...register("name")}
                 disabled={signupMutation.isPending}
               />
-            </Field>
+              {errors.name && (
+                <p className="text-sm text-red-600">{errors.name.message}</p>
+              )}
+            </div>
 
-            <Field label="Email" id="email" error={errors.email?.message}>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 {...register("email")}
                 disabled={signupMutation.isPending}
               />
-            </Field>
+              {errors.email && (
+                <p className="text-sm text-red-600">{errors.email.message}</p>
+              )}
+            </div>
 
-            <Field
-              label="Mobile Number"
-              id="mobileNumber"
-              error={errors.mobileNumber?.message}
-            >
+            <div className="space-y-2">
+              <Label htmlFor="mobileNumber">Mobile Number</Label>
               <Input
                 id="mobileNumber"
-                maxLength={10}
                 {...register("mobileNumber")}
+                maxLength={10}
                 disabled={signupMutation.isPending}
               />
-            </Field>
+              {errors.mobileNumber && (
+                <p className="text-sm text-red-600">
+                  {errors.mobileNumber.message}
+                </p>
+              )}
+            </div>
 
-            <Field
-              label="Password"
-              id="password"
-              error={errors.password?.message}
-            >
-              <PasswordInput
-                id="password"
-                show={showPassword}
-                onToggle={togglePasswordVisibility}
-                registerReturn={register("password")}
-                disabled={signupMutation.isPending}
-              />
-            </Field>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  disabled={signupMutation.isPending}
+                  className="pr-10"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-sm text-red-600">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
 
-            <Field
-              label="Confirm Password"
-              id="confirmPassword"
-              error={confirmPasswordError}
-            >
-              <PasswordInput
-                id="confirmPassword"
-                show={showPassword}
-                onToggle={togglePasswordVisibility}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={signupMutation.isPending}
-              />
-            </Field>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={signupMutation.isPending}
+                  className="pr-10"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              {confirmPasswordError && (
+                <p className="text-sm text-red-600">{confirmPasswordError}</p>
+              )}
+            </div>
 
-            <Field
-              label="Company Name"
-              id="companyName"
-              error={errors.companyName?.message}
-            >
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company Name</Label>
               <Input
                 id="companyName"
                 {...register("companyName")}
                 disabled={signupMutation.isPending}
               />
-            </Field>
+              {errors.companyName && (
+                <p className="text-sm text-red-600">
+                  {errors.companyName.message}
+                </p>
+              )}
+            </div>
 
-            <Field
-              label="Monthly Order Volume"
-              id="monthlyOrder"
-              error={errors.monthlyOrder?.message}
-            >
+            <div className="space-y-2">
+              <Label htmlFor="monthlyOrder">Monthly Order Volume</Label>
               <Input
                 id="monthlyOrder"
                 type="number"
                 {...register("monthlyOrder")}
                 disabled={signupMutation.isPending}
               />
-            </Field>
+              {errors.monthlyOrder && (
+                <p className="text-sm text-red-600">
+                  {errors.monthlyOrder.message}
+                </p>
+              )}
+            </div>
 
-            <Field
-              label="Business Type"
-              id="businessType"
-              error={errors.businessType?.message}
-            >
+            <div className="space-y-2">
+              <Label htmlFor="businessType">Business Type</Label>
               <Select
                 onValueChange={(value) =>
                   setValue("businessType", value as any)
@@ -208,14 +239,17 @@ export default function SignupPage() {
                   <SelectValue placeholder="Select business type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {businessTypeOptions.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="Retailer">Retailer</SelectItem>
+                  <SelectItem value="Ecommerce">Ecommerce</SelectItem>
+                  <SelectItem value="Franchise">Franchise</SelectItem>
                 </SelectContent>
               </Select>
-            </Field>
+              {errors.businessType && (
+                <p className="text-sm text-red-600">
+                  {errors.businessType.message}
+                </p>
+              )}
+            </div>
 
             <Button
               type="submit"
@@ -240,65 +274,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-// 🔹 Helper Components
-const Field = ({
-  label,
-  id,
-  children,
-  error,
-}: {
-  label: string;
-  id: string;
-  children: React.ReactNode;
-  error?: string;
-}) => (
-  <div className="space-y-2">
-    <Label htmlFor={id}>{label}</Label>
-    {children}
-    {error && <p className="text-sm text-red-600">{error}</p>}
-  </div>
-);
-
-interface PasswordInputProps {
-  id: string;
-  show: boolean;
-  onToggle: () => void;
-  registerReturn?: ReturnType<UseFormRegister<any>>;
-  value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  disabled?: boolean;
-}
-
-export const PasswordInput = ({
-  id,
-  show,
-  onToggle,
-  registerReturn,
-  value,
-  onChange,
-  disabled,
-}: PasswordInputProps) => {
-  return (
-    <div className="relative">
-      <input
-        id={id}
-        type={show ? "text" : "password"}
-        className="pr-10"
-        autoComplete="current-password"
-        disabled={disabled}
-        {...registerReturn}
-        value={value}
-        onChange={onChange}
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-950"
-        tabIndex={-1}
-      >
-        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-      </button>
-    </div>
-  );
-};

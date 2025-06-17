@@ -1,35 +1,26 @@
-import { memo, useMemo } from "react";
 import { Instagram, Linkedin, Twitter, Phone, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+const socialMediaIcons = [
+  {
+    icon: <Twitter />,
+    link: "https://x.com/Nexgencourier",
+    label: "Twitter",
+  },
+  {
+    icon: <Instagram />,
+    link: "https://www.instagram.com/nexgencourierservice",
+    label: "Instagram",
+  },
+  {
+    icon: <Linkedin />,
+    link: "https://www.linkedin.com/company/nex-gen-courier-service/posts",
+    label: "LinkedIn",
+  },
+];
+
 const Footer = () => {
-  const socialMediaIcons = useMemo(
-    () => [
-      {
-        icon: <Twitter strokeWidth={1.5} aria-hidden="true" />,
-        link: "https://x.com/Nexgencourier",
-        label: "Twitter",
-      },
-      {
-        icon: <Instagram strokeWidth={1.5} aria-hidden="true" />,
-        link: "https://www.instagram.com/nexgencourierservice",
-        label: "Instagram",
-      },
-      {
-        icon: <Linkedin strokeWidth={1.5} aria-hidden="true" />,
-        link: "https://www.linkedin.com/company/nex-gen-courier-service/posts",
-        label: "LinkedIn",
-      },
-    ],
-    []
-  );
-
-  const resources = useMemo(
-    () => ["Refund Policy", "Privacy Policy", "Terms & Conditions"],
-    []
-  );
-
   return (
     <footer className="bg-blue-100 mt-16 py-16 shadow-lg text-blue-950">
       <div className="container mx-auto px-4 md:px-6">
@@ -58,27 +49,28 @@ const Footer = () => {
 
           <div className="space-y-6">
             <h3 className="text-xl font-bold tracking-tight">Our Location</h3>
-            <div className="rounded-lg bg-white/50 p-6 shadow-sm backdrop-blur-sm">
-              <p className="text-base leading-relaxed">
-                <span className="block font-bold">Corporate Address:</span>
-                395-A Chauhan Mohhala Madanpur Khadar
-                <br />
-                Sarita Vihar
-                <br />
-                <span className="font-medium">Pincode:</span> 110076
-              </p>
+            <div className="space-y-6">
+              <div className="rounded-lg bg-white/50 p-6 shadow-sm backdrop-blur-sm ">
+                <p className="text-base leading-relaxed">
+                  <span className="block font-bold">Corporate Address:</span>
+                  395-A Chauhan Mohhala Madanpur Khadar
+                  <br />
+                  Sarita Vihar
+                  <br />
+                  <span className="font-medium">Pincode:</span> 110076
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="space-y-6">
             <h3 className="text-xl font-bold tracking-tight">Resources</h3>
             <nav className="flex flex-col space-y-4">
-              {resources.map((item) => {
-                const slug = item.toLowerCase().replace(/[\s&]+/g, "-");
-                return (
+              {["Refund Policy", "Privacy Policy", "Terms & Conditions"].map(
+                (item) => (
                   <Link
                     key={item}
-                    href={`/${slug}`}
+                    href={`/${item.toLowerCase().replace(/[\s&]+/g, "-")}`}
                     className="group flex items-center text-base transition-colors hover:text-blue-600"
                     prefetch={false}
                   >
@@ -87,8 +79,8 @@ const Footer = () => {
                       <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-blue-600 transition-all group-hover:w-full dark:bg-blue-400"></span>
                     </span>
                   </Link>
-                );
-              })}
+                )
+              )}
             </nav>
           </div>
 
@@ -99,22 +91,14 @@ const Footer = () => {
                 href="tel:+911169653981"
                 className="group flex items-center space-x-3 transition-colors hover:text-blue-600"
               >
-                <Phone
-                  className="h-5 w-5"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                />
+                <Phone className="h-5 w-5" />
                 <span>+91 11 6965 3981</span>
               </a>
               <a
                 href="mailto:help@nexgencourierservice.in"
-                className="group flex items-center space-x-3 transition-colors hover:text-blue-600"
+                className="group flex items-center space-x-3 transition-colors hover:text-blue-600 "
               >
-                <Mail
-                  className="h-5 w-5"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                />
+                <Mail className="h-5 w-5" />
                 <span>help@nexgencourierservice.in</span>
               </a>
             </div>
@@ -122,17 +106,17 @@ const Footer = () => {
             <div className="space-y-4">
               <h4 className="text-lg font-semibold">Follow Us</h4>
               <div className="flex space-x-4">
-                {socialMediaIcons.map(({ icon, link, label }) => (
+                {socialMediaIcons.map((social, index) => (
                   <Link
-                    key={label}
-                    href={link}
-                    className="group rounded-full bg-blue-100 p-2 transition-all hover:text-blue-600"
+                    key={index}
+                    href={social.link}
+                    className="group rounded-full bg-blue-100  p-2 transition-all hover:text-blue-600"
                     prefetch={false}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={label}
+                    aria-label={social.label}
                   >
-                    {icon}
+                    {social.icon}
                   </Link>
                 ))}
               </div>
@@ -151,4 +135,4 @@ const Footer = () => {
   );
 };
 
-export default memo(Footer);
+export default Footer;

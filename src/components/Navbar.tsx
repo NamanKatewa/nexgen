@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { LogIn, Menu, LogOut, LayoutDashboard } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,10 +18,7 @@ import {
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { api } from "~/trpc/react";
 
-const NavItems = useMemo(
-  () => ["Home", "Services", "Contact Us", "Track", "Rate Calculator"],
-  []
-);
+const NavItems = ["Home", "Services", "Contact Us", "Track", "Rate Calculator"];
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -34,33 +31,36 @@ const Navbar = () => {
 
   const utils = api.useUtils();
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     localStorage.removeItem("token");
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     await utils.invalidate();
     setIsMobileMenuOpen(false);
     router.push("/");
     router.refresh();
-  }, [utils, router]);
+  };
 
-  const getDashboardRoute = useCallback(() => {
+  const getDashboardRoute = () => {
     if (!user) return "/dashboard";
     return user.role === "Admin" ? "/admin/dashboard" : "/dashboard";
-  }, [user]);
+  };
 
-  const getInitials = useCallback((name?: string, email?: string) => {
-    if (name?.trim()) {
-      return name
+  const getInitials = (name?: string, email?: string) => {
+    if (name && name.trim()) {
+      const initials = name
         .trim()
         .split(" ")
         .map((n) => n[0])
         .filter(Boolean)
         .join("")
-        .toUpperCase()
-        .slice(0, 2);
+        .toUpperCase();
+      return initials.slice(0, 2) || "U";
     }
-    return email?.trim()?.[0]?.toUpperCase() || "U";
-  }, []);
+    if (email && email.trim()) {
+      return email.trim()[0]?.toUpperCase() || "U";
+    }
+    return "U";
+  };
 
   return (
     <>
@@ -83,7 +83,7 @@ const Navbar = () => {
 
           <div className="flex lg:hidden">
             <Button
-              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               variant="ghost"
               size="icon"
               className="text-slate-500 hover:bg-slate-100 hover:text-slate-700"
@@ -94,31 +94,28 @@ const Navbar = () => {
 
           <div className="hidden w-full lg:order-2 lg:flex lg:w-auto">
             <ul className="flex justify-between font-medium text-slate-500">
-              {NavItems.map((item) => {
-                const href =
-                  item === "Home"
-                    ? "/"
-                    : `/${item
-                        .toLowerCase()
-                        .replace(/ & /g, "-")
-                        .replace(/ /g, "-")}`;
-
-                return (
-                  <motion.li
-                    key={item}
-                    className="lg:px-4 lg:py-2"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+              {NavItems.map((item) => (
+                <motion.li
+                  key={item}
+                  className="lg:px-4 lg:py-2"
+                  whileHover={{ scale: 1.05, color: "#3B82F6" }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link
+                    href={
+                      item === "Home"
+                        ? "/"
+                        : `/${item
+                            .toLowerCase()
+                            .replace(/ & /g, "-")
+                            .replace(/ /g, "-")}`
+                    }
+                    className="transition-colors duration-200 ease-in-out hover:text-blue-400"
                   >
-                    <Link
-                      href={href}
-                      className="transition-colors duration-200 ease-in-out hover:text-blue-400"
-                    >
-                      {item}
-                    </Link>
-                  </motion.li>
-                );
-              })}
+                    {item}
+                  </Link>
+                </motion.li>
+              ))}
             </ul>
           </div>
 
@@ -195,32 +192,30 @@ const Navbar = () => {
             transition={{ duration: 0.3 }}
           >
             <ul className="flex flex-col items-center py-4 font-medium text-slate-500">
-              {NavItems.map((item, index) => {
-                const href =
-                  item === "Home"
-                    ? "/"
-                    : `/${item
-                        .toLowerCase()
-                        .replace(/ & /g, "-")
-                        .replace(/ /g, "-")}`;
-                return (
-                  <motion.li
-                    key={item}
-                    className="w-full py-2 text-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: index * 0.05 }}
+              {NavItems.map((item, index) => (
+                <motion.li
+                  key={item}
+                  className="w-full py-2 text-center"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <Link
+                    href={
+                      item === "Home"
+                        ? "/"
+                        : `/${item
+                            .toLowerCase()
+                            .replace(/ & /g, "-")
+                            .replace(/ /g, "-")}`
+                    }
+                    className="block w-full transition-colors duration-200 ease-in-out hover:text-blue-400"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <Link
-                      href={href}
-                      className="block w-full transition-colors duration-200 ease-in-out hover:text-blue-400"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {item}
-                    </Link>
-                  </motion.li>
-                );
-              })}
+                    {item}
+                  </Link>
+                </motion.li>
+              ))}
             </ul>
 
             <div className="flex flex-col items-center gap-2 pb-4">
