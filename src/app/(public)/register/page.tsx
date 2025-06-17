@@ -270,7 +270,7 @@ interface PasswordInputProps {
   disabled?: boolean;
 }
 
-const PasswordInput = ({
+export const PasswordInput = ({
   id,
   show,
   onToggle,
