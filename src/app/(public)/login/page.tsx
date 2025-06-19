@@ -24,7 +24,6 @@ import { loginSchema, type TLoginSchema } from "~/schemas/auth";
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordValue, setPasswordValue] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
   const utils = api.useUtils();

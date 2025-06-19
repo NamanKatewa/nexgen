@@ -8,6 +8,7 @@ import { createTRPCContext } from "~/server/api/trpc";
 const createContext = async (req: NextRequest) => {
   return createTRPCContext({
     headers: req.headers,
+    req,
   });
 };
 

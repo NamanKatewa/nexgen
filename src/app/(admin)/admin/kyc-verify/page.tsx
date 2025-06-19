@@ -384,8 +384,9 @@ const VerifyKycPage = () => {
                   setShowModal(false);
                 }
               }}
+              disabled={verifyKyc.isPending}
             >
-              Confirm
+              {verifyKyc.isPending ? "Confirming" : "Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>

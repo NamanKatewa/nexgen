@@ -33,6 +33,7 @@ enum TRANSACTION_TYPE{
 enum PAYMENT_STATUS{
   Pending
   Completed
+  Approved
   Failed
 }
 
@@ -43,8 +44,8 @@ enum CARRIER_STATUS{
 
 enum ORDER_PAYMENT_STATUS{
   Paid
-  Pending
-  Refunded
+  Approved
+  Rejected
 }
 
 enum ORDER_STATUS{
@@ -161,7 +162,6 @@ model Transaction {
   transaction_type   TRANSACTION_TYPE
   amount             Decimal  @db.Decimal(10, 2)
   transaction_date   DateTime
-  payment_gateway_id String?
   payment_status     PAYMENT_STATUS
   order_id           String? @unique
 

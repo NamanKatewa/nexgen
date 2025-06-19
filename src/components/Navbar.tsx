@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { LogIn, Menu, LogOut, LayoutDashboard } from "lucide-react";
+import {
+  LogIn,
+  Menu,
+  LogOut,
+  LayoutDashboard,
+  Wallet,
+  Plus,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
@@ -15,6 +22,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "~/components/ui/dialog";
+import { Input } from "~/components/ui/input";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { api } from "~/trpc/react";
 
@@ -22,11 +38,14 @@ const NavItems = ["Home", "Services", "Contact Us", "Track", "Rate Calculator"];
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const addFunds = api.wallet.addFunds.useMutation();
   const router = useRouter();
 
   const { data: user, isLoading } = api.auth.me.useQuery(undefined, {
     retry: false,
-    refetchOnWindowFocus: false,
+    refetchInterval: 600000,
   });
 
   const utils = api.useUtils();
@@ -119,46 +138,107 @@ const Navbar = () => {
             </ul>
           </div>
 
-          <div className="hidden lg:order-3 lg:flex">
+          <div className="hidden lg:order-3 lg:flex items-center gap-5">
             {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-10 w-10 rounded-full"
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {getInitials(user.name, user.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {user.name || "User"}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => router.push(getDashboardRoute())}
-                  >
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Dashboard</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4 text-red-500" />
-                    <span className="text-red-500">Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <>
+                {user.role == "Client" ? (
+                  <div className="flex items-center gap-2 text-blue-950">
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="bg-transparent cursor-pointer hover:bg-blue-100"
+                        >
+                          <Plus className="text-blue-950 w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Add Funds</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex flex-col gap-4">
+                          <Input
+                            type="number"
+                            placeholder="Enter amount"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            min={1}
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            onClick={async () => {
+                              const amt = parseFloat(amount);
+                              if (isNaN(amt) || amt <= 0) return;
+
+                              try {
+                                const res = await addFunds.mutateAsync({
+                                  amount: amt,
+                                });
+
+                                if (res?.paymentUrl) {
+                                  window.location.href = res.paymentUrl;
+                                }
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setIsDialogOpen(false);
+                                setAmount("");
+                              }
+                            }}
+                            disabled={addFunds.isPending || !amount}
+                          >
+                            {addFunds.isPending ? "Redirecting..." : "Pay Now"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    ₹{String(user.walletBalance)}
+                    <Wallet className="text-blue-950" />
+                  </div>
+                ) : (
+                  <></>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="relative h-10 w-10 rounded-full"
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-blue-100 text-blue-600">
+                          {getInitials(user.name, user.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {user.name || "User"}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => router.push(getDashboardRoute())}
+                    >
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4 text-red-500" />
+                      <span className="text-red-500">Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             ) : (
               <motion.div
                 whileHover={{ scale: 1.05 }}
@@ -221,6 +301,69 @@ const Navbar = () => {
             <div className="flex flex-col items-center gap-2 pb-4">
               {user ? (
                 <>
+                  {user.role === "Client" && (
+                    <div className="flex items-center gap-2 text-blue-950">
+                      <Dialog
+                        open={isDialogOpen}
+                        onOpenChange={setIsDialogOpen}
+                      >
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="bg-transparent cursor-pointer hover:bg-blue-100"
+                          >
+                            <Plus className="text-blue-950 w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Add Funds</DialogTitle>
+                          </DialogHeader>
+                          <div className="flex flex-col gap-4">
+                            <Input
+                              type="number"
+                              placeholder="Enter amount"
+                              value={amount}
+                              onChange={(e) => setAmount(e.target.value)}
+                              min={1}
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              onClick={async () => {
+                                const amt = parseFloat(amount);
+                                if (isNaN(amt) || amt <= 0) return;
+
+                                try {
+                                  const res = await addFunds.mutateAsync({
+                                    amount: amt,
+                                  });
+
+                                  if (res?.paymentUrl) {
+                                    window.location.href = res.paymentUrl;
+                                  }
+                                } catch (err) {
+                                  console.error(err);
+                                } finally {
+                                  setIsDialogOpen(false);
+                                  setAmount("");
+                                }
+                              }}
+                              disabled={addFunds.isPending || !amount}
+                            >
+                              {addFunds.isPending
+                                ? "Redirecting..."
+                                : "Pay Now"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      ₹{String(user.walletBalance)}
+                      <Wallet className="w-4 h-4" />
+                    </div>
+                  )}
+
                   <Link href={getDashboardRoute()}>
                     <Button
                       variant="outline"
@@ -231,6 +374,7 @@ const Navbar = () => {
                       Dashboard
                     </Button>
                   </Link>
+
                   <Button
                     className="w-32 bg-red-400 text-white hover:bg-red-500"
                     onClick={handleLogout}

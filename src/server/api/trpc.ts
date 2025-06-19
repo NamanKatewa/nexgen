@@ -5,7 +5,10 @@ import { verifyToken } from "~/lib/jwt";
 
 import { db } from "~/server/db";
 
-export const createTRPCContext = async (opts: { headers: Headers }) => {
+export const createTRPCContext = async (opts: {
+  headers: Headers;
+  req: Request;
+}) => {
   const token = opts.headers.get("authorization")?.replace("Bearer ", "");
   let user = null;
 

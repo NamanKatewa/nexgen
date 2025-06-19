@@ -18,6 +18,8 @@ export const env = createEnv({
     S3_BUCKET_NAME: z.string(),
     EMAIL_USER: z.string(),
     EMAIL_PASSWORD: z.string(),
+    IMB_TOKEN: z.string(),
+    IMB_API_URL: z.string().url(),
   },
 
   client: {},
@@ -33,6 +35,8 @@ export const env = createEnv({
     S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
     EMAIL_USER: process.env.EMAIL_USER,
     EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
+    IMB_TOKEN: process.env.IMB_TOKEN,
+    IMB_API_URL: process.env.IMB_API_URL,
   },
 
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

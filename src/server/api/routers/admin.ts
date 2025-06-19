@@ -69,6 +69,7 @@ export const adminRouter = createTRPCRouter({
           subject: "KYC Rejected",
           html: `Your KYC has been rejected for the following reason: ${input.reason}`,
         });
+        return true;
       } catch (error) {
         console.log(error);
         throw new Error("You are not logged in");

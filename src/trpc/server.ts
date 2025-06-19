@@ -21,6 +21,7 @@ const createContext = cache(async () => {
 
   return createTRPCContext({
     headers: heads,
+    req: new Request("http://localhost"),
   });
 });
 

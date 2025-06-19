@@ -5,6 +5,10 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
 
+  if (pathname === "/dashboard/wallet/callback") {
+    return NextResponse.next();
+  }
+
   const isTokenInvalid = !token || token === "undefined";
   const isAuthPage = pathname === "/login" || pathname === "/register";
 

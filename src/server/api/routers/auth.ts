@@ -17,12 +17,18 @@ export const authRouter = createTRPCRouter({
   me: publicProcedure.query(async ({ ctx }) => {
     if (!ctx.user) return null;
 
+    const wallet = await db.wallet.findUnique({
+      where: { user_id: ctx.user.user_id },
+      select: { balance: true },
+    });
+
     return {
       id: ctx.user.user_id,
       email: ctx.user.email,
       role: ctx.user.role,
       name: ctx.user.name,
       status: ctx.user.status,
+      walletBalance: wallet?.balance,
     };
   }),
 
@@ -50,6 +56,13 @@ export const authRouter = createTRPCRouter({
         user: { connect: { user_id: user.user_id } },
       },
       select: { kyc_status: true },
+    });
+
+    await db.wallet.create({
+      data: {
+        user: { connect: { user_id: user.user_id } },
+        balance: 0,
+      },
     });
 
     const token = signToken({
