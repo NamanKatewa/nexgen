@@ -33,7 +33,6 @@ enum TRANSACTION_TYPE{
 enum PAYMENT_STATUS{
   Pending
   Completed
-  Approved
   Failed
 }
 
@@ -67,12 +66,6 @@ enum SUPPORT_PRIORITY{
 enum EMPLOYEE_STATUS{
   Active
   Inactive
-}
-
-enum PAYMENT_VERIFICATION_STATUS{
-  Pending
-  Verified
-  Rejected
 }
 
 enum SHIPMENT_STATUS{
@@ -115,9 +108,7 @@ model User {
   transactions       Transaction[]
   tickets            SupportTicket[]
   employee           Employee?
-  payments           Payment[]
   verifiedKYCs       Kyc[]     @relation("VerifiedByAdmin")
-  verifiedPayments   Payment[] @relation("VerifiedByAdminPayments")
 }
 
 model Kyc {
@@ -168,7 +159,6 @@ model Transaction {
   wallet   Wallet   @relation(fields: [wallet_id], references: [wallet_id])
   user     User     @relation(fields: [user_id], references: [user_id])
   order    Order?   @relation(fields: [order_id], references: [order_id])
-  payment  Payment?
 }
 
 model Carrier {
@@ -280,22 +270,6 @@ model Employee {
 
   user      User           @relation(fields: [user_id], references: [user_id])
   tickets   SupportTicket[]
-}
-model Payment {
-  payment_id           String   @id @default(uuid())
-  transaction_id       String?  @unique
-  user_id              String
-  amount               Decimal  @db.Decimal(10, 2)
-  payment_method       String
-  reference_number     String
-  payment_date         DateTime
-  verification_status  PAYMENT_VERIFICATION_STATUS
-  verified_by_user_id  String?
-  verification_date    DateTime?
-
-  transaction    Transaction? @relation(fields: [transaction_id], references: [transaction_id])
-  user           User         @relation(fields: [user_id], references: [user_id])
-  verified_by    User?        @relation("VerifiedByAdminPayments", fields: [verified_by_user_id], references: [user_id])
 }
 
 model PasswordReset {

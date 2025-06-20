@@ -1,5 +1,5 @@
 import { submitKycSchema } from "~/schemas/kyc";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { uploadFileToS3 } from "~/lib/s3";
 

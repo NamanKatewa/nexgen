@@ -22,7 +22,6 @@ import {
 } from "~/components/ui/select";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -31,8 +30,6 @@ import {
 } from "~/components/ui/dialog";
 
 import { api } from "~/trpc/react";
-
-const placeholderImage = "/tracking.jpg";
 
 const entityTypes = [
   "Individual",
@@ -120,7 +117,7 @@ const VerifyKycPage = () => {
           className="p-4 border-b flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30"
         >
           <h1 className="text-2xl font-semibold text-blue-950">
-            KYC Verification Dashboard
+            KYC Verification
           </h1>
           <div className="flex gap-4 items-center flex-wrap">
             <div className="flex gap-2 items-center">

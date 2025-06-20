@@ -1,5 +1,9 @@
 import { addFundsSchema, paymentSuccessSchema } from "~/schemas/wallet";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import {
+  adminProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+} from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { nanoid } from "nanoid";
 import { createIMBPaymentOrder } from "~/lib/imb";
@@ -87,15 +91,26 @@ export const walletRouter = createTRPCRouter({
         data: { balance: user.wallet.balance.add(transaction.amount) },
       });
 
-      // const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
-      // await db.transaction.deleteMany({
-      //   where: {
-      //     payment_status: "Pending",
-      //     transaction_date: {
-      //       lt: tenMinutesAgo,
-      //     },
-      //   },
-      // });
+      await db.transaction.updateMany({
+        where: {
+          payment_status: "Pending",
+          transaction_date: {
+            lt: tenMinutesAgo,
+          },
+        },
+        data: {
+          payment_status: "Failed",
+        },
+      });
     }),
+
+  getTransactions: adminProcedure.query(async () => {
+    const transactions = await db.transaction.findMany({
+      where: { transaction_type: "Credit" },
+      include: { user: { select: { name: true, email: true } } },
+    });
+    return transactions;
+  }),
 });

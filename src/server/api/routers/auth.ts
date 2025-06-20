@@ -1,4 +1,8 @@
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import {
   signupSchema,
   loginSchema,

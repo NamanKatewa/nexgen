@@ -1,5 +1,5 @@
 import { rejectKycSchema, verifyKycSchema } from "~/schemas/kyc";
-import { createTRPCRouter, adminProcedure } from "../trpc";
+import { createTRPCRouter, adminProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { sendEmail } from "~/lib/email";
 

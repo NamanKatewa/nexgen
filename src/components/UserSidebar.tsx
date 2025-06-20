@@ -8,16 +8,14 @@ import {
   LayoutDashboard,
   Package,
   FileUser,
-  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { usePathname } from "next/navigation";
 
 const sidebarLinks = [
-  { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/user/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/kyc-verify", icon: FileUser, label: "Verify KYC" },
-  { href: "/admin/wallet", icon: Wallet, label: "Wallet Top-Ups" },
   { href: "/admin/orders", icon: Package, label: "Orders" },
   {
     href: "/admin/order-requests",
@@ -49,7 +47,7 @@ const sidebarLinks = [
   { href: "/admin/rates", icon: LayoutDashboard, label: "Rates" },
 ];
 
-const AdminSidebar = () => {
+const UserSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -123,4 +121,4 @@ const AdminSidebar = () => {
   );
 };
 
-export default AdminSidebar;
+export default UserSidebar;
