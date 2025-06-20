@@ -10,13 +10,16 @@ export default function WalletCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const transaction_id = searchParams.get("id");
+  const utils = api.useUtils();
 
   const {
     mutate: confirmTransaction,
     isPending,
     isSuccess,
     error,
-  } = api.wallet.updateTransaction.useMutation();
+  } = api.wallet.updateTransaction.useMutation({
+    onSuccess: () => utils.auth.me.invalidate(),
+  });
 
   useEffect(() => {
     if (transaction_id) {
@@ -41,7 +44,7 @@ export default function WalletCallbackClient() {
         {isPending
           ? "Confirming your transaction..."
           : isSuccess
-          ? "Your payment has been confirmed. Wallet will be updated shortly."
+          ? "Your payment has been confirmed."
           : error
           ? "There was an issue confirming the payment. Please contact support."
           : "Your payment has been received. Please wait while the admin confirms your transaction."}

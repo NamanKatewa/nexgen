@@ -66,27 +66,36 @@ export const walletRouter = createTRPCRouter({
 
       const user = await db.user.findUnique({
         where: { user_id: ctx.user.user_id },
-        include: { wallet: { select: { wallet_id: true } } },
+        include: { wallet: { select: { wallet_id: true, balance: true } } },
       });
 
       if (!user) return null;
+      if (!user.wallet) return null;
 
-      await db.transaction.update({
+      const transaction = await db.transaction.update({
         where: { transaction_id: input.transaction_id, user_id: user.user_id },
         data: {
           payment_status: "Completed",
         },
+        select: { amount: true },
       });
 
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      if (!transaction) return null;
 
-      await db.transaction.deleteMany({
-        where: {
-          payment_status: "Pending",
-          transaction_date: {
-            lt: tenMinutesAgo,
-          },
-        },
+      await db.wallet.update({
+        where: { wallet_id: user.wallet?.wallet_id },
+        data: { balance: user.wallet.balance.add(transaction.amount) },
       });
+
+      // const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+      // await db.transaction.deleteMany({
+      //   where: {
+      //     payment_status: "Pending",
+      //     transaction_date: {
+      //       lt: tenMinutesAgo,
+      //     },
+      //   },
+      // });
     }),
 });
