@@ -9,6 +9,7 @@ import {
   Package,
   FileUser,
   Wallet,
+  NotebookText,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -18,6 +19,7 @@ const sidebarLinks = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/kyc-verify", icon: FileUser, label: "Verify KYC" },
   { href: "/admin/wallet", icon: Wallet, label: "Wallet Top-Ups" },
+  { href: "/admin/passbook", icon: NotebookText, label: "Passbook" },
   { href: "/admin/orders", icon: Package, label: "Orders" },
   {
     href: "/admin/order-requests",

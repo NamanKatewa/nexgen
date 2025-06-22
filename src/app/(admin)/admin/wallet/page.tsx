@@ -2,7 +2,6 @@
 
 import React, { useRef, useState } from "react";
 import { format } from "date-fns";
-import Image from "next/image";
 import {
   Table,
   TableBody,
@@ -26,7 +25,7 @@ import { cn } from "~/lib/utils";
 
 const paymentStatusTypes = ["Pending", "Completed", "Failed"];
 
-const VerifyKycPage = () => {
+const WalletTopupPage = () => {
   const { data: transactions, isLoading } = api.wallet.getTransactions.useQuery(
     undefined,
     {
@@ -71,7 +70,7 @@ const VerifyKycPage = () => {
               htmlFor="entity-type-filter"
               className="text-sm text-blue-950"
             >
-              Entity Type:
+              Payment Status:
             </label>
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger
@@ -81,7 +80,7 @@ const VerifyKycPage = () => {
                 <SelectValue placeholder="Entity Type: " />
               </SelectTrigger>
               <SelectContent className="text-blue-950">
-                <SelectItem value="ALL">All Types</SelectItem>
+                <SelectItem value="ALL">All</SelectItem>
                 {paymentStatusTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -171,4 +170,4 @@ const VerifyKycPage = () => {
   );
 };
 
-export default VerifyKycPage;
+export default WalletTopupPage;

@@ -75,4 +75,26 @@ export const adminRouter = createTRPCRouter({
         throw new Error("You are not logged in");
       }
     }),
+
+  getPassbook: adminProcedure.query(async () => {
+    const transactions = await db.transaction.findMany({
+      orderBy: {
+        transaction_date: "desc",
+      },
+      select: {
+        transaction_date: true,
+        amount: true,
+        transaction_type: true,
+        payment_status: true,
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return transactions;
+  }),
 });
