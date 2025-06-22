@@ -22,6 +22,7 @@ import {
 } from "~/components/ui/select";
 
 import { api } from "~/trpc/react";
+import { cn } from "~/lib/utils";
 
 const paymentStatusTypes = ["Pending", "Completed", "Failed"];
 
@@ -105,13 +106,15 @@ const VerifyKycPage = () => {
           <Table className="table-fixed text-blue-950">
             <TableHeader className="bg-blue-100 z-20 shadow-sm">
               <TableRow>
-                <TableHead className="px-4 w-70 text-blue-950">Name</TableHead>
+                <TableHead className="px-4 w-40 text-blue-950">Name</TableHead>
                 <TableHead className="px-4 w-50 text-blue-950">Email</TableHead>
-                <TableHead className="px-4 w-50 text-blue-950">
+                <TableHead className="px-4 w-20 text-center text-blue-950">
                   Amount
                 </TableHead>
-                <TableHead className="px-4 w-70 text-blue-950">Date</TableHead>
-                <TableHead className="px-4 w-50 text-blue-950">
+                <TableHead className="px-4 w-30 text-center text-blue-950">
+                  Date
+                </TableHead>
+                <TableHead className="px-4 w-50 text-center text-blue-950">
                   Payment Status
                 </TableHead>
               </TableRow>
@@ -126,10 +129,10 @@ const VerifyKycPage = () => {
                     <TableCell className="px-4">
                       {transaction.user.email}
                     </TableCell>
-                    <TableCell className="px-4">
+                    <TableCell className="px-4 text-center">
                       {String(transaction.amount)}
                     </TableCell>
-                    <TableCell className="px-4">
+                    <TableCell className="px-4 text-center">
                       {transaction.transaction_date
                         ? format(
                             new Date(transaction.transaction_date),
@@ -137,8 +140,20 @@ const VerifyKycPage = () => {
                           )
                         : "N/A"}
                     </TableCell>
-                    <TableCell className="px-4">
-                      {transaction.payment_status}
+
+                    <TableCell className="px-4 text-center">
+                      <Badge
+                        className={cn("text-950", {
+                          "bg-green-200":
+                            transaction.payment_status === "Completed",
+                          "bg-yellow-200":
+                            transaction.payment_status === "Pending",
+                          "bg-red-200": transaction.payment_status === "Failed",
+                        })}
+                      >
+                        {" "}
+                        {transaction.payment_status}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 );
