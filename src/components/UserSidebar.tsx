@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   LayoutDashboard,
   NotebookText,
+  ArchiveRestore,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -15,6 +16,16 @@ import { usePathname } from "next/navigation";
 const sidebarLinks = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/passbook", icon: NotebookText, label: "Passbook" },
+  {
+    href: "/dashboard/create-shipment",
+    icon: ArchiveRestore,
+    label: "Create Shipment",
+  },
+  {
+    href: "/dashboard/create-bulk-shipment",
+    icon: ArchiveRestore,
+    label: "Create Bulk Shipment",
+  },
 ];
 
 const UserSidebar = () => {
