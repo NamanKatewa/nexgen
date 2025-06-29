@@ -67,9 +67,7 @@ const PassbookPage = () => {
         ref={topRef}
         className="p-4 border-b flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30"
       >
-        <h1 className="text-2xl font-semibold text-blue-950">
-          Wallet Recharges
-        </h1>
+        <h1 className="text-2xl font-semibold text-blue-950">Transactions</h1>
         <div className="flex gap-4 items-center flex-wrap">
           <div className="flex gap-2 items-center">
             <label
