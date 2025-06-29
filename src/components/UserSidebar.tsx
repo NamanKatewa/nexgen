@@ -6,45 +6,15 @@ import {
   ChevronRight,
   ChevronLeft,
   LayoutDashboard,
-  Package,
-  FileUser,
+  NotebookText,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { usePathname } from "next/navigation";
 
 const sidebarLinks = [
-  { href: "/user/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/kyc-verify", icon: FileUser, label: "Verify KYC" },
-  { href: "/admin/orders", icon: Package, label: "Orders" },
-  {
-    href: "/admin/order-requests",
-    icon: LayoutDashboard,
-    label: "Order Requests",
-  },
-  { href: "/admin/all-orders", icon: LayoutDashboard, label: "All Orders" },
-  {
-    href: "/admin/tracking/dashboard",
-    icon: LayoutDashboard,
-    label: "Tracking Dashboard",
-  },
-  {
-    href: "/admin/revenue/dashboard",
-    icon: LayoutDashboard,
-    label: "Revenue Dashboard",
-  },
-  { href: "/admin/label-maker", icon: LayoutDashboard, label: "Label Maker" },
-  { href: "/admin/approve-users", icon: LayoutDashboard, label: "Users" },
-  { href: "/admin/employees", icon: LayoutDashboard, label: "Employees" },
-  { href: "/admin/support", icon: LayoutDashboard, label: "Support" },
-  { href: "/admin/payments", icon: LayoutDashboard, label: "Payments" },
-  {
-    href: "/admin/payment-history",
-    icon: LayoutDashboard,
-    label: "Payment History",
-  },
-  { href: "/admin/promotions", icon: LayoutDashboard, label: "Promotions" },
-  { href: "/admin/rates", icon: LayoutDashboard, label: "Rates" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/dashboard/passbook", icon: NotebookText, label: "Passbook" },
 ];
 
 const UserSidebar = () => {
@@ -73,7 +43,12 @@ const UserSidebar = () => {
           (typeof window !== "undefined" && window.innerWidth >= 768)) && (
           <div className="h-full flex flex-col p-4 gap-4">
             {sidebarLinks.map(({ href, icon: Icon, label }) => {
-              const isActive = pathname.startsWith(href);
+              let isActive = false;
+              if (href === "/dashboard") {
+                isActive = pathname === "/dashboard";
+              } else {
+                isActive = pathname.startsWith(href);
+              }
               return (
                 <Link
                   key={href}

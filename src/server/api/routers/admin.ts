@@ -76,6 +76,13 @@ export const adminRouter = createTRPCRouter({
       }
     }),
 
+  getTransactions: adminProcedure.query(async () => {
+    const transactions = await db.transaction.findMany({
+      where: { transaction_type: "Credit" },
+      include: { user: { select: { name: true, email: true } } },
+    });
+    return transactions;
+  }),
   getPassbook: adminProcedure.query(async () => {
     const transactions = await db.transaction.findMany({
       orderBy: {

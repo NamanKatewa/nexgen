@@ -26,7 +26,7 @@ import { cn } from "~/lib/utils";
 const paymentStatusTypes = ["Pending", "Completed", "Failed"];
 
 const WalletTopupPage = () => {
-  const { data: transactions, isLoading } = api.wallet.getTransactions.useQuery(
+  const { data: transactions, isLoading } = api.admin.getTransactions.useQuery(
     undefined,
     {
       retry: 3,

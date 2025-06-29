@@ -1,9 +1,5 @@
 import { addFundsSchema, paymentSuccessSchema } from "~/schemas/wallet";
-import {
-  adminProcedure,
-  createTRPCRouter,
-  protectedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { nanoid } from "nanoid";
 import { createIMBPaymentOrder } from "~/lib/imb";
@@ -105,12 +101,20 @@ export const walletRouter = createTRPCRouter({
         },
       });
     }),
-
-  getTransactions: adminProcedure.query(async () => {
+  getPassbook: protectedProcedure.query(async ({ ctx }) => {
     const transactions = await db.transaction.findMany({
-      where: { transaction_type: "Credit" },
-      include: { user: { select: { name: true, email: true } } },
+      where: { user_id: ctx.user.user_id },
+      orderBy: {
+        transaction_date: "desc",
+      },
+      select: {
+        transaction_date: true,
+        amount: true,
+        transaction_type: true,
+        payment_status: true,
+      },
     });
+
     return transactions;
   }),
 });
