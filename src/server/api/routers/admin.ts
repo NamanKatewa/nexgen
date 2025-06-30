@@ -1,7 +1,7 @@
-import { rejectKycSchema, verifyKycSchema } from "~/schemas/kyc";
-import { createTRPCRouter, adminProcedure } from "~/server/api/trpc";
-import { db } from "~/server/db";
 import { sendEmail } from "~/lib/email";
+import { rejectKycSchema, verifyKycSchema } from "~/schemas/kyc";
+import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
+import { db } from "~/server/db";
 
 export const adminRouter = createTRPCRouter({
   pendingKyc: adminProcedure.query(async () => {
@@ -80,8 +80,20 @@ export const adminRouter = createTRPCRouter({
   getTransactions: adminProcedure.query(async () => {
     const transactions = await db.transaction.findMany({
       where: { transaction_type: "Credit" },
-      include: { user: { select: { name: true, email: true } } },
-    });
+      select: {
+				transaction_id: true,
+				user: {
+					select: {
+						name: true,
+						email: true,
+					},
+				},
+				payment_status: true,
+				transaction_type: true,
+				amount: true,
+				transaction_date: true,
+			},
+		});
     return transactions;
   }),
   getPassbook: adminProcedure.query(async () => {
@@ -90,6 +102,7 @@ export const adminRouter = createTRPCRouter({
         transaction_date: "desc",
       },
       select: {
+        transaction_id: true,
         transaction_date: true,
         amount: true,
         transaction_type: true,
