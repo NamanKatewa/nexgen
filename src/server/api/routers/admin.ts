@@ -9,6 +9,7 @@ export const adminRouter = createTRPCRouter({
       where: {
         kyc_status: "Submitted",
       },
+      include: { address: true },
       orderBy: { submission_date: "desc" },
     });
 

@@ -206,8 +206,8 @@ const VerifyKycPage = () => {
               </TableHeader>
               <TableBody>
                 {filteredList.map((kyc, i) => {
-                  const address = isBillingAddress(kyc.billing_address)
-                    ? kyc.billing_address
+                  const address = isBillingAddress(kyc.address)
+                    ? kyc.address
                     : null;
 
                   return (

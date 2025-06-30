@@ -3,83 +3,84 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
-enum USER_ROLE{
+
+enum USER_ROLE {
   Client
   Admin
   Employee
 }
 
-enum USER_STATUS{
+enum USER_STATUS {
   Active
   Inactive
 }
 
-enum KYC_STATUS{
+enum KYC_STATUS {
   Pending
   Submitted
   Approved
   Rejected
 }
 
-enum TRANSACTION_TYPE{
+enum TRANSACTION_TYPE {
   Credit
   Debit
 }
 
-enum PAYMENT_STATUS{
+enum PAYMENT_STATUS {
   Pending
   Completed
   Failed
 }
 
-enum CARRIER_STATUS{
+enum CARRIER_STATUS {
   Active
   Inactive
 }
 
-enum ORDER_PAYMENT_STATUS{
+enum ORDER_PAYMENT_STATUS {
   Paid
   Approved
   Rejected
 }
 
-enum ORDER_STATUS{
+enum ORDER_STATUS {
   PendingApproval
   Approved
 }
 
-enum SUPPORT_STATUS{
+enum SUPPORT_STATUS {
   Open
   Closed
 }
 
-enum SUPPORT_PRIORITY{
+enum SUPPORT_PRIORITY {
   High
   Medium
   Low
 }
 
-enum EMPLOYEE_STATUS{
+enum EMPLOYEE_STATUS {
   Active
   Inactive
 }
 
-enum SHIPMENT_STATUS{
+enum SHIPMENT_STATUS {
   Booked
   InTransit
 }
 
-enum BUSINESS_TYPE{
+enum BUSINESS_TYPE {
   Retailer
   Ecommerce
   Franchise
 }
 
-enum ENTITY_TYPE{
+enum ENTITY_TYPE {
   Individual
   SelfEmployement
   ProprietorshipFirm
@@ -88,77 +89,102 @@ enum ENTITY_TYPE{
   PublicLimitedCompany
   PartnershipFirm
 }
+
+enum ADDRESS_TYPE {
+  Kyc
+  User
+  Warehouse
+}
+
 model User {
-  user_id       String       @id @default(uuid())
-  email         String       @unique
-  mobile_number String       
+  user_id       String        @id @default(uuid())
+  email         String        @unique
+  mobile_number String
   password_hash String
-  name    String
+  name          String
   company_name  String
   monthly_order String
   business_type BUSINESS_TYPE
-  role          USER_ROLE @default(Client)
-  status        USER_STATUS  @default(Active)
-  created_at    DateTime     @default(now())
-  updated_at    DateTime     @updatedAt
+  role          USER_ROLE     @default(Client)
+  status        USER_STATUS   @default(Active)
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
 
-  kyc                Kyc?
-  wallet             Wallet?
-  orders             Order[]
-  transactions       Transaction[]
-  tickets            SupportTicket[]
-  employee           Employee?
-  verifiedKYCs       Kyc[]     @relation("VerifiedByAdmin")
+  kyc          Kyc?
+  wallet       Wallet?
+  orders       Order[]
+  transactions Transaction[]
+  tickets      SupportTicket[]
+  employee     Employee?
+  verifiedKYCs Kyc[]           @relation("VerifiedByAdmin")
+  addresses    Address[]
+}
+
+model Address {
+  address_id            String     @id @default(uuid())
+  zip_code              Int
+  city                  String
+  state                 String
+  address_line          String
+  name                  String
+  type                  ADDRESS_TYPE
+  user_id               String
+
+  kyc                   Kyc?
+  origin_shipments      Shipment[] @relation("Origin")
+  destination_shipments Shipment[] @relation("Destination")
+  user                  User       @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model Kyc {
-  kyc_id              String   @id @default(uuid())
-  user_id             String   @unique
+  kyc_id              String      @id @default(uuid())
+  user_id             String      @unique
   entity_name         String?
   entity_type         ENTITY_TYPE?
   website_url         String?
-  billing_address     Json? // Zip Code, City, State, Written Address
+  address_id          String?     @unique
   aadhar_number       String?
-  aadhar_image_front String?
-  aadhar_image_back String?
-  pan_number  String?
-  pan_image_front String?
-  pan_image_back  String?
-  gst Boolean @default(false)
-  kyc_status          KYC_STATUS @default(Pending)
+  aadhar_image_front  String?
+  aadhar_image_back   String?
+  pan_number          String?
+  pan_image_front     String?
+  pan_image_back      String?
+  gst                 Boolean     @default(false)
+  kyc_status          KYC_STATUS  @default(Pending)
   submission_date     DateTime?
   verification_date   DateTime?
   verified_by_user_id String?
   rejection_reason    String?
 
-  user        User @relation(fields: [user_id], references: [user_id])
-  verified_by User? @relation("VerifiedByAdmin", fields: [verified_by_user_id], references: [user_id])
+  user        User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  address     Address? @relation(fields: [address_id], references: [address_id])
+  verified_by User?    @relation("VerifiedByAdmin", fields: [verified_by_user_id], references: [user_id])
 }
 
 model Wallet {
-  wallet_id String   @id @default(uuid())
-  user_id   String   @unique
-  balance   Decimal  @db.Decimal(10, 2)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  wallet_id    String        @id @default(uuid())
+  user_id      String        @unique
+  balance      Decimal       @db.Decimal(10, 2)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
 
-  user         User         @relation(fields: [user_id], references: [user_id])
+  user         User          @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   transactions Transaction[]
 }
 
 model Transaction {
-  transaction_id     String   @id @default(uuid())
-  wallet_id          String
-  user_id            String
-  transaction_type   TRANSACTION_TYPE
-  amount             Decimal  @db.Decimal(10, 2)
-  transaction_date   DateTime
-  payment_status     PAYMENT_STATUS
-  order_id           String? @unique
+  transaction_id   String           @id @default(uuid())
+  wallet_id        String
+  user_id          String
+  transaction_type TRANSACTION_TYPE
+  amount           Decimal          @db.Decimal(10, 2)
+  transaction_date DateTime
+  payment_status   PAYMENT_STATUS
+  order_id         String?          @unique
 
-  wallet   Wallet   @relation(fields: [wallet_id], references: [wallet_id])
-  user     User     @relation(fields: [user_id], references: [user_id])
-  order    Order?   @relation(fields: [order_id], references: [order_id])
+  wallet Wallet @relation(fields: [wallet_id], references: [wallet_id], onDelete: Cascade)
+  user   User   @relation(fields: [user_id], references: [user_id])
+  order  Order? @relation(fields: [order_id], references: [order_id])
 }
 
 model Carrier {
@@ -174,61 +200,63 @@ model Carrier {
 }
 
 model Rate {
-  rate_id                    String   @id @default(uuid())
-  carrier_id                 String
-  service_type               String
-  min_weight                 Decimal  @db.Decimal(10, 2)
-  max_weight                 Decimal  @db.Decimal(10, 2)
-  min_dimension              Decimal  @db.Decimal(10, 2)
-  max_dimension              Decimal  @db.Decimal(10, 2)
-  base_rate                  Decimal  @db.Decimal(10, 2)
-  rate_per_kg                Decimal  @db.Decimal(10, 2)
+  rate_id                   String   @id @default(uuid())
+  carrier_id                String
+  service_type              String
+  min_weight                Decimal  @db.Decimal(10, 2)
+  max_weight                Decimal  @db.Decimal(10, 2)
+  min_dimension             Decimal  @db.Decimal(10, 2)
+  max_dimension             Decimal  @db.Decimal(10, 2)
+  base_rate                 Decimal  @db.Decimal(10, 2)
+  rate_per_kg               Decimal  @db.Decimal(10, 2)
   user_specific_rate_adjustment Decimal? @db.Decimal(10, 2)
-  effective_date             DateTime
-  expiry_date                DateTime
-  origin_pincode_range       String
-  destination_pincode_range  String
+  effective_date            DateTime
+  expiry_date               DateTime
+  origin_pincode_range      String
+  destination_pincode_range String
 
-  carrier Carrier @relation(fields: [carrier_id], references: [carrier_id])
+  carrier Carrier @relation(fields: [carrier_id], references: [carrier_id], onDelete: Cascade)
 }
 
 model Order {
-  order_id       String     @id @default(uuid())
-  user_id        String
-  order_date     DateTime   @default(now())
-  total_amount   Decimal    @db.Decimal(10, 2)
-  payment_status ORDER_PAYMENT_STATUS
-  order_status   ORDER_STATUS
+  order_id         String               @id @default(uuid())
+  user_id          String
+  order_date       DateTime             @default(now())
+  total_amount     Decimal              @db.Decimal(10, 2)
+  payment_status   ORDER_PAYMENT_STATUS
+  order_status     ORDER_STATUS
   rejection_reason String?
-  is_bulk_order  Boolean
-  created_at     DateTime   @default(now())
-  updated_at     DateTime   @updatedAt
+  is_bulk_order    Boolean
+  created_at       DateTime             @default(now())
+  updated_at       DateTime             @updatedAt
 
-  user          User         @relation(fields: [user_id], references: [user_id])
-  shipments     Shipment[]
-  transaction   Transaction?
+  user        User       @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  shipments   Shipment[]
+  transaction Transaction?
 }
 
 model Shipment {
-  shipment_id       String   @id @default(uuid())
-  order_id          String?
-  carrier_id        String
-  awb_lr_no         String   @unique
-  current_status    SHIPMENT_STATUS
-  origin_address    String
-  destination_address String
-  recipient_name    String
-  recipient_mobile  String
-  package_weight    Decimal  @db.Decimal(10, 2)
-  package_dimensions String
-  shipping_cost     Decimal  @db.Decimal(10, 2)
-  label_url         String
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  shipment_id            String          @id @default(uuid())
+  order_id               String
+  carrier_id             String?
+  awb_lr_no              String          @unique
+  current_status         SHIPMENT_STATUS
+  origin_address_id      String
+  destination_address_id String
+  recipient_name         String
+  recipient_mobile       String
+  package_weight         Decimal         @db.Decimal(10, 2)
+  package_dimensions     String
+  shipping_cost          Decimal         @db.Decimal(10, 2)
+  label_url              String
+  created_at             DateTime        @default(now())
+  updated_at             DateTime        @updatedAt
 
-  order     Order?   @relation(fields: [order_id], references: [order_id])
-  carrier   Carrier  @relation(fields: [carrier_id], references: [carrier_id])
-  tracking  Tracking[]
+  order               Order    @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  carrier             Carrier? @relation(fields: [carrier_id], references: [carrier_id])
+  origin_address      Address  @relation("Origin", fields: [origin_address_id], references: [address_id])
+  destination_address Address  @relation("Destination", fields: [destination_address_id], references: [address_id])
+  tracking            Tracking[]
 }
 
 model Tracking {
@@ -240,42 +268,42 @@ model Tracking {
   carrier_update_code String
   event_details      String
 
-  shipment Shipment @relation(fields: [shipment_id], references: [shipment_id])
+  shipment Shipment @relation(fields: [shipment_id], references: [shipment_id], onDelete: Cascade)
 }
 
 model SupportTicket {
-  ticket_id              String   @id @default(uuid())
-  user_id                String
-  subject                String
-  description            String
-  status                 SUPPORT_STATUS
-  priority               SUPPORT_STATUS
+  ticket_id               String           @id @default(uuid())
+  user_id                 String
+  subject                 String
+  description             String
+  status                  SUPPORT_STATUS
+  priority                SUPPORT_PRIORITY
   assigned_to_employee_id String?
-  created_at             DateTime @default(now())
-  updated_at             DateTime @updatedAt
-  resolved_at            DateTime?
+  created_at              DateTime         @default(now())
+  updated_at              DateTime         @updatedAt
+  resolved_at             DateTime?
 
-  user       User      @relation(fields: [user_id], references: [user_id])
+  user        User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   assigned_to Employee? @relation(fields: [assigned_to_employee_id], references: [employee_id])
 }
 
 model Employee {
-  employee_id String   @id @default(uuid())
-  user_id     String   @unique
+  employee_id   String          @id @default(uuid())
+  user_id       String          @unique
   employee_code String
-  designation String
-  department  String
-  hire_date   DateTime
-  status      EMPLOYEE_STATUS
+  designation   String
+  department    String
+  hire_date     DateTime
+  status        EMPLOYEE_STATUS
 
-  user      User           @relation(fields: [user_id], references: [user_id])
-  tickets   SupportTicket[]
+  user    User            @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  tickets SupportTicket[]
 }
 
 model PasswordReset {
-  reset_id   String   @id @default(cuid())
-  email      String   @unique
-  otp        String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  reset_id  String   @id @default(uuid())
+  email     String   @unique
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }

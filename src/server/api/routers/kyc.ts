@@ -27,18 +27,25 @@ export const kycRouter = createTRPCRouter({
         ]);
 
       try {
+        const address = await db.address.create({
+          data: {
+            type: "Kyc",
+            zip_code: input.billingAddress.zipCode,
+            city: input.billingAddress.city,
+            state: input.billingAddress.state,
+            address_line: input.billingAddress.addressLine,
+            user: { connect: { user_id: ctx.user.user_id } },
+            name: "KYC",
+          },
+        });
+
         await db.kyc.update({
           where: { user_id: ctx.user.user_id },
           data: {
             entity_name: input.entityName,
             entity_type: input.entityType,
             website_url: input.websiteUrl,
-            billing_address: {
-              zip_code: input.billingAddress.zipCode,
-              city: input.billingAddress.city,
-              state: input.billingAddress.state,
-              address_line: input.billingAddress.addressLine,
-            },
+            address_id: address.address_id,
             aadhar_number: input.aadharNumber,
             aadhar_image_front: aadharFrontUrl,
             aadhar_image_back: aadharBackUrl,
