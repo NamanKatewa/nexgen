@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ExpandableSection } from "~/components/ExpandableSection";
 
 const policies = [
 	{
@@ -63,8 +63,6 @@ const policies = [
 ];
 
 export default function PolicyPage() {
-	const [expandedPolicy, setExpandedPolicy] = useState<number | null>(null);
-	const [expandedSection, setExpandedSection] = useState<number | null>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
 	useEffect(() => {
@@ -102,70 +100,26 @@ export default function PolicyPage() {
 				{policies.map((policy, policyIndex) => (
 					<motion.div
 						key={policy.title}
-						className="mb-6 overflow-hidden rounded-lg bg-blue-100/20 shadow-sm backdrop-blur-lg"
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5, delay: policyIndex * 0.1 }}
 					>
-						<button
-							type="button"
-							className="flex w-full items-center justify-between px-6 py-4 text-left focus:outline-none"
-							onClick={() =>
-								setExpandedPolicy(
-									expandedPolicy === policyIndex ? null : policyIndex,
-								)
-							}
+						<ExpandableSection
+							title={policy.title}
+							containerClassName="mb-6 overflow-hidden rounded-lg bg-blue-100/20 shadow-sm backdrop-blur-lg"
+							titleClassName="font-semibold text-blue-950 text-xl"
 						>
-							<h2 className="font-semibold text-blue-950 text-xl">
-								{policy.title}
-							</h2>
-							{expandedPolicy === policyIndex ? (
-								<ChevronUp className="h-6 w-6 text-blue-950" />
-							) : (
-								<ChevronDown className="h-6 w-6 text-blue-950" />
-							)}
-						</button>
-						<motion.div
-							initial={false}
-							animate={{
-								height: expandedPolicy === policyIndex ? "auto" : 0,
-							}}
-							transition={{ duration: 0.3 }}
-							className="overflow-hidden"
-						>
-							{policy.sections.map((section, sectionIndex) => (
-								<div key={section.title} className="border-blue-200 border-t">
-									<button
-										type="button"
-										className="flex w-full items-center justify-between px-6 py-3 text-left focus:outline-none"
-										onClick={() =>
-											setExpandedSection(
-												expandedSection === sectionIndex ? null : sectionIndex,
-											)
-										}
-									>
-										<h3 className="font-medium text-blue-950 text-lg">
-											{section.title}
-										</h3>
-										{expandedSection === sectionIndex ? (
-											<ChevronUp className="h-5 w-5 text-blue-950" />
-										) : (
-											<ChevronDown className="h-5 w-5 text-blue-950" />
-										)}
-									</button>
-									<motion.div
-										initial={false}
-										animate={{
-											height: expandedSection === sectionIndex ? "auto" : 0,
-										}}
-										transition={{ duration: 0.3 }}
-										className="overflow-hidden"
-									>
-										<p className="px-6 pb-4 text-blue-950">{section.content}</p>
-									</motion.div>
-								</div>
+							{policy.sections.map((section) => (
+								<ExpandableSection
+									key={section.title}
+									title={section.title}
+									containerClassName="border-blue-200 border-t"
+									titleClassName="font-medium text-blue-950 text-lg"
+								>
+									<p className="px-6 pb-4 text-blue-950">{section.content}</p>
+								</ExpandableSection>
 							))}
-						</motion.div>
+						</ExpandableSection>
 					</motion.div>
 				))}
 				<div className="mt-8 text-center text-blue-950">

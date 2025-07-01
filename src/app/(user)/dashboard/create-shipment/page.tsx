@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { AddAddressModal } from "~/components/AddAddressModal";
+import { FieldError } from "~/components/FieldError";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
@@ -172,11 +173,7 @@ export default function CreateShipmentPage() {
 									))}
 								</div>
 							)}
-							{errors.originAddressId && (
-								<p className="text-red-600 text-sm">
-									{errors.originAddressId.message}
-								</p>
-							)}
+							<FieldError message={errors.originAddressId?.message} />
 							<Button
 								variant="outline"
 								className="mt-2 w-full bg-blue-200 hover:bg-blue-300"
@@ -222,11 +219,7 @@ export default function CreateShipmentPage() {
 									))}
 								</div>
 							)}
-							{errors.destinationAddressId && (
-								<p className="text-red-600 text-sm">
-									{errors.destinationAddressId.message}
-								</p>
-							)}
+							<FieldError message={errors.destinationAddressId?.message} />
 							<Button
 								variant="outline"
 								className="mt-2 w-full bg-blue-200 hover:bg-blue-300"
@@ -241,11 +234,7 @@ export default function CreateShipmentPage() {
 							<div className="space-y-2">
 								<Label>Recipient Name</Label>
 								<Input {...register("recipientName")} disabled={isLoading} />
-								{errors.recipientName && (
-									<p className="text-red-600 text-sm">
-										{errors.recipientName.message}
-									</p>
-								)}
+								<FieldError message={errors.recipientName?.message} />
 							</div>
 							<div className="mb-10 flex flex-wrap gap-10">
 								<div className="space-y-2">
@@ -264,11 +253,7 @@ export default function CreateShipmentPage() {
 											))}
 										</InputOTPGroup>
 									</InputOTP>
-									{errors.recipientMobile && (
-										<p className="text-red-600 text-sm">
-											{errors.recipientMobile.message}
-										</p>
-									)}
+									<FieldError message={errors.recipientMobile?.message} />
 								</div>
 							</div>
 						</div>
@@ -286,11 +271,7 @@ export default function CreateShipmentPage() {
 											valueAsNumber: true,
 										})}
 									/>
-									{errors.packageWeight && (
-										<p className="text-red-600 text-sm">
-											{errors.packageWeight.message}
-										</p>
-									)}
+									<FieldError message={errors.packageWeight?.message} />
 								</div>
 								<div className="space-y-2">
 									<Label>Package Height</Label>
@@ -302,11 +283,7 @@ export default function CreateShipmentPage() {
 											valueAsNumber: true,
 										})}
 									/>
-									{errors.packageHeight && (
-										<p className="text-red-600 text-sm">
-											{errors.packageHeight.message}
-										</p>
-									)}
+									<FieldError message={errors.packageHeight?.message} />
 								</div>
 								<div className="space-y-2">
 									<Label>Package Breadth</Label>
@@ -318,11 +295,7 @@ export default function CreateShipmentPage() {
 											valueAsNumber: true,
 										})}
 									/>
-									{errors.packageBreadth && (
-										<p className="text-red-600 text-sm">
-											{errors.packageBreadth.message}
-										</p>
-									)}
+									<FieldError message={errors.packageBreadth?.message} />
 								</div>
 								<div className="space-y-2">
 									<Label>Package Length</Label>
@@ -334,11 +307,7 @@ export default function CreateShipmentPage() {
 											valueAsNumber: true,
 										})}
 									/>
-									{errors.packageLength && (
-										<p className="text-red-600 text-sm">
-											{errors.packageLength.message}
-										</p>
-									)}
+									<FieldError message={errors.packageLength?.message} />
 								</div>
 							</div>
 						</div>

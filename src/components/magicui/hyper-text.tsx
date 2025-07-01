@@ -2,9 +2,9 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import type { MotionProps } from "motion/react";
+import { nanoid } from "nanoid";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "~/lib/utils";
-import { nanoid } from "nanoid";
 
 type CharacterSet = string[] | readonly string[];
 

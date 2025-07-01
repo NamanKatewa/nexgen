@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ExpandableSection } from "~/components/ExpandableSection";
 
 const sections = [
 	{
@@ -53,7 +53,6 @@ const sections = [
 ];
 
 export default function PrivacyPolicy() {
-	const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
 	useEffect(() => {
@@ -91,35 +90,18 @@ export default function PrivacyPolicy() {
 				{sections.map((section, index) => (
 					<motion.div
 						key={section.title}
-						className="mb-4 overflow-hidden rounded-lg bg-blue-200/20 shadow-sm backdrop-blur-lg"
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5, delay: index * 0.1 }}
 					>
-						<button
-							type="button"
-							className="flex w-full items-center justify-between px-6 py-4 text-left focus:outline-none"
-							onClick={() =>
-								setExpandedIndex(expandedIndex === index ? null : index)
-							}
-						>
-							<h2 className="font-medium text-blue-950 text-lg">
-								{section.title}
-							</h2>
-							{expandedIndex === index ? (
-								<ChevronUp className="h-5 w-5 text-blue-95" />
-							) : (
-								<ChevronDown className="h-5 w-5 text-blue-95" />
-							)}
-						</button>
-						<motion.div
-							initial={false}
-							animate={{ height: expandedIndex === index ? "auto" : 0 }}
-							transition={{ duration: 0.3 }}
-							className="overflow-hidden"
+						<ExpandableSection
+							title={section.title}
+							containerClassName="mb-4 overflow-hidden rounded-lg bg-blue-200/20 shadow-sm backdrop-blur-lg"
+							titleClassName="font-medium text-blue-950 text-lg"
+							contentClassName="overflow-hidden"
 						>
 							<p className="px-6 pb-4 text-blue-95">{section.content}</p>
-						</motion.div>
+						</ExpandableSection>
 					</motion.div>
 				))}
 			</div>

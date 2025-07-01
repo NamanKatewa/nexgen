@@ -3,6 +3,7 @@ import type { ADDRESS_TYPE } from "@prisma/client";
 import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { FieldError } from "~/components/FieldError";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
@@ -79,9 +80,7 @@ export function AddAddressModal({
 					<div className="space-y-2">
 						<Label htmlFor="name">Name</Label>
 						<Input id="name" {...register("name")} disabled={isLoading} />
-						{errors.name && (
-							<p className="text-red-600 text-sm">{errors.name.message}</p>
-						)}
+						<FieldError message={errors.name?.message} />
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="addressLine">Address Line</Label>
@@ -90,25 +89,17 @@ export function AddAddressModal({
 							{...register("addressLine")}
 							disabled={isLoading}
 						/>
-						{errors.addressLine && (
-							<p className="text-red-600 text-sm">
-								{errors.addressLine.message}
-							</p>
-						)}
+						<FieldError message={errors.addressLine?.message} />
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="city">City</Label>
 						<Input id="city" {...register("city")} disabled={isLoading} />
-						{errors.city && (
-							<p className="text-red-600 text-sm">{errors.city.message}</p>
-						)}
+						<FieldError message={errors.city?.message} />
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="state">State</Label>
 						<Input id="state" {...register("state")} disabled={isLoading} />
-						{errors.state && (
-							<p className="text-red-600 text-sm">{errors.state.message}</p>
-						)}
+						<FieldError message={errors.state?.message} />
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="zipCode">Zip Code</Label>
@@ -118,9 +109,7 @@ export function AddAddressModal({
 							{...register("zipCode", { valueAsNumber: true })}
 							disabled={isLoading}
 						/>
-						{errors.zipCode && (
-							<p className="text-red-600 text-sm">{errors.zipCode.message}</p>
-						)}
+						<FieldError message={errors.zipCode?.message} />
 					</div>
 					<DialogFooter>
 						<Button type="submit" disabled={isLoading}>

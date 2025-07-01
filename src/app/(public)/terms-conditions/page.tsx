@@ -1,49 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
-
-const ExpandableSection = ({
-	title,
-	children,
-}: {
-	title: string;
-	children: React.ReactNode;
-}) => {
-	const [isOpen, setIsOpen] = useState(false);
-
-	return (
-		<div className="border-blue-200 border-b py-4">
-			<button
-				type="button"
-				className="flex w-full items-center justify-between text-left"
-				onClick={() => setIsOpen(!isOpen)}
-			>
-				<h3 className="font-semibold text-blue-950 text-lg">{title}</h3>
-				{isOpen ? (
-					<ChevronUp className="h-5 w-5 " />
-				) : (
-					<ChevronDown className="h-5 w-5 " />
-				)}
-			</button>
-			<AnimatePresence>
-				{isOpen && (
-					<motion.div
-						initial={{ height: 0, opacity: 0, translateX: -100 }}
-						animate={{ height: "auto", opacity: 1, translateX: 0 }}
-						exit={{ height: 0, opacity: 0 }}
-						transition={{ duration: 0.3 }}
-						className="mt-2 text-blue-950"
-					>
-						{children}
-					</motion.div>
-				)}
-			</AnimatePresence>
-		</div>
-	);
-};
+import { ExpandableSection } from "~/components/ExpandableSection";
 
 export default function TermsAndConditions() {
 	return (
@@ -70,7 +29,12 @@ export default function TermsAndConditions() {
 				</motion.p>
 
 				<div className="space-y-4">
-					<ExpandableSection title="1. Introduction">
+					<ExpandableSection
+						title="1. Introduction"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<p>
 							Welcome to Nex Gen Courier Service. These terms and conditions
 							govern your use of our services. By using our services, you agree
@@ -78,7 +42,12 @@ export default function TermsAndConditions() {
 						</p>
 					</ExpandableSection>
 
-					<ExpandableSection title="2. Services Provided">
+					<ExpandableSection
+						title="2. Services Provided"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<p>
 							Nex Gen Courier Service provides parcel delivery, logistics, and
 							related courier services. We strive to deliver packages in a
@@ -86,7 +55,12 @@ export default function TermsAndConditions() {
 						</p>
 					</ExpandableSection>
 
-					<ExpandableSection title="3. User Responsibilities">
+					<ExpandableSection
+						title="3. User Responsibilities"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<ul className="list-disc pl-5">
 							<li>
 								Ensure that the information provided for the delivery is
@@ -100,7 +74,12 @@ export default function TermsAndConditions() {
 						</ul>
 					</ExpandableSection>
 
-					<ExpandableSection title="4. Fees and Payments">
+					<ExpandableSection
+						title="4. Fees and Payments"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<ul className="list-disc pl-5">
 							<li>
 								Payment for our services must be made as per the agreed rates
@@ -113,7 +92,12 @@ export default function TermsAndConditions() {
 						</ul>
 					</ExpandableSection>
 
-					<ExpandableSection title="5. Liability">
+					<ExpandableSection
+						title="5. Liability"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<ul className="list-disc pl-5">
 							<li>
 								Nex Gen Courier Service is not liable for any loss or damage to
@@ -126,7 +110,12 @@ export default function TermsAndConditions() {
 						</ul>
 					</ExpandableSection>
 
-					<ExpandableSection title="6. Claims and Refunds">
+					<ExpandableSection
+						title="6. Claims and Refunds"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<ul className="list-disc pl-5">
 							<li>
 								Any claims for loss or damage must be reported within [specific
@@ -139,7 +128,12 @@ export default function TermsAndConditions() {
 						</ul>
 					</ExpandableSection>
 
-					<ExpandableSection title="7. Confidentiality">
+					<ExpandableSection
+						title="7. Confidentiality"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<p>
 							We are committed to protecting your privacy and will not disclose
 							any personal information to third parties except as required by
@@ -147,7 +141,12 @@ export default function TermsAndConditions() {
 						</p>
 					</ExpandableSection>
 
-					<ExpandableSection title="8. Amendments">
+					<ExpandableSection
+						title="8. Amendments"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<p>
 							We reserve the right to amend these terms and conditions at any
 							time. Changes will be posted on our website and will be effective
@@ -155,7 +154,12 @@ export default function TermsAndConditions() {
 						</p>
 					</ExpandableSection>
 
-					<ExpandableSection title="9. Governing Law">
+					<ExpandableSection
+						title="9. Governing Law"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<p>
 							These terms and conditions are governed by the laws of [Your
 							Jurisdiction]. Any disputes arising from the use of our services
@@ -164,7 +168,12 @@ export default function TermsAndConditions() {
 						</p>
 					</ExpandableSection>
 
-					<ExpandableSection title="10. Contact Us">
+					<ExpandableSection
+						title="10. Contact Us"
+						containerClassName="border-blue-200 border-b py-4"
+						titleClassName="font-semibold text-blue-950 text-lg"
+						contentClassName="mt-2 text-blue-950"
+					>
 						<p>
 							For any questions or concerns, please contact us at
 							support@nexgencourierservice.in.

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { FieldError } from "~/components/FieldError";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
@@ -145,11 +146,7 @@ export default function KycFormPage() {
 							<div className="space-y-2">
 								<Label>Entity Name</Label>
 								<Input {...register("entityName")} disabled={isLoading} />
-								{errors.entityName && (
-									<p className="text-red-600 text-sm">
-										{errors.entityName.message}
-									</p>
-								)}
+								<FieldError message={errors.entityName?.message} />
 							</div>
 
 							<div className="space-y-2">
@@ -191,21 +188,13 @@ export default function KycFormPage() {
 										))}
 									</SelectContent>
 								</Select>
-								{errors.entityType && (
-									<p className="text-red-600 text-sm">
-										{errors.entityType.message}
-									</p>
-								)}
+								<FieldError message={errors.entityType?.message} />
 							</div>
 
 							<div className="space-y-2">
 								<Label>Website URL (optional)</Label>
 								<Input {...register("websiteUrl")} disabled={isLoading} />
-								{errors.websiteUrl && (
-									<p className="text-red-600 text-sm">
-										{errors.websiteUrl.message}
-									</p>
-								)}
+								<FieldError message={errors.websiteUrl?.message} />
 							</div>
 						</div>
 
@@ -233,11 +222,9 @@ export default function KycFormPage() {
 									{...register("billingAddress.addressLine")}
 								/>
 							</div>
-							{errors.billingAddress?.addressLine && (
-								<p className="text-red-600 text-sm">
-									{errors.billingAddress.addressLine.message}
-								</p>
-							)}
+							<FieldError
+								message={errors.billingAddress?.addressLine?.message}
+							/>
 						</div>
 
 						<div className="mb-10 flex flex-wrap gap-10">
@@ -269,11 +256,7 @@ export default function KycFormPage() {
 										))}
 									</InputOTPGroup>
 								</InputOTP>
-								{errors.aadharNumber && (
-									<p className="text-red-600 text-sm">
-										{errors.aadharNumber.message}
-									</p>
-								)}
+								<FieldError message={errors.aadharNumber?.message} />
 							</div>
 
 							<div className="space-y-2">
@@ -296,11 +279,9 @@ export default function KycFormPage() {
 										className="h-32 w-32 rounded border object-cover"
 									/>
 								)}
-								{errors.aadharImageFront && (
-									<p className="text-red-600 text-sm">
-										{errors.aadharImageFront.message as string}
-									</p>
-								)}
+								<FieldError
+									message={errors.aadharImageFront?.message as string}
+								/>
 							</div>
 
 							<div className="space-y-2">
@@ -323,11 +304,9 @@ export default function KycFormPage() {
 										className="h-32 w-32 rounded border object-cover"
 									/>
 								)}
-								{errors.aadharImageBack && (
-									<p className="text-red-600 text-sm">
-										{errors.aadharImageBack.message as string}
-									</p>
-								)}
+								<FieldError
+									message={errors.aadharImageBack?.message as string}
+								/>
 							</div>
 						</div>
 
@@ -346,11 +325,7 @@ export default function KycFormPage() {
 										<InputOTPSlot key={nanoid()} index={i} />
 									))}
 								</InputOTP>
-								{errors.panNumber && (
-									<p className="text-red-600 text-sm">
-										{errors.panNumber.message}
-									</p>
-								)}
+								<FieldError message={errors.panNumber?.message} />
 							</div>
 
 							<div className="space-y-2">
@@ -369,11 +344,7 @@ export default function KycFormPage() {
 										className="h-32 w-32 rounded border object-cover"
 									/>
 								)}
-								{errors.panImageFront && (
-									<p className="text-red-600 text-sm">
-										{errors.panImageFront.message as string}
-									</p>
-								)}
+								<FieldError message={errors.panImageFront?.message as string} />
 							</div>
 
 							<div className="space-y-2">
@@ -392,11 +363,7 @@ export default function KycFormPage() {
 										className="h-32 w-32 rounded border object-cover"
 									/>
 								)}
-								{errors.panImageBack && (
-									<p className="text-red-600 text-sm">
-										{errors.panImageBack.message as string}
-									</p>
-								)}
+								<FieldError message={errors.panImageBack?.message as string} />
 							</div>
 						</div>
 

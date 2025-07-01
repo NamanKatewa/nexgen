@@ -4,11 +4,14 @@ import { format } from "date-fns";
 import React, { useState } from "react";
 import { Badge } from "~/components/ui/badge";
 
+import { DataTable } from "~/components/DataTable";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import { DataTable } from "~/components/DataTable";
 
 const paymentStatusTypes = ["Pending", "Completed", "Failed"];
+
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "~/server/api/root";
 
 const WalletTopupPage = () => {
 	const { data: transactions, isLoading } = api.admin.getTransactions.useQuery(
@@ -18,6 +21,9 @@ const WalletTopupPage = () => {
 			refetchOnWindowFocus: false,
 		},
 	);
+
+	type Transactions = inferRouterOutputs<AppRouter>["admin"]["getTransactions"];
+	type Transaction = Transactions extends Array<infer T> ? T : never;
 
 	const [filterType, setFilterType] = useState("ALL");
 
@@ -34,25 +40,25 @@ const WalletTopupPage = () => {
 			key: "user.name",
 			header: "Name",
 			className: "w-40 px-4 text-blue-950",
-			render: (item) => item.user.name,
+			render: (item: Transaction) => item.user.name,
 		},
 		{
 			key: "user.email",
 			header: "Email",
 			className: "w-50 px-4 text-blue-950",
-			render: (item) => item.user.email,
+			render: (item: Transaction) => item.user.email,
 		},
 		{
 			key: "amount",
 			header: "Amount",
 			className: "w-20 px-4 text-center text-blue-950",
-			render: (item) => String(item.amount),
+			render: (item: Transaction) => String(item.amount),
 		},
 		{
 			key: "transaction_date",
 			header: "Date",
 			className: "w-30 px-4 text-center text-blue-950",
-			render: (item) =>
+			render: (item: Transaction) =>
 				item.transaction_date
 					? format(new Date(item.transaction_date), "dd/MM/yyyy")
 					: "N/A",
@@ -61,7 +67,7 @@ const WalletTopupPage = () => {
 			key: "payment_status",
 			header: "Payment Status",
 			className: "w-50 px-4 text-center text-blue-950",
-			render: (item) => (
+			render: (item: Transaction) => (
 				<Badge
 					className={cn("text-950", {
 						"bg-green-200": item.payment_status === "Completed",
@@ -69,7 +75,6 @@ const WalletTopupPage = () => {
 						"bg-red-200": item.payment_status === "Failed",
 					})}
 				>
-					{" "}
 					{item.payment_status}
 				</Badge>
 			),
@@ -97,6 +102,7 @@ const WalletTopupPage = () => {
 			filters={filters}
 			onClearFilters={handleClearFilters}
 			isLoading={isLoading}
+			idKey="transaction_id"
 		/>
 	);
 };
