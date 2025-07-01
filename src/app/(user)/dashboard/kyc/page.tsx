@@ -53,10 +53,8 @@ export default function KycFormPage() {
 			setIsLoading(false);
 			router.push("/dashboard/submitted");
 		},
-		onError() {
-			setErrorMessage(
-				"Something went wrong. Try refreshing and submmitting again.",
-			);
+		onError(error) {
+			setErrorMessage(error.message);
 			setIsLoading(false);
 		},
 	});

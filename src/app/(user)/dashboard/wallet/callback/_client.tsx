@@ -19,6 +19,9 @@ export default function WalletCallbackClient() {
 		error,
 	} = api.wallet.updateTransaction.useMutation({
 		onSuccess: () => utils.auth.me.invalidate(),
+		onError: (error) => {
+			console.error(error);
+		},
 	});
 
 	useEffect(() => {
@@ -46,7 +49,7 @@ export default function WalletCallbackClient() {
 					: isSuccess
 						? "Your payment has been confirmed."
 						: error
-							? "There was an issue confirming the payment. Please contact support."
+							? error.message
 							: "Your payment has been received. Please wait while the admin confirms your transaction."}
 			</p>
 

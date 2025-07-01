@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { uploadFileToS3 } from "~/lib/s3";
 import { submitKycSchema } from "~/schemas/kyc";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -15,7 +16,10 @@ export const kycRouter = createTRPCRouter({
 				!input.panImageFront ||
 				!input.panImageBack
 			) {
-				throw new Error("All image files must be provided.");
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "All image files must be provided.",
+				});
 			}
 
 			const [aadharFrontUrl, aadharBackUrl, panFrontUrl, panBackUrl] =
@@ -60,8 +64,10 @@ export const kycRouter = createTRPCRouter({
 
 				return null;
 			} catch (error) {
-				console.log(error);
-				throw new Error("You are not logged in");
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
 			}
 		}),
 });

@@ -95,12 +95,20 @@ const VerifyKycPage = () => {
 		},
 	);
 
+	const [errorMessage, setErrorMessage] = useState("");
+
 	const utils = api.useUtils();
 	const verifyKyc = api.admin.verifyKyc.useMutation({
 		onSuccess: () => utils.admin.pendingKyc.invalidate(),
+		onError: (error) => {
+			setErrorMessage(error.message);
+		},
 	});
 	const rejectKyc = api.admin.rejectKyc.useMutation({
 		onSuccess: () => utils.admin.pendingKyc.invalidate(),
+		onError: (error) => {
+			setErrorMessage(error.message);
+		},
 	});
 
 	const [filterGST, setFilterGST] = useState("ALL");
@@ -350,6 +358,7 @@ const VerifyKycPage = () => {
 						<DialogDescription className="text-blue-950">
 							Are you sure you want to approve this KYC request?
 						</DialogDescription>
+						{errorMessage && <p className="text-red-500">{errorMessage}</p>}
 					</DialogHeader>
 					<DialogFooter className="gap-2">
 						<Button variant="outline" onClick={() => setShowModal(false)}>
@@ -378,6 +387,7 @@ const VerifyKycPage = () => {
 						<DialogDescription className="text-blue-950">
 							Please provide a reason for rejecting this KYC.
 						</DialogDescription>
+						{errorMessage && <p className="text-red-500">{errorMessage}</p>}
 					</DialogHeader>
 					<div className="mt-4">
 						<textarea

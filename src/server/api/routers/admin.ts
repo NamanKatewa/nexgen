@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { sendEmail } from "~/lib/email";
 import { rejectKycSchema, verifyKycSchema } from "~/schemas/kyc";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
@@ -23,7 +24,11 @@ export const adminRouter = createTRPCRouter({
 				where: { kyc_id: input.kycId },
 				include: { user: { select: { email: true } } },
 			});
-			if (!kyc) return false;
+			if (!kyc)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "KYC not found",
+				});
 
 			try {
 				await db.kyc.update({
@@ -42,8 +47,10 @@ export const adminRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
-				console.log(error);
-				throw new Error("You are not logged in");
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
 			}
 		}),
 	rejectKyc: adminProcedure
@@ -53,7 +60,11 @@ export const adminRouter = createTRPCRouter({
 				where: { kyc_id: input.kycId },
 				include: { user: { select: { email: true } } },
 			});
-			if (!kyc) return false;
+			if (!kyc)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "KYC not found",
+				});
 
 			try {
 				await db.kyc.update({
@@ -72,8 +83,10 @@ export const adminRouter = createTRPCRouter({
 				});
 				return true;
 			} catch (error) {
-				console.log(error);
-				throw new Error("You are not logged in");
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
 			}
 		}),
 
