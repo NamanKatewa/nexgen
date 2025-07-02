@@ -42,6 +42,7 @@ interface DataTableProps<T> {
 	isLoading: boolean;
 	noResultsMessage?: string;
 	idKey?: string; // New prop for dynamic ID key
+	onRowClick?: (row: T) => void;
 }
 
 const DataTable = <T,>({
