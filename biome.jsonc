@@ -5,7 +5,7 @@
 		"clientKind": "git",
 		"useIgnoreFile": true
 	},
-	"files": { "ignoreUnknown": false, "ignore": [] },
+	"files": { "ignoreUnknown": false, "ignore": [], "maxSize": 2097152 },
 	"formatter": { "enabled": true },
 	"organizeImports": { "enabled": true },
 	"linter": {

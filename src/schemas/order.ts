@@ -25,9 +25,15 @@ export const submitShipmentSchema = z.object({
 	originAddressId: z.string({
 		required_error: "Origin address is required",
 	}),
-	destinationAddressId: z.string({
-		required_error: "Destination address is required",
-	}),
+	destinationAddressId: z.string().optional(),
+
+	destinationAddressLine: z.string().min(1, "Address Line is Required"),
+	destinationZipCode: z
+		.string()
+		.length(6, "Zip Code must be 6 digits")
+		.refine((val) => !Number.isNaN(Number(val)), "Zip Code must be a number"),
+	destinationCity: z.string().min(1, "City is Required"),
+	destinationState: z.string().min(1, "State is Required"),
 });
 
 export const orderSchema = z.object({

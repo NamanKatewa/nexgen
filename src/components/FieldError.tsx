@@ -7,9 +7,10 @@ interface FieldErrorProps {
 }
 
 const FieldError: React.FC<FieldErrorProps> = ({ message, className }) => {
-	if (!message) return null;
 	return (
-		<p className={cn("mt-1 text-red-600 text-sm", className)}>{message}</p>
+		<p className={cn("mt-1 text-red-600 text-sm", className)}>
+			{message || "\u00A0"}
+		</p>
 	);
 };
 

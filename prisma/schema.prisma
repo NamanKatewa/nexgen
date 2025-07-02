@@ -118,6 +118,34 @@ model User {
   employee     Employee?
   verifiedKYCs Kyc[]           @relation("VerifiedByAdmin")
   addresses    Address[]
+  userRates    UserRate[]
+}
+
+model DefaultRate {
+  id          String   @id @default(cuid())
+  zone_from   String
+  zone_to     String
+  weight_slab Float
+  rate        Float
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@unique([zone_from, zone_to, weight_slab])
+}
+
+model UserRate {
+  id          String   @id @default(cuid())
+  user_id     String
+  zone_from   String
+  zone_to     String
+  weight_slab Float
+  rate        Float
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@unique([user_id, zone_from, zone_to, weight_slab])
 }
 
 model Address {
@@ -187,37 +215,6 @@ model Transaction {
   order  Order? @relation(fields: [order_id], references: [order_id])
 }
 
-model Carrier {
-  carrier_id            String   @id @default(uuid())
-  carrier_name          String
-  api_key               String
-  tracking_api_endpoint String
-  rate_api_endpoint     String
-  status                CARRIER_STATUS
-
-  rates     Rate[]
-  shipments Shipment[]
-}
-
-model Rate {
-  rate_id                   String   @id @default(uuid())
-  carrier_id                String
-  service_type              String
-  min_weight                Decimal  @db.Decimal(10, 2)
-  max_weight                Decimal  @db.Decimal(10, 2)
-  min_dimension             Decimal  @db.Decimal(10, 2)
-  max_dimension             Decimal  @db.Decimal(10, 2)
-  base_rate                 Decimal  @db.Decimal(10, 2)
-  rate_per_kg               Decimal  @db.Decimal(10, 2)
-  user_specific_rate_adjustment Decimal? @db.Decimal(10, 2)
-  effective_date            DateTime
-  expiry_date               DateTime
-  origin_pincode_range      String
-  destination_pincode_range String
-
-  carrier Carrier @relation(fields: [carrier_id], references: [carrier_id], onDelete: Cascade)
-}
-
 model Order {
   order_id         String               @id @default(uuid())
   user_id          String
@@ -253,7 +250,6 @@ model Shipment {
   updated_at             DateTime        @updatedAt
 
   order               Order    @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
-  carrier             Carrier? @relation(fields: [carrier_id], references: [carrier_id])
   origin_address      Address  @relation("Origin", fields: [origin_address_id], references: [address_id])
   destination_address Address  @relation("Destination", fields: [destination_address_id], references: [address_id])
   tracking            Tracking[]

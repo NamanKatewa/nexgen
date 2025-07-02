@@ -32,10 +32,10 @@ export default function CreateShipmentPage() {
 	const [errorMessage, setErrorMessage] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [showOriginAddressModal, setShowOriginAddressModal] = useState(false);
-	const [showDestinationAddressModal, setShowDestinationAddressModal] =
-		useState(false);
+	const [autofilledAddressDetails, setAutofilledAddressDetails] = useState<
+		NonNullable<typeof userAddresses>[number] | undefined
+	>(undefined);
 	const [originZipCodeFilter, setOriginZipCodeFilter] = useState("");
-	const [destinationZipCodeFilter, setDestinationZipCodeFilter] = useState("");
 
 	const {
 		register,
@@ -58,11 +58,10 @@ export default function CreateShipmentPage() {
 		refetch: refetchUserAddresses,
 	} = api.address.getAddresses.useQuery({ type: ADDRESS_TYPE.User });
 
+	const addAddressMutation = api.address.createAddress.useMutation();
+
 	const [filteredWarehouseAddresses, setFilteredWarehouseAddresses] = useState<
 		typeof warehouseAddresses | undefined
-	>(undefined);
-	const [filteredUserAddresses, setFilteredUserAddresses] = useState<
-		typeof userAddresses | undefined
 	>(undefined);
 
 	useEffect(() => {
@@ -70,12 +69,6 @@ export default function CreateShipmentPage() {
 			setFilteredWarehouseAddresses(warehouseAddresses);
 		}
 	}, [warehouseAddresses]);
-
-	useEffect(() => {
-		if (userAddresses) {
-			setFilteredUserAddresses(userAddresses);
-		}
-	}, [userAddresses]);
 
 	useEffect(() => {
 		if (warehouseAddresses) {
@@ -87,15 +80,49 @@ export default function CreateShipmentPage() {
 		}
 	}, [warehouseAddresses, originZipCodeFilter]);
 
+	const destinationZipCode = watch("destinationZipCode");
+	const recipientName = watch("recipientName");
+
 	useEffect(() => {
-		if (userAddresses) {
-			setFilteredUserAddresses(
-				userAddresses.filter((address) =>
-					String(address.zip_code).includes(destinationZipCodeFilter),
-				),
+		if (userAddresses && recipientName) {
+			let potentialAddresses = userAddresses.filter(
+				(address) => address.name === recipientName,
 			);
+
+			if (destinationZipCode) {
+				potentialAddresses = potentialAddresses.filter(
+					(address) => String(address.zip_code) === destinationZipCode,
+				);
+			}
+
+			if (potentialAddresses.length === 1) {
+				const matchedAddress = potentialAddresses[0];
+				if (matchedAddress) {
+					setValue("destinationAddressId", matchedAddress.address_id);
+					setValue("destinationAddressLine", matchedAddress.address_line);
+					setValue("destinationZipCode", String(matchedAddress.zip_code));
+					setValue("destinationCity", matchedAddress.city);
+					setValue("destinationState", matchedAddress.state);
+					setAutofilledAddressDetails(matchedAddress);
+				}
+			} else {
+				setValue("destinationAddressId", undefined);
+				setAutofilledAddressDetails(undefined);
+				if (potentialAddresses.length === 0) {
+					setValue("destinationAddressLine", "");
+					setValue("destinationCity", "");
+					setValue("destinationState", "");
+				}
+			}
+		} else {
+			setValue("destinationAddressId", undefined);
+			setAutofilledAddressDetails(undefined);
+			setValue("destinationAddressLine", "");
+			setValue("destinationZipCode", "");
+			setValue("destinationCity", "");
+			setValue("destinationState", "");
 		}
-	}, [userAddresses, destinationZipCodeFilter]);
+	}, [userAddresses, destinationZipCode, recipientName, setValue]);
 
 	const createShipmentMutation = api.order.createShipment.useMutation({
 		onSuccess: () => {
@@ -111,12 +138,57 @@ export default function CreateShipmentPage() {
 	const onSubmit = async (data: TShipmentSchema) => {
 		setIsLoading(true);
 		setErrorMessage("");
-		createShipmentMutation.mutate(data);
+
+		let finalDestinationAddressId = data.destinationAddressId;
+
+		if (finalDestinationAddressId && autofilledAddressDetails) {
+			if (
+				data.destinationAddressLine !== autofilledAddressDetails.address_line ||
+				Number(data.destinationZipCode) !== autofilledAddressDetails.zip_code ||
+				data.destinationCity !== autofilledAddressDetails.city ||
+				data.destinationState !== autofilledAddressDetails.state
+			) {
+				finalDestinationAddressId = undefined;
+			}
+		}
+
+		if (!finalDestinationAddressId) {
+			try {
+				const newAddress = await addAddressMutation.mutateAsync({
+					name: data.recipientName,
+					addressLine: data.destinationAddressLine,
+					zipCode: Number(data.destinationZipCode),
+					city: data.destinationCity,
+					state: data.destinationState,
+					type: ADDRESS_TYPE.User,
+				});
+				finalDestinationAddressId = newAddress.address_id;
+			} catch (error) {
+				let message = "Failed to add new destination address.";
+				if (error instanceof Error) {
+					message = error.message;
+				}
+				setErrorMessage(message);
+				setIsLoading(false);
+				return;
+			}
+		}
+
+		createShipmentMutation.mutate({
+			...data,
+			destinationAddressId: finalDestinationAddressId,
+		});
 	};
 
 	return (
 		<div className="flex min-h-screen items-center justify-center p-4">
 			<Card className="w-full bg-blue-100/20">
+				<AddAddressModal
+					isOpen={showOriginAddressModal}
+					onClose={() => setShowOriginAddressModal(false)}
+					onAddressAdded={() => refetchWarehouseAddresses()}
+					addressType={ADDRESS_TYPE.Warehouse}
+				/>
 				<CardHeader>
 					<h1 className="text-center font-semibold text-2xl text-blue-950">
 						Create Shipment
@@ -137,8 +209,77 @@ export default function CreateShipmentPage() {
 							</Alert>
 						)}
 
-						<div className="space-y-2">
-							<Label>Origin Address</Label>
+						<div className="mb-10 flex gap-10">
+							<div className="space-y-4">
+								<Label>Recipient Name</Label>
+								<Input {...register("recipientName")} disabled={isLoading} />
+								<FieldError message={errors.recipientName?.message} />
+							</div>
+							<div className="mb-10 flex flex-wrap gap-10">
+								<div className="space-y-2">
+									<Label>Recipient Mobile Number</Label>
+									<InputOTP
+										maxLength={10}
+										value={watch("recipientMobile")}
+										onChange={(val) => setValue("recipientMobile", val)}
+										disabled={isLoading}
+										pattern="\d*"
+										inputMode="numeric"
+									>
+										<InputOTPGroup>
+											{[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+												<InputOTPSlot key={i} index={i} />
+											))}
+										</InputOTPGroup>
+									</InputOTP>
+									<FieldError message={errors.recipientMobile?.message} />
+								</div>
+							</div>
+						</div>
+
+						<div className="space-y-4">
+							<Label className="font-bold">Destination Address</Label>
+							<div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
+								<div className="space-y-2">
+									<Label>Address Line</Label>
+									<Input
+										{...register("destinationAddressLine")}
+										disabled={isLoading}
+									/>
+									<FieldError
+										message={errors.destinationAddressLine?.message}
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label>Zip Code</Label>
+									<Input
+										{...register("destinationZipCode")}
+										disabled={isLoading}
+									/>
+									<FieldError message={errors.destinationZipCode?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>City</Label>
+									<Input
+										{...register("destinationCity")}
+										disabled={isLoading}
+									/>
+									<FieldError message={errors.destinationCity?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>State</Label>
+									<Input
+										{...register("destinationState")}
+										disabled={isLoading}
+									/>
+									<FieldError message={errors.destinationState?.message} />
+								</div>
+							</div>
+							<FieldError message={errors.destinationAddressId?.message} />
+						</div>
+
+						<div className="space-y-4">
+							<Label className="font-bold">Origin Address</Label>
 							<Input
 								placeholder="Search by Pin Code"
 								onChange={(e) => setOriginZipCodeFilter(e.target.value)}
@@ -171,96 +312,23 @@ export default function CreateShipmentPage() {
 											</CardContent>
 										</Card>
 									))}
+									<Button
+										type="button"
+										variant="outline"
+										className="h-48 w-96 bg-blue-200 hover:bg-blue-300"
+										onClick={() => setShowOriginAddressModal(true)}
+									>
+										<PlusCircle className="mr-2 h-4 w-4" /> Add New Origin
+										Address
+									</Button>
 								</div>
 							)}
 							<FieldError message={errors.originAddressId?.message} />
-							<Button
-								variant="outline"
-								className="mt-2 w-full bg-blue-200 hover:bg-blue-300"
-								onClick={() => setShowOriginAddressModal(true)}
-							>
-								<PlusCircle className="mr-2 h-4 w-4" /> Add New Origin Address
-							</Button>
 						</div>
 
-						<div className="space-y-2">
-							<Label>Destination Address</Label>
-							<Input
-								placeholder="Search by Zip Code"
-								onChange={(e) => setDestinationZipCodeFilter(e.target.value)}
-								className="mb-2"
-							/>
-							{isLoadingUserAddresses ? (
-								<p>Loading destination addresses...</p>
-							) : (
-								<div className="flex gap-4 overflow-x-auto p-4">
-									{filteredUserAddresses?.map((address) => (
-										<Card
-											key={address.address_id}
-											className={`h-48 w-96 flex-shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 ${
-												watch("destinationAddressId") === address.address_id
-													? "border-blue-500 ring-1 ring-blue-500"
-													: ""
-											}`}
-											onClick={() =>
-												setValue("destinationAddressId", address.address_id)
-											}
-										>
-											<CardHeader>
-												<h3 className="font-semibold">{address.name}</h3>
-											</CardHeader>
-											<CardContent>
-												<p>{address.address_line}</p>
-												<p>
-													{address.city}, {address.state} - {address.zip_code}
-												</p>
-											</CardContent>
-										</Card>
-									))}
-								</div>
-							)}
-							<FieldError message={errors.destinationAddressId?.message} />
-							<Button
-								variant="outline"
-								className="mt-2 w-full bg-blue-200 hover:bg-blue-300"
-								onClick={() => setShowDestinationAddressModal(true)}
-							>
-								<PlusCircle className="mr-2 h-4 w-4" /> Add New Destination
-								Address
-							</Button>
-						</div>
-
-						<div className="mb-10 flex gap-10">
-							<div className="space-y-2">
-								<Label>Recipient Name</Label>
-								<Input {...register("recipientName")} disabled={isLoading} />
-								<FieldError message={errors.recipientName?.message} />
-							</div>
-							<div className="mb-10 flex flex-wrap gap-10">
-								<div className="space-y-2">
-									<Label>Recipient Mobile Number</Label>
-									<InputOTP
-										maxLength={10}
-										value={watch("recipientMobile")}
-										onChange={(val) => setValue("recipientMobile", val)}
-										disabled={isLoading}
-										pattern="\d*"
-										inputMode="numeric"
-									>
-										<InputOTPGroup>
-											{[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-												<InputOTPSlot key={i} index={i} />
-											))}
-										</InputOTPGroup>
-									</InputOTP>
-									<FieldError message={errors.recipientMobile?.message} />
-								</div>
-							</div>
-						</div>
-
-						<div className="space-y-2">
-							<Label>Package Details</Label>
-							<div className="mb-10 grid grid-cols-2 gap-10">
+						<div className="space-y-4">
+							<Label className="font-bold">Package Details</Label>
+							<div className="mb-10 grid grid-cols-2 gap-10 p-4">
 								<div className="space-y-2">
 									<Label>Package Weight</Label>
 									<Input
@@ -331,20 +399,6 @@ export default function CreateShipmentPage() {
 					</p>
 				</CardFooter>
 			</Card>
-
-			<AddAddressModal
-				isOpen={showOriginAddressModal}
-				onClose={() => setShowOriginAddressModal(false)}
-				onAddressAdded={refetchWarehouseAddresses}
-				addressType={ADDRESS_TYPE.Warehouse}
-			/>
-
-			<AddAddressModal
-				isOpen={showDestinationAddressModal}
-				onClose={() => setShowDestinationAddressModal(false)}
-				onAddressAdded={refetchUserAddresses}
-				addressType={ADDRESS_TYPE.User}
-			/>
 		</div>
 	);
 }
