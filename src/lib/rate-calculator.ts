@@ -1,162 +1,239 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+interface PincodeDetails {
+  city: string;
+  state: string;
+}
 
 interface PincodeData {
-	pincode: string;
-	city: string;
-	state: string;
+  pincode: string;
+  city: string;
+  state: string;
 }
 
-let pincodeData: PincodeData[] | null = null;
+let pincodeMap: Map<string, PincodeDetails> | null = null;
 
-async function getPincodeData(): Promise<PincodeData[]> {
-	if (pincodeData) {
-		return pincodeData;
-	}
-	const filePath = path.join(process.cwd(), "data", "pincode_cleaned.json");
-	const fileContent = await fs.readFile(filePath, "utf-8");
-	pincodeData = JSON.parse(fileContent);
-	if (!pincodeData) {
-		throw new Error("Failed to parse pincode data");
-	}
-	return pincodeData;
+async function getPincodeMap(): Promise<Map<string, PincodeDetails>> {
+  if (pincodeMap) {
+    return pincodeMap;
+  }
+  const filePath = path.join(process.cwd(), "data", "pincode_map.json");
+  const fileContent = await fs.readFile(filePath, "utf-8");
+  const parsedData: { [key: string]: PincodeDetails } = JSON.parse(fileContent);
+  pincodeMap = new Map(
+    Object.entries(parsedData).map(([pincode, details]) => [
+      pincode,
+      {
+        city:
+          typeof details.city === "string" ? details.city.toLowerCase() : "",
+        state:
+          typeof details.state === "string" ? details.state.toLowerCase() : "",
+      },
+    ])
+  );
+  if (!pincodeMap) {
+    throw new Error("Failed to parse pincode data");
+  }
+  return pincodeMap;
 }
 
-async function getPincodeDetails(
-	pincode: string,
+export async function getPincodeDetails(
+  pincode: string
 ): Promise<PincodeData | undefined> {
-	const allPincodes = await getPincodeData();
-	return allPincodes.find((p) => p.pincode === pincode);
+  const map = await getPincodeMap();
+  const details = map.get(pincode);
+  if (details) {
+    return { pincode, ...details };
+  }
+  return undefined;
 }
 
-function getZone(
-	origin: PincodeData,
-	destination: PincodeData,
-): { zone_from: string; zone_to: string } {
-	const metroCities = [
-		"Mumbai",
-		"Bengaluru",
-		"Chennai",
-		"Delhi",
-		"Hyderabad",
-		"Kolkata",
-	];
+export function getZone(
+  origin: PincodeData | undefined,
+  destination: PincodeData | undefined
+): { zone: string } {
+  if (!origin?.city || !destination?.city) {
+    return { zone: "d" };
+  }
+  if (origin.city.toLowerCase() === destination.city.toLowerCase()) {
+    return { zone: "a" };
+  }
 
-	const isOriginMetro = metroCities.includes(origin.city);
-	const isDestinationMetro = metroCities.includes(destination.city);
+  if (!origin.state || !destination.state) {
+    return { zone: "d" };
+  }
 
-	if (isOriginMetro && isDestinationMetro) {
-		return { zone_from: "Metro", zone_to: "Metro" };
-	}
+  if (origin.state.toLowerCase() === destination.state.toLowerCase()) {
+    return { zone: "b" };
+  }
 
-	if (origin.state === destination.state) {
-		return { zone_from: "Within-State", zone_to: "Within-State" };
-	}
+  const neighbors: Record<string, string[]> = {
+    "andhra pradesh": [
+      "telangana",
+      "chhattisgarh",
+      "odisha",
+      "tamil nadu",
+      "karnataka",
+    ],
+    "arunachal pradesh": ["assam", "nagaland"],
+    assam: [
+      "arunachal pradesh",
+      "nagaland",
+      "manipur",
+      "meghalaya",
+      "mizoram",
+      "tripura",
+      "west bengal",
+    ],
+    bihar: ["uttar pradesh", "jharkhand", "west bengal"],
+    chhattisgarh: [
+      "madhya pradesh",
+      "maharashtra",
+      "telangana",
+      "andhra pradesh",
+      "odisha",
+      "jharkhand",
+      "uttar pradesh",
+    ],
+    goa: ["maharashtra", "karnataka"],
+    gujarat: [
+      "rajasthan",
+      "madhya pradesh",
+      "maharashtra",
+      "dadra and nagar haveli and daman and diu",
+    ],
+    haryana: [
+      "punjab",
+      "himachal pradesh",
+      "uttarakhand",
+      "uttar pradesh",
+      "rajasthan",
+      "delhi",
+    ],
+    "himachal pradesh": [
+      "jammu and kashmir",
+      "ladakh",
+      "punjab",
+      "haryana",
+      "uttarakhand",
+    ],
+    jharkhand: [
+      "bihar",
+      "west bengal",
+      "odisha",
+      "chhattisgarh",
+      "uttar pradesh",
+    ],
+    karnataka: [
+      "goa",
+      "maharashtra",
+      "telangana",
+      "andhra pradesh",
+      "tamil nadu",
+      "kerala",
+    ],
+    kerala: ["karnataka", "tamil nadu"],
+    "madhya pradesh": [
+      "uttar pradesh",
+      "chhattisgarh",
+      "maharashtra",
+      "gujarat",
+      "rajasthan",
+    ],
+    maharashtra: [
+      "gujarat",
+      "madhya pradesh",
+      "chhattisgarh",
+      "telangana",
+      "karnataka",
+      "goa",
+    ],
+    manipur: ["nagaland", "mizoram", "assam"],
+    meghalaya: ["assam"],
+    mizoram: ["assam", "manipur", "tripura"],
+    nagaland: ["assam", "arunachal pradesh", "manipur"],
+    odisha: ["west bengal", "jharkhand", "chhattisgarh", "andhra pradesh"],
+    punjab: ["jammu and kashmir", "himachal pradesh", "haryana", "rajasthan"],
+    rajasthan: [
+      "punjab",
+      "haryana",
+      "uttar pradesh",
+      "madhya pradesh",
+      "gujarat",
+    ],
+    sikkim: ["west bengal"],
+    "tamil nadu": ["andhra pradesh", "karnataka", "kerala"],
+    telangana: ["maharashtra", "chhattisgarh", "andhra pradesh", "karnataka"],
+    tripura: ["assam", "mizoram"],
+    "uttar pradesh": [
+      "uttarakhand",
+      "himachal pradesh",
+      "haryana",
+      "delhi",
+      "rajasthan",
+      "madhya pradesh",
+      "chhattisgarh",
+      "jharkhand",
+      "bihar",
+    ],
+    uttarakhand: ["himachal pradesh", "uttar pradesh", "haryana"],
+    "west bengal": ["bihar", "jharkhand", "odisha", "sikkim", "assam"],
+    "andaman and nicobar islands": [],
+    chandigarh: ["punjab", "haryana"],
+    "dadra and nagar haveli and daman and diu": ["gujarat", "maharashtra"],
+    delhi: ["haryana", "uttar pradesh"],
+    "jammu and kashmir": ["ladakh", "himachal pradesh", "punjab"],
+    ladakh: ["jammu and kashmir", "himachal pradesh"],
+    lakshadweep: [],
+    puducherry: ["tamil nadu"],
+  };
 
-	const north = [
-		"Jammu and Kashmir",
-		"Himachal Pradesh",
-		"Punjab",
-		"Chandigarh",
-		"Uttarakhand",
-		"Haryana",
-		"Delhi",
-		"Rajasthan",
-		"Uttar Pradesh",
-	];
-	const east = [
-		"Bihar",
-		"Jharkhand",
-		"Odisha",
-		"West Bengal",
-		"Sikkim",
-		"Assam",
-		"Arunachal Pradesh",
-		"Manipur",
-		"Mizoram",
-		"Nagaland",
-		"Tripura",
-		"Meghalaya",
-	];
-	const west = [
-		"Gujarat",
-		"Maharashtra",
-		"Goa",
-		"Daman and Diu",
-		"Dadra and Nagar Haveli",
-	];
-	const south = [
-		"Andhra Pradesh",
-		"Telangana",
-		"Karnataka",
-		"Kerala",
-		"Tamil Nadu",
-		"Puducherry",
-		"Lakshadweep",
-		"Andaman and Nicobar Islands",
-	];
+  if (
+    neighbors[origin.state.toLowerCase()]?.includes(
+      destination.state.toLowerCase()
+    )
+  ) {
+    return { zone: "b" };
+  }
 
-	const getRegion = (state: string) => {
-		if (north.includes(state)) return "North";
-		if (east.includes(state)) return "East";
-		if (west.includes(state)) return "West";
-		if (south.includes(state)) return "South";
-		return "Other";
-	};
+  const metroCities = [
+    "mumbai",
+    "bengaluru",
+    "chennai",
+    "delhi",
+    "hyderabad",
+    "kolkata",
+    "ahmedabad",
+    "pune",
+    "surat",
+  ];
 
-	const originRegion = getRegion(origin.state);
-	const destinationRegion = getRegion(destination.state);
+  const isOriginMetro = metroCities.includes(origin.city.toLowerCase());
+  const isDestinationMetro = metroCities.includes(
+    destination.city.toLowerCase()
+  );
 
-	return { zone_from: originRegion, zone_to: destinationRegion };
-}
+  if (isOriginMetro && isDestinationMetro) {
+    return { zone: "c" };
+  }
 
-export async function calculateRate(
-	originPincode: string,
-	destinationPincode: string,
-	weight: number,
-	userId: string,
-): Promise<number | null> {
-	const originDetails = await getPincodeDetails(originPincode);
-	const destinationDetails = await getPincodeDetails(destinationPincode);
+  const specialZoneEStates = [
+    "jammu and kashmir",
+    "ladakh",
+    "arunachal pradesh",
+    "assam",
+    "manipur",
+    "meghalaya",
+    "mizoram",
+    "nagaland",
+    "sikkim",
+    "tripura",
+  ];
 
-	if (!originDetails || !destinationDetails) {
-		throw new Error("Invalid origin or destination pincode");
-	}
+  if (specialZoneEStates.includes(destination.state.toLowerCase())) {
+    return { zone: "e" };
+  }
 
-	const { zone_from, zone_to } = getZone(originDetails, destinationDetails);
-	const weightSlab = Math.ceil(weight * 2) / 2;
-
-	const userRate = await prisma.userRate.findUnique({
-		where: {
-			user_id_zone_from_zone_to_weight_slab: {
-				user_id: userId,
-				zone_from,
-				zone_to,
-				weight_slab: weightSlab,
-			},
-		},
-	});
-
-	if (userRate) {
-		return userRate.rate;
-	}
-
-	const defaultRate = await prisma.defaultRate.findUnique({
-		where: {
-			zone_from_zone_to_weight_slab: {
-				zone_from,
-				zone_to,
-				weight_slab: weightSlab,
-			},
-		},
-	});
-
-	if (defaultRate) {
-		return defaultRate.rate;
-	}
-
-	return null;
+  return { zone: "d" };
 }

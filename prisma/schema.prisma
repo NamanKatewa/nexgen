@@ -122,7 +122,7 @@ model User {
 }
 
 model DefaultRate {
-  id          String   @id @default(cuid())
+  default_rate_id          String   @id @default(uuid())
   zone_from   String
   zone_to     String
   weight_slab Float
@@ -134,7 +134,7 @@ model DefaultRate {
 }
 
 model UserRate {
-  id          String   @id @default(cuid())
+  user_rate_id          String   @id @default(uuid())
   user_id     String
   zone_from   String
   zone_to     String
