@@ -51,7 +51,6 @@ export const rateRouter = createTRPCRouter({
         return defaultRate.rate;
       }
 
-      // If rate for exact weight slab is not found, interpolate between rate slabs
       if (userId) {
         const lowerUserRate = await db.userRate.findFirst({
           where: {
@@ -86,7 +85,6 @@ export const rateRouter = createTRPCRouter({
           const weightDiff =
             upperUserRate.weight_slab - lowerUserRate.weight_slab;
           if (weightDiff <= 0) {
-            // Avoid division by zero or negative, fallback to simpler rate
             const ratePerKg = lowerUserRate.rate / lowerUserRate.weight_slab;
             return ratePerKg * packageWeight;
           }
@@ -134,8 +132,8 @@ export const rateRouter = createTRPCRouter({
         const weightDiff =
           upperDefaultRate.weight_slab - lowerDefaultRate.weight_slab;
         if (weightDiff <= 0) {
-          // Avoid division by zero or negative, fallback to simpler rate
-          const ratePerKg = lowerDefaultRate.rate / lowerDefaultRate.weight_slab;
+          const ratePerKg =
+            lowerDefaultRate.rate / lowerDefaultRate.weight_slab;
           return ratePerKg * packageWeight;
         }
         const ratePerKgInRange = rateDiff / weightDiff;

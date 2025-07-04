@@ -237,19 +237,19 @@ export default function KycFormPage() {
 									inputMode="numeric"
 								>
 									<InputOTPGroup>
-										{[0, 1, 2, 3].map((_, i) => (
+										{[0, 1, 2, 3].map((i) => (
 											<InputOTPSlot key={nanoid()} index={i} />
 										))}
 									</InputOTPGroup>
 									<span className="px-2">-</span>
 									<InputOTPGroup>
-										{[4, 5, 6, 7].map((_, i) => (
+										{[4, 5, 6, 7].map((i) => (
 											<InputOTPSlot key={nanoid()} index={i} />
 										))}
 									</InputOTPGroup>
 									<span className="px-2">-</span>
 									<InputOTPGroup>
-										{[8, 9, 10, 11].map((_, i) => (
+										{[8, 9, 10, 11].map((i) => (
 											<InputOTPSlot key={nanoid()} index={i} />
 										))}
 									</InputOTPGroup>
