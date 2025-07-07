@@ -1,22 +1,34 @@
 import { submitShipmentSchema } from "~/schemas/order";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { generateShipmentId } from "~/lib/utils";
+import { uploadFileToS3 } from "~/lib/s3";
+import { getPincodeDetails } from "~/lib/rate-calculator";
+import { db } from "~/server/db";
 
 export const orderRouter = createTRPCRouter({
-	createShipment: protectedProcedure
-		.input(submitShipmentSchema)
-		.mutation(async ({ ctx, input }) => {
-			// TODO: Implement actual shipment creation logic here
-			// This will involve:
-			// 1. Calculating shipping cost based on package details and addresses
-			// 2. Interacting with carrier APIs (if applicable)
-			// 3. Creating a new Order and Shipment entry in the database
-			// 4. Handling payment (if applicable)
+  createShipment: protectedProcedure
+    .input(submitShipmentSchema)
+    .mutation(async ({ ctx, input }) => {
+      const addresses = await db.address.findMany({
+        where: {
+          address_id: {
+            in: [input.originAddressId, input.destinationAddressId],
+          },
+        },
+      });
+      console.log(addresses);
 
-			console.log("Creating shipment with data:", input);
+      // const packageImageUrl = await uploadFileToS3(
+      //   input.packageImage,
+      //   "order/"
+      // );
 
-			return {
-				success: true,
-				message: "Shipment created successfully (placeholder)",
-			};
-		}),
+      const human_readable_shipment_id = generateShipmentId(ctx.user.user_id);
+
+      return {
+        success: true,
+        message: "Shipment created successfully",
+        shipmentId: human_readable_shipment_id,
+      };
+    }),
 });

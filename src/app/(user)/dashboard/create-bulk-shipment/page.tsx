@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ADDRESS_TYPE } from "@prisma/client";
 import { AlertCircle, PlusCircle } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -27,6 +28,11 @@ import { Label } from "~/components/ui/label";
 import { type TShipmentSchema, submitShipmentSchema } from "~/schemas/order";
 import { api } from "~/trpc/react";
 
+interface PincodeDetails {
+  city: string;
+  state: string;
+}
+
 export default function CreateShipmentPage() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState("");
@@ -36,6 +42,12 @@ export default function CreateShipmentPage() {
     NonNullable<typeof userAddresses>[number] | undefined
   >(undefined);
   const [originZipCodeFilter, setOriginZipCodeFilter] = useState("");
+  const [packageImagePreview, setPackageImagePreview] = useState<string | null>(
+    null
+  );
+  const [calculatedRate, setCalculatedRate] = useState<number | null>(null);
+  const [origin, setOrigin] = useState<PincodeDetails | null>(null);
+  const [destination, setDestination] = useState<PincodeDetails | null>(null);
 
   const {
     register,
@@ -43,20 +55,73 @@ export default function CreateShipmentPage() {
     setValue,
     watch,
     formState: { errors },
+    getValues,
   } = useForm<TShipmentSchema>({
     resolver: zodResolver(submitShipmentSchema),
+    defaultValues: {
+      recipientName: "",
+      recipientMobile: "",
+      packageWeight: 0,
+      packageHeight: 0,
+      packageLength: 0,
+      packageBreadth: 0,
+      originAddressId: "",
+      destinationAddressId: "",
+      packageImage: {
+        data: "",
+        name: "",
+        type: "",
+        size: 0,
+      },
+    },
   });
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    fieldName: "packageImage",
+    setPreview: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+
+      try {
+        const base64Data = await fileToBase64(file);
+        setValue(fieldName, {
+          data: base64Data,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
+      } catch (error) {
+        console.error("Error converting file to Base64:", error);
+        setErrorMessage("Failed to process image file");
+        setValue(fieldName, { data: "", name: "", type: "", size: 0 });
+        setPreview(null);
+      }
+    } else {
+      setValue(fieldName, { data: "", name: "", type: "", size: 0 });
+      setPreview(null);
+    }
+  };
 
   const {
     data: warehouseAddresses,
     isLoading: isLoadingWarehouseAddresses,
     refetch: refetchWarehouseAddresses,
   } = api.address.getAddresses.useQuery({ type: ADDRESS_TYPE.Warehouse });
-  const {
-    data: userAddresses,
-    isLoading: isLoadingUserAddresses,
-    refetch: refetchUserAddresses,
-  } = api.address.getAddresses.useQuery({ type: ADDRESS_TYPE.User });
+  const { data: userAddresses } = api.address.getAddresses.useQuery({
+    type: ADDRESS_TYPE.User,
+  });
 
   const addAddressMutation = api.address.createAddress.useMutation();
 
@@ -80,7 +145,12 @@ export default function CreateShipmentPage() {
     }
   }, [warehouseAddresses, originZipCodeFilter]);
 
-  const destinationZipCode = watch("destinationZipCode");
+  const [destinationAddress, setDestinationAddress] = useState({
+    zipCode: "",
+    addressLine: "",
+    city: "",
+    state: "",
+  });
   const recipientName = watch("recipientName");
 
   useEffect(() => {
@@ -89,9 +159,9 @@ export default function CreateShipmentPage() {
         (address) => address.name === recipientName
       );
 
-      if (destinationZipCode) {
+      if (destinationAddress.zipCode) {
         potentialAddresses = potentialAddresses.filter(
-          (address) => String(address.zip_code) === destinationZipCode
+          (address) => String(address.zip_code) === destinationAddress.zipCode
         );
       }
 
@@ -99,41 +169,107 @@ export default function CreateShipmentPage() {
         const matchedAddress = potentialAddresses[0];
         if (matchedAddress) {
           setValue("destinationAddressId", matchedAddress.address_id);
-          setValue("destinationAddressLine", matchedAddress.address_line);
-          setValue("destinationZipCode", String(matchedAddress.zip_code));
-          setValue("destinationCity", matchedAddress.city);
-          setValue("destinationState", matchedAddress.state);
+          setDestinationAddress({
+            zipCode: String(matchedAddress.zip_code),
+            addressLine: matchedAddress.address_line,
+            city: matchedAddress.city,
+            state: matchedAddress.state,
+          });
           setAutofilledAddressDetails(matchedAddress);
         }
       } else {
-        setValue("destinationAddressId", undefined);
+        setValue("destinationAddressId", "");
         setAutofilledAddressDetails(undefined);
         if (potentialAddresses.length === 0) {
-          setValue("destinationAddressLine", "");
-          setValue("destinationCity", "");
-          setValue("destinationState", "");
+          setDestinationAddress({
+            zipCode: "",
+            addressLine: "",
+            city: "",
+            state: "",
+          });
         }
       }
     } else {
-      setValue("destinationAddressId", undefined);
+      setValue("destinationAddressId", "");
       setAutofilledAddressDetails(undefined);
-      setValue("destinationAddressLine", "");
-      setValue("destinationZipCode", "");
-      setValue("destinationCity", "");
-      setValue("destinationState", "");
+      setDestinationAddress({
+        zipCode: "",
+        addressLine: "",
+        city: "",
+        state: "",
+      });
     }
-  }, [userAddresses, destinationZipCode, recipientName, setValue]);
+  }, [userAddresses, destinationAddress.zipCode, recipientName, setValue]);
 
   const createShipmentMutation = api.order.createShipment.useMutation({
     onSuccess: () => {
       setIsLoading(false);
-      router.push("/dashboard/");
+      // router.refresh();
     },
     onError(err) {
       setErrorMessage(err.message);
       setIsLoading(false);
     },
   });
+
+  const [queryInput, setQueryInput] = useState<{
+    originZipCode: string;
+    destinationZipCode: string;
+    packageWeight: number;
+  } | null>(null);
+
+  const {
+    data: rateData,
+    error: rateError,
+    isFetching: isCalculatingRate,
+  } = api.rate.calculateRate.useQuery(
+    queryInput ?? {
+      originZipCode: "",
+      destinationZipCode: "",
+      packageWeight: 0,
+    },
+    {
+      enabled: !!queryInput,
+    }
+  );
+
+  useEffect(() => {
+    if (rateData) {
+      setCalculatedRate(rateData.rate);
+      setOrigin(rateData.origin);
+      setDestination(rateData.destination);
+      setErrorMessage("");
+      setQueryInput(null);
+    }
+  }, [rateData]);
+
+  useEffect(() => {
+    if (rateError) {
+      setErrorMessage(rateError.message);
+      setCalculatedRate(null);
+      setQueryInput(null);
+    }
+  }, [rateError]);
+
+  const handleCalculateRate = () => {
+    const data = getValues();
+    const originAddress = warehouseAddresses?.find(
+      (address) => address.address_id === data.originAddressId
+    );
+
+    if (!originAddress || !destinationAddress.zipCode || !data.packageWeight) {
+      setErrorMessage(
+        "Please select origin, destination, and enter package weight."
+      );
+      return;
+    }
+
+    setQueryInput({
+      originZipCode: String(originAddress.zip_code),
+      destinationZipCode: destinationAddress.zipCode,
+      packageWeight: data.packageWeight,
+    });
+  };
 
   const onSubmit = async (data: TShipmentSchema) => {
     setIsLoading(true);
@@ -143,12 +279,14 @@ export default function CreateShipmentPage() {
 
     if (finalDestinationAddressId && autofilledAddressDetails) {
       if (
-        data.destinationAddressLine !== autofilledAddressDetails.address_line ||
-        Number(data.destinationZipCode) !== autofilledAddressDetails.zip_code ||
-        data.destinationCity !== autofilledAddressDetails.city ||
-        data.destinationState !== autofilledAddressDetails.state
+        destinationAddress.addressLine !==
+          autofilledAddressDetails.address_line ||
+        Number(destinationAddress.zipCode) !==
+          autofilledAddressDetails.zip_code ||
+        destinationAddress.city !== autofilledAddressDetails.city ||
+        destinationAddress.state !== autofilledAddressDetails.state
       ) {
-        finalDestinationAddressId = undefined;
+        finalDestinationAddressId = "";
       }
     }
 
@@ -156,10 +294,10 @@ export default function CreateShipmentPage() {
       try {
         const newAddress = await addAddressMutation.mutateAsync({
           name: data.recipientName,
-          addressLine: data.destinationAddressLine,
-          zipCode: Number(data.destinationZipCode),
-          city: data.destinationCity,
-          state: data.destinationState,
+          addressLine: destinationAddress.addressLine,
+          zipCode: Number(destinationAddress.zipCode),
+          city: destinationAddress.city,
+          state: destinationAddress.state,
           type: ADDRESS_TYPE.User,
         });
         finalDestinationAddressId = newAddress.address_id;
@@ -241,38 +379,60 @@ export default function CreateShipmentPage() {
               <Label className="font-bold">Destination Address</Label>
               <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Address Line</Label>
-                  <Input
-                    {...register("destinationAddressLine")}
-                    disabled={isLoading}
-                  />
-                  <FieldError
-                    message={errors.destinationAddressLine?.message}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>Zip Code</Label>
                   <Input
-                    {...register("destinationZipCode")}
+                    value={destinationAddress.zipCode}
+                    onChange={(e) =>
+                      setDestinationAddress((prev) => ({
+                        ...prev,
+                        zipCode: e.target.value,
+                      }))
+                    }
                     disabled={isLoading}
                   />
-                  <FieldError message={errors.destinationZipCode?.message} />
+                  <FieldError message={errors.destinationAddressId?.message} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Address Line</Label>
+                  <Input
+                    value={destinationAddress.addressLine}
+                    onChange={(e) =>
+                      setDestinationAddress((prev) => ({
+                        ...prev,
+                        addressLine: e.target.value,
+                      }))
+                    }
+                    disabled={isLoading}
+                  />
+                  <FieldError message={errors.destinationAddressId?.message} />
                 </div>
                 <div className="space-y-2">
                   <Label>City</Label>
                   <Input
-                    {...register("destinationCity")}
+                    value={destinationAddress.city}
+                    onChange={(e) =>
+                      setDestinationAddress((prev) => ({
+                        ...prev,
+                        city: e.target.value,
+                      }))
+                    }
                     disabled={isLoading}
                   />
-                  <FieldError message={errors.destinationCity?.message} />
+                  <FieldError message={errors.destinationAddressId?.message} />
                 </div>
                 <div className="space-y-2">
                   <Label>State</Label>
                   <Input
-                    {...register("destinationState")}
+                    value={destinationAddress.state}
+                    onChange={(e) =>
+                      setDestinationAddress((prev) => ({
+                        ...prev,
+                        state: e.target.value,
+                      }))
+                    }
                     disabled={isLoading}
                   />
-                  <FieldError message={errors.destinationState?.message} />
+                  <FieldError message={errors.destinationAddressId?.message} />
                 </div>
               </div>
               <FieldError message={errors.destinationAddressId?.message} />
@@ -377,13 +537,68 @@ export default function CreateShipmentPage() {
                   />
                   <FieldError message={errors.packageLength?.message} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Package Weight Image</Label>
+                  <Image
+                    src="/sample_package_image.jpeg"
+                    alt="Package Image Preview"
+                    className="h-32 w-32 rounded border object-cover"
+                    width={200}
+                    height={200}
+                  />
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      handleFileChange(
+                        e,
+                        "packageImage",
+                        setPackageImagePreview
+                      );
+                    }}
+                  />
+                  {packageImagePreview && (
+                    <Image
+                      src={packageImagePreview}
+                      alt="Package Image Preview"
+                      className="h-32 w-32 rounded border object-cover"
+                      width={200}
+                      height={200}
+                    />
+                  )}
+                  <FieldError
+                    message={errors.packageImage?.message as string}
+                  />
+                </div>
               </div>
             </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading || createShipmentMutation.isPending
-                ? "Creating..."
-                : "Create Shipment"}
+            <Button
+              type="button"
+              onClick={handleCalculateRate}
+              disabled={isCalculatingRate}
+            >
+              {isCalculatingRate ? "Calculating..." : "Calculate Rate"}
+            </Button>
+            {calculatedRate && (
+              <div className="font-semibold text-lg">
+                Calculated Rate: ₹{calculatedRate.toFixed(2)}
+                {origin && destination && (
+                  <div className="font-normal text-sm">
+                    From: {origin.city}, {origin.state}
+                    <br />
+                    To: {destination.city}, {destination.state}
+                  </div>
+                )}
+              </div>
+            )}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={
+                isLoading || !calculatedRate || createShipmentMutation.isPending
+              }
+            >
+              {isLoading ? "Creating..." : "Create Shipment"}
             </Button>
           </form>
         </CardContent>

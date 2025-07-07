@@ -1,12 +1,6 @@
 import { ENTITY_TYPE } from "@prisma/client";
 import { z } from "zod";
-
-const base64ImageSchema = z.object({
-	data: z.string().startsWith("data:image/", "Invalid image data format"),
-	name: z.string().min(1, "File name is required"),
-	type: z.string().startsWith("image/", "Invalid file type"),
-	size: z.number().max(5 * 1024 * 1024, "Max file size is 5MB."),
-});
+import { base64ImageSchema } from "~/schemas/image";
 
 export const submitKycSchema = z
 	.object({
@@ -35,16 +29,16 @@ export const submitKycSchema = z
 		aadharNumber: z
 			.string()
 			.length(12, "Aadhar number must be exactly 12 digits"),
-		aadharImageFront: base64ImageSchema.optional(),
-		aadharImageBack: base64ImageSchema.optional(),
+		aadharImageFront: base64ImageSchema,
+		aadharImageBack: base64ImageSchema,
 		panNumber: z
 			.string()
 			.regex(
 				/^[A-Z]{5}[0-9]{4}[A-Z]$/,
 				"PAN number must be in the format: 5 letters, 4 digits, 1 letter",
 			),
-		panImageFront: base64ImageSchema.optional(),
-		panImageBack: base64ImageSchema.optional(),
+		panImageFront: base64ImageSchema,
+		panImageBack: base64ImageSchema,
 		gst: z.boolean(),
 		submission_date: z.date(),
 	})

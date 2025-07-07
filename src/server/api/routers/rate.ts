@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { db } from "~/server/db";
+import { findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { rateSchema } from "~/schemas/rate";
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
 export const rateRouter = createTRPCRouter({
   calculateRate: publicProcedure
@@ -23,129 +23,38 @@ export const rateRouter = createTRPCRouter({
 
       const { zone } = getZone(originDetails, destinationDetails);
       const weightSlab = Math.ceil(packageWeight * 2) / 2;
-      let userRate;
-      if (userId) {
-        userRate = await db.userRate.findFirst({
-          where: {
-            user_id: userId,
-            zone_from: "z",
-            zone_to: zone,
-            weight_slab: weightSlab,
-          },
-        });
-
-        if (userRate) {
-          return userRate.rate;
-        }
-      }
-
-      const defaultRate = await db.defaultRate.findFirst({
-        where: {
-          zone_from: "z",
-          zone_to: zone,
-          weight_slab: weightSlab,
-        },
-      });
-
-      if (defaultRate) {
-        return defaultRate.rate;
-      }
 
       if (userId) {
-        const lowerUserRate = await db.userRate.findFirst({
-          where: {
-            user_id: userId,
-            zone_from: "z",
-            zone_to: zone,
-            weight_slab: {
-              lt: weightSlab,
-            },
-          },
-          orderBy: {
-            weight_slab: "desc",
-          },
+        const userRate = await findRate({
+          userId,
+          zoneFrom: "z",
+          zoneTo: zone,
+          weightSlab,
+          packageWeight,
+          isUserRate: true,
         });
-
-        const upperUserRate = await db.userRate.findFirst({
-          where: {
-            user_id: userId,
-            zone_from: "z",
-            zone_to: zone,
-            weight_slab: {
-              gt: weightSlab,
-            },
-          },
-          orderBy: {
-            weight_slab: "asc",
-          },
-        });
-
-        if (lowerUserRate && upperUserRate) {
-          const rateDiff = upperUserRate.rate - lowerUserRate.rate;
-          const weightDiff =
-            upperUserRate.weight_slab - lowerUserRate.weight_slab;
-          if (weightDiff <= 0) {
-            const ratePerKg = lowerUserRate.rate / lowerUserRate.weight_slab;
-            return ratePerKg * packageWeight;
-          }
-          const ratePerKgInRange = rateDiff / weightDiff;
-          const weightAboveLower = packageWeight - lowerUserRate.weight_slab;
-          const calculatedRate =
-            lowerUserRate.rate + weightAboveLower * ratePerKgInRange;
-          return calculatedRate;
-        }
-
-        if (lowerUserRate) {
-          const ratePerKg = lowerUserRate.rate / lowerUserRate.weight_slab;
-          return ratePerKg * packageWeight;
+        if (userRate !== null) {
+          return {
+            rate: userRate,
+            origin: originDetails,
+            destination: destinationDetails,
+          };
         }
       }
 
-      const lowerDefaultRate = await db.defaultRate.findFirst({
-        where: {
-          zone_from: "z",
-          zone_to: zone,
-          weight_slab: {
-            lt: weightSlab,
-          },
-        },
-        orderBy: {
-          weight_slab: "desc",
-        },
+      const defaultRate = await findRate({
+        zoneFrom: "z",
+        zoneTo: zone,
+        weightSlab,
+        packageWeight,
+        isUserRate: false,
       });
-
-      const upperDefaultRate = await db.defaultRate.findFirst({
-        where: {
-          zone_from: "z",
-          zone_to: zone,
-          weight_slab: {
-            gt: weightSlab,
-          },
-        },
-        orderBy: {
-          weight_slab: "asc",
-        },
-      });
-
-      if (lowerDefaultRate && upperDefaultRate) {
-        const rateDiff = upperDefaultRate.rate - lowerDefaultRate.rate;
-        const weightDiff =
-          upperDefaultRate.weight_slab - lowerDefaultRate.weight_slab;
-        if (weightDiff <= 0) {
-          const ratePerKg =
-            lowerDefaultRate.rate / lowerDefaultRate.weight_slab;
-          return ratePerKg * packageWeight;
-        }
-        const ratePerKgInRange = rateDiff / weightDiff;
-        const weightAboveLower = packageWeight - lowerDefaultRate.weight_slab;
-        const calculatedRate =
-          lowerDefaultRate.rate + weightAboveLower * ratePerKgInRange;
-        return calculatedRate;
-      }
-
-      if (lowerDefaultRate) {
-        const ratePerKg = lowerDefaultRate.rate / lowerDefaultRate.weight_slab;
-        return ratePerKg * packageWeight;
+      if (defaultRate !== null) {
+        return {
+          rate: defaultRate,
+          origin: originDetails,
+          destination: destinationDetails,
+        };
       }
 
       throw new TRPCError({

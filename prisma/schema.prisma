@@ -223,7 +223,6 @@ model Order {
   payment_status   ORDER_PAYMENT_STATUS
   order_status     ORDER_STATUS
   rejection_reason String?
-  is_bulk_order    Boolean
   created_at       DateTime             @default(now())
   updated_at       DateTime             @updatedAt
 
@@ -234,6 +233,7 @@ model Order {
 
 model Shipment {
   shipment_id            String          @id @default(uuid())
+  human_readable_shipment_id String          @unique
   order_id               String
   carrier_id             String?
   awb_lr_no              String          @unique
@@ -242,6 +242,7 @@ model Shipment {
   destination_address_id String
   recipient_name         String
   recipient_mobile       String
+  package_image            String
   package_weight         Decimal         @db.Decimal(10, 2)
   package_dimensions     String
   shipping_cost          Decimal         @db.Decimal(10, 2)
