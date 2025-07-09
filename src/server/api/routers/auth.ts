@@ -198,11 +198,7 @@ export const authRouter = createTRPCRouter({
 				html: `<p>Your OTP is <strong>${otp}</strong>. It expires in 10 minutes.</p>`,
 			});
 
-			if (mail) return true;
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Something Went Wrong.",
-			});
+			return true;
 		}),
 
 	resetPasswordWithOtp: publicProcedure

@@ -30,7 +30,7 @@ export async function sendEmail({
 		});
 		return true;
 	} catch (error) {
-		console.log(error);
-		return false;
+		console.error("Error sending email:", error);
+		throw new Error("Failed to send email");
 	}
 }

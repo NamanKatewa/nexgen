@@ -12,8 +12,7 @@ import { api } from "~/trpc/react";
 type Transactions = inferRouterOutputs<AppRouter>["wallet"]["getPassbook"];
 type Transaction = Transactions extends Array<infer T> ? T : never;
 
-const paymentStatusTypes = ["Pending", "Completed", "Failed"];
-const transactionTypes = ["Credit", "Debit"];
+import { paymentStatusTypes, transactionTypes } from "~/constants";
 
 const PassbookPage = () => {
 	const { data: transactions = [], isLoading } =
@@ -30,13 +29,15 @@ const PassbookPage = () => {
 		setFilterTxnType("ALL");
 	};
 
-	const filteredData = transactions.filter((item) => {
-		const statusMatch =
-			filterStatus === "ALL" || item.payment_status === filterStatus;
-		const typeMatch =
-			filterTxnType === "ALL" || item.transaction_type === filterTxnType;
-		return statusMatch && typeMatch;
-	});
+	const filteredData = React.useMemo(() => {
+		return transactions.filter((item) => {
+			const statusMatch =
+				filterStatus === "ALL" || item.payment_status === filterStatus;
+			const typeMatch =
+				filterTxnType === "ALL" || item.transaction_type === filterTxnType;
+			return statusMatch && typeMatch;
+		});
+	}, [transactions, filterStatus, filterTxnType]);
 
 	const columns = [
 		{
@@ -50,8 +51,8 @@ const PassbookPage = () => {
 			header: "Date",
 			className: "w-30 px-4 text-center text-blue-950",
 			render: (item: Transaction) =>
-				item.transaction_date
-					? format(new Date(item.transaction_date), "dd/MM/yyyy")
+				item.created_at
+					? format(new Date(item.created_at), "dd/MM/yyyy")
 					: "N/A",
 		},
 		{

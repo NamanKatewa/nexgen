@@ -6,584 +6,563 @@ import { AlertCircle, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { AddAddressModal } from "~/components/AddAddressModal";
 import { FieldError } from "~/components/FieldError";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
+	InputOTP,
+	InputOTPGroup,
+	InputOTPSlot,
 } from "~/components/ui/input-otp";
 import { Label } from "~/components/ui/label";
+import { fileToBase64 } from "~/lib/file-utils";
 import { type TShipmentSchema, submitShipmentSchema } from "~/schemas/order";
 import { api } from "~/trpc/react";
 
 interface PincodeDetails {
-  city: string;
-  state: string;
+	city: string;
+	state: string;
 }
 
 export default function CreateShipmentPage() {
-  const router = useRouter();
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showOriginAddressModal, setShowOriginAddressModal] = useState(false);
-  const [autofilledAddressDetails, setAutofilledAddressDetails] = useState<
-    NonNullable<typeof userAddresses>[number] | undefined
-  >(undefined);
-  const [originZipCodeFilter, setOriginZipCodeFilter] = useState("");
-  const [packageImagePreview, setPackageImagePreview] = useState<string | null>(
-    null
-  );
-  const [calculatedRate, setCalculatedRate] = useState<number | null>(null);
-  const [origin, setOrigin] = useState<PincodeDetails | null>(null);
-  const [destination, setDestination] = useState<PincodeDetails | null>(null);
+	const router = useRouter();
+	const [errorMessage, setErrorMessage] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
+	const [showOriginAddressModal, setShowOriginAddressModal] = useState(false);
+	const [autofilledAddressDetails, setAutofilledAddressDetails] = useState<
+		NonNullable<typeof userAddresses>[number] | undefined
+	>(undefined);
+	const [originZipCodeFilter, setOriginZipCodeFilter] = useState("");
+	const [packageImagePreview, setPackageImagePreview] = useState<string | null>(
+		null,
+	);
+	const [calculatedRate, setCalculatedRate] = useState<number | null>(null);
+	const [origin, setOrigin] = useState<PincodeDetails | null>(null);
+	const [destination, setDestination] = useState<PincodeDetails | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-    getValues,
-  } = useForm<TShipmentSchema>({
-    resolver: zodResolver(submitShipmentSchema),
-  });
+	const {
+		register,
+		handleSubmit,
+		setValue,
+		watch,
+		formState: { errors },
+		getValues,
+	} = useForm<TShipmentSchema>({
+		resolver: zodResolver(submitShipmentSchema),
+	});
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
+	const handleFileChange = async (
+		event: React.ChangeEvent<HTMLInputElement>,
+		fieldName: "packageImage",
+		setPreview: React.Dispatch<React.SetStateAction<string | null>>,
+	) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			setPreview(URL.createObjectURL(file));
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    fieldName: "packageImage",
-    setPreview: React.Dispatch<React.SetStateAction<string | null>>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setPreview(URL.createObjectURL(file));
+			try {
+				const base64Data = await fileToBase64(file);
+				setValue(fieldName, {
+					data: base64Data,
+					name: file.name,
+					type: file.type,
+					size: file.size,
+				});
+			} catch (error) {
+				console.error("Error converting file to Base64:", error);
+				setErrorMessage("Failed to process image file");
+				setValue(fieldName, { data: "", name: "", type: "", size: 0 });
+				setPreview(null);
+			}
+		} else {
+			setValue(fieldName, { data: "", name: "", type: "", size: 0 });
+			setPreview(null);
+		}
+	};
 
-      try {
-        const base64Data = await fileToBase64(file);
-        setValue(fieldName, {
-          data: base64Data,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-        });
-      } catch (error) {
-        console.error("Error converting file to Base64:", error);
-        setErrorMessage("Failed to process image file");
-        setValue(fieldName, { data: "", name: "", type: "", size: 0 });
-        setPreview(null);
-      }
-    } else {
-      setValue(fieldName, { data: "", name: "", type: "", size: 0 });
-      setPreview(null);
-    }
-  };
+	const {
+		data: warehouseAddresses,
+		isLoading: isLoadingWarehouseAddresses,
+		refetch: refetchWarehouseAddresses,
+	} = api.address.getAddresses.useQuery({ type: ADDRESS_TYPE.Warehouse });
+	const { data: userAddresses } = api.address.getAddresses.useQuery({
+		type: ADDRESS_TYPE.User,
+	});
 
-  const {
-    data: warehouseAddresses,
-    isLoading: isLoadingWarehouseAddresses,
-    refetch: refetchWarehouseAddresses,
-  } = api.address.getAddresses.useQuery({ type: ADDRESS_TYPE.Warehouse });
-  const { data: userAddresses } = api.address.getAddresses.useQuery({
-    type: ADDRESS_TYPE.User,
-  });
+	const addAddressMutation = api.address.createAddress.useMutation();
 
-  const addAddressMutation = api.address.createAddress.useMutation();
+	const filteredWarehouseAddresses = useMemo(() => {
+		if (!warehouseAddresses) return undefined;
+		return warehouseAddresses.filter((address) =>
+			String(address.zip_code).includes(originZipCodeFilter),
+		);
+	}, [warehouseAddresses, originZipCodeFilter]);
 
-  const [filteredWarehouseAddresses, setFilteredWarehouseAddresses] = useState<
-    typeof warehouseAddresses | undefined
-  >(undefined);
+	const [destinationAddress, setDestinationAddress] = useState({
+		zipCode: "",
+		addressLine: "",
+		city: "",
+		state: "",
+	});
+	const recipientName = watch("recipientName");
 
-  useEffect(() => {
-    if (warehouseAddresses) {
-      setFilteredWarehouseAddresses(warehouseAddresses);
-    }
-  }, [warehouseAddresses]);
+	useEffect(() => {
+		if (userAddresses && recipientName) {
+			const potentialAddresses = userAddresses.filter(
+				(address) => address.name === recipientName,
+			);
 
-  useEffect(() => {
-    if (warehouseAddresses) {
-      setFilteredWarehouseAddresses(
-        warehouseAddresses.filter((address) =>
-          String(address.zip_code).includes(originZipCodeFilter)
-        )
-      );
-    }
-  }, [warehouseAddresses, originZipCodeFilter]);
+			if (potentialAddresses.length === 1) {
+				const matchedAddress = potentialAddresses[0];
+				if (matchedAddress) {
+					setValue("destinationAddressId", matchedAddress.address_id);
+					setDestinationAddress({
+						zipCode: String(matchedAddress.zip_code),
+						addressLine: matchedAddress.address_line,
+						city: matchedAddress.city,
+						state: matchedAddress.state,
+					});
+					setAutofilledAddressDetails(matchedAddress);
+				}
+			} else {
+				setValue("destinationAddressId", "");
+				setAutofilledAddressDetails(undefined);
+			}
+		} else {
+			setValue("destinationAddressId", "");
+			setAutofilledAddressDetails(undefined);
+			setDestinationAddress({
+				zipCode: "",
+				addressLine: "",
+				city: "",
+				state: "",
+			});
+		}
+	}, [userAddresses, recipientName, setValue]);
 
-  const [destinationAddress, setDestinationAddress] = useState({
-    zipCode: "",
-    addressLine: "",
-    city: "",
-    state: "",
-  });
-  const recipientName = watch("recipientName");
+	const createShipmentMutation = api.order.createShipment.useMutation({
+		onSuccess: () => {
+			setIsLoading(false);
+			// router.refresh();
+		},
+		onError(err) {
+			setErrorMessage(err.message);
+			setIsLoading(false);
+		},
+	});
 
-  useEffect(() => {
-    if (userAddresses && recipientName) {
-      const potentialAddresses = userAddresses.filter(
-        (address) => address.name === recipientName
-      );
+	const [queryInput, setQueryInput] = useState<{
+		originZipCode: string;
+		destinationZipCode: string;
+		packageWeight: number;
+	} | null>(null);
 
-      if (potentialAddresses.length === 1) {
-        const matchedAddress = potentialAddresses[0];
-        if (matchedAddress) {
-          setValue("destinationAddressId", matchedAddress.address_id);
-          setDestinationAddress({
-            zipCode: String(matchedAddress.zip_code),
-            addressLine: matchedAddress.address_line,
-            city: matchedAddress.city,
-            state: matchedAddress.state,
-          });
-          setAutofilledAddressDetails(matchedAddress);
-        }
-      } else {
-        setValue("destinationAddressId", "");
-        setAutofilledAddressDetails(undefined);
-      }
-    } else {
-      setValue("destinationAddressId", "");
-      setAutofilledAddressDetails(undefined);
-      setDestinationAddress({
-        zipCode: "",
-        addressLine: "",
-        city: "",
-        state: "",
-      });
-    }
-  }, [userAddresses, recipientName, setValue]);
+	const {
+		data: rateData,
+		error: rateError,
+		isFetching: isCalculatingRate,
+	} = api.rate.calculateRate.useQuery(
+		queryInput ?? {
+			originZipCode: "",
+			destinationZipCode: "",
+			packageWeight: 0,
+		},
+		{
+			enabled: !!queryInput,
+		},
+	);
 
-  const createShipmentMutation = api.order.createShipment.useMutation({
-    onSuccess: () => {
-      setIsLoading(false);
-      // router.refresh();
-    },
-    onError(err) {
-      setErrorMessage(err.message);
-      setIsLoading(false);
-    },
-  });
+	useEffect(() => {
+		if (rateData) {
+			setCalculatedRate(rateData.rate);
+			setOrigin(rateData.origin);
+			setDestination(rateData.destination);
+			setErrorMessage("");
+			setQueryInput(null);
+		}
+	}, [rateData]);
 
-  const [queryInput, setQueryInput] = useState<{
-    originZipCode: string;
-    destinationZipCode: string;
-    packageWeight: number;
-  } | null>(null);
+	useEffect(() => {
+		if (rateError) {
+			setErrorMessage(rateError.message);
+			setCalculatedRate(null);
+			setQueryInput(null);
+		}
+	}, [rateError]);
 
-  const {
-    data: rateData,
-    error: rateError,
-    isFetching: isCalculatingRate,
-  } = api.rate.calculateRate.useQuery(
-    queryInput ?? {
-      originZipCode: "",
-      destinationZipCode: "",
-      packageWeight: 0,
-    },
-    {
-      enabled: !!queryInput,
-    }
-  );
+	const handleCalculateRate = () => {
+		const data = getValues();
+		const originAddress = warehouseAddresses?.find(
+			(address) => address.address_id === data.originAddressId,
+		);
 
-  useEffect(() => {
-    if (rateData) {
-      setCalculatedRate(rateData.rate);
-      setOrigin(rateData.origin);
-      setDestination(rateData.destination);
-      setErrorMessage("");
-      setQueryInput(null);
-    }
-  }, [rateData]);
+		if (!originAddress || !destinationAddress.zipCode || !data.packageWeight) {
+			setErrorMessage(
+				"Please select origin, destination, and enter package weight.",
+			);
+			return;
+		}
 
-  useEffect(() => {
-    if (rateError) {
-      setErrorMessage(rateError.message);
-      setCalculatedRate(null);
-      setQueryInput(null);
-    }
-  }, [rateError]);
+		setQueryInput({
+			originZipCode: String(originAddress.zip_code),
+			destinationZipCode: destinationAddress.zipCode,
+			packageWeight: data.packageWeight,
+		});
+	};
 
-  const handleCalculateRate = () => {
-    const data = getValues();
-    const originAddress = warehouseAddresses?.find(
-      (address) => address.address_id === data.originAddressId
-    );
+	const onSubmit = async (data: TShipmentSchema) => {
+		setIsLoading(true);
+		setErrorMessage("");
 
-    if (!originAddress || !destinationAddress.zipCode || !data.packageWeight) {
-      setErrorMessage(
-        "Please select origin, destination, and enter package weight."
-      );
-      return;
-    }
+		let finalDestinationAddressId = data.destinationAddressId;
 
-    setQueryInput({
-      originZipCode: String(originAddress.zip_code),
-      destinationZipCode: destinationAddress.zipCode,
-      packageWeight: data.packageWeight,
-    });
-  };
+		if (finalDestinationAddressId && autofilledAddressDetails) {
+			if (
+				destinationAddress.addressLine !==
+					autofilledAddressDetails.address_line ||
+				Number(destinationAddress.zipCode) !==
+					autofilledAddressDetails.zip_code ||
+				destinationAddress.city !== autofilledAddressDetails.city ||
+				destinationAddress.state !== autofilledAddressDetails.state
+			) {
+				finalDestinationAddressId = "";
+			}
+		}
 
-  const onSubmit = async (data: TShipmentSchema) => {
-    setIsLoading(true);
-    setErrorMessage("");
+		if (!finalDestinationAddressId) {
+			try {
+				const newAddress = await addAddressMutation.mutateAsync({
+					name: data.recipientName,
+					addressLine: destinationAddress.addressLine,
+					zipCode: Number(destinationAddress.zipCode),
+					city: destinationAddress.city,
+					state: destinationAddress.state,
+					type: ADDRESS_TYPE.User,
+				});
+				finalDestinationAddressId = newAddress.address_id;
+			} catch (error) {
+				let message = "Failed to add new destination address.";
+				if (error instanceof Error) {
+					message = error.message;
+				}
+				setErrorMessage(message);
+				setIsLoading(false);
+				return;
+			}
+		}
 
-    let finalDestinationAddressId = data.destinationAddressId;
+		createShipmentMutation.mutate({
+			...data,
+			destinationAddressId: finalDestinationAddressId,
+		});
+	};
 
-    if (finalDestinationAddressId && autofilledAddressDetails) {
-      if (
-        destinationAddress.addressLine !==
-          autofilledAddressDetails.address_line ||
-        Number(destinationAddress.zipCode) !==
-          autofilledAddressDetails.zip_code ||
-        destinationAddress.city !== autofilledAddressDetails.city ||
-        destinationAddress.state !== autofilledAddressDetails.state
-      ) {
-        finalDestinationAddressId = "";
-      }
-    }
+	return (
+		<div className="flex min-h-screen items-center justify-center p-4">
+			<Card className="w-full bg-blue-100/20">
+				<AddAddressModal
+					isOpen={showOriginAddressModal}
+					onClose={() => setShowOriginAddressModal(false)}
+					onAddressAdded={() => refetchWarehouseAddresses()}
+					addressType={ADDRESS_TYPE.Warehouse}
+				/>
+				<CardHeader>
+					<h1 className="text-center font-semibold text-2xl text-blue-950">
+						Create Shipment
+					</h1>
+					<p className="text-center text-blue-900 text-sm">
+						Enter the shipment details.
+					</p>
+				</CardHeader>
+				<CardContent>
+					<form
+						onSubmit={handleSubmit(onSubmit)}
+						className="space-y-4 text-blue-950"
+					>
+						{errorMessage && (
+							<Alert variant="destructive">
+								<AlertCircle className="h-4 w-4" />
+								<AlertDescription>{errorMessage}</AlertDescription>
+							</Alert>
+						)}
 
-    if (!finalDestinationAddressId) {
-      try {
-        const newAddress = await addAddressMutation.mutateAsync({
-          name: data.recipientName,
-          addressLine: destinationAddress.addressLine,
-          zipCode: Number(destinationAddress.zipCode),
-          city: destinationAddress.city,
-          state: destinationAddress.state,
-          type: ADDRESS_TYPE.User,
-        });
-        finalDestinationAddressId = newAddress.address_id;
-      } catch (error) {
-        let message = "Failed to add new destination address.";
-        if (error instanceof Error) {
-          message = error.message;
-        }
-        setErrorMessage(message);
-        setIsLoading(false);
-        return;
-      }
-    }
+						<div className="mb-10 flex gap-10">
+							<div className="space-y-4">
+								<Label>Recipient Name</Label>
+								<Input {...register("recipientName")} disabled={isLoading} />
+								<FieldError message={errors.recipientName?.message} />
+							</div>
+							<div className="mb-10 flex flex-wrap gap-10">
+								<div className="space-y-2">
+									<Label>Recipient Mobile Number</Label>
+									<InputOTP
+										maxLength={10}
+										value={watch("recipientMobile")}
+										onChange={(val) => setValue("recipientMobile", val)}
+										disabled={isLoading}
+										pattern="\d*"
+										inputMode="numeric"
+									>
+										<InputOTPGroup>
+											{[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+												<InputOTPSlot key={i} index={i} />
+											))}
+										</InputOTPGroup>
+									</InputOTP>
+									<FieldError message={errors.recipientMobile?.message} />
+								</div>
+							</div>
+						</div>
 
-    createShipmentMutation.mutate({
-      ...data,
-      destinationAddressId: finalDestinationAddressId,
-    });
-  };
+						<div className="space-y-4">
+							<Label className="font-bold">Destination Address</Label>
+							<div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
+								<div className="space-y-2">
+									<Label>Zip Code</Label>
+									<Input
+										value={destinationAddress.zipCode}
+										onChange={(e) =>
+											setDestinationAddress((prev) => ({
+												...prev,
+												zipCode: e.target.value,
+											}))
+										}
+										disabled={isLoading}
+									/>
+									<FieldError message={errors.destinationAddressId?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>Address Line</Label>
+									<Input
+										value={destinationAddress.addressLine}
+										onChange={(e) =>
+											setDestinationAddress((prev) => ({
+												...prev,
+												addressLine: e.target.value,
+											}))
+										}
+										disabled={isLoading}
+									/>
+									<FieldError message={errors.destinationAddressId?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>City</Label>
+									<Input
+										value={destinationAddress.city}
+										onChange={(e) =>
+											setDestinationAddress((prev) => ({
+												...prev,
+												city: e.target.value,
+											}))
+										}
+										disabled={isLoading}
+									/>
+									<FieldError message={errors.destinationAddressId?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>State</Label>
+									<Input
+										value={destinationAddress.state}
+										onChange={(e) =>
+											setDestinationAddress((prev) => ({
+												...prev,
+												state: e.target.value,
+											}))
+										}
+										disabled={isLoading}
+									/>
+									<FieldError message={errors.destinationAddressId?.message} />
+								</div>
+							</div>
+							<FieldError message={errors.destinationAddressId?.message} />
+						</div>
 
-  return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full bg-blue-100/20">
-        <AddAddressModal
-          isOpen={showOriginAddressModal}
-          onClose={() => setShowOriginAddressModal(false)}
-          onAddressAdded={() => refetchWarehouseAddresses()}
-          addressType={ADDRESS_TYPE.Warehouse}
-        />
-        <CardHeader>
-          <h1 className="text-center font-semibold text-2xl text-blue-950">
-            Create Shipment
-          </h1>
-          <p className="text-center text-blue-900 text-sm">
-            Enter the shipment details.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4 text-blue-950"
-          >
-            {errorMessage && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{errorMessage}</AlertDescription>
-              </Alert>
-            )}
+						<div className="space-y-4">
+							<Label className="font-bold">Origin Address</Label>
+							<Input
+								placeholder="Search by Pin Code"
+								onChange={(e) => setOriginZipCodeFilter(e.target.value)}
+								className="mb-2"
+							/>
+							{isLoadingWarehouseAddresses ? (
+								<p>Loading origin addresses...</p>
+							) : (
+								<div className="flex gap-4 overflow-x-auto p-4">
+									{filteredWarehouseAddresses?.map((address) => (
+										<Card
+											key={address.address_id}
+											className={`h-48 w-96 flex-shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 ${
+												watch("originAddressId") === address.address_id
+													? "border-blue-500 ring-1 ring-blue-500"
+													: ""
+											}`}
+											onClick={() =>
+												setValue("originAddressId", address.address_id)
+											}
+										>
+											<CardHeader>
+												<h3 className="font-semibold">{address.name}</h3>
+											</CardHeader>
+											<CardContent>
+												<p>{address.address_line}</p>
+												<p>
+													{address.city}, {address.state} - {address.zip_code}
+												</p>
+											</CardContent>
+										</Card>
+									))}
+									<Button
+										type="button"
+										variant="outline"
+										className="h-48 w-96 bg-blue-200 hover:bg-blue-300"
+										onClick={() => setShowOriginAddressModal(true)}
+									>
+										<PlusCircle className="mr-2 h-4 w-4" /> Add New Origin
+										Address
+									</Button>
+								</div>
+							)}
+							<FieldError message={errors.originAddressId?.message} />
+						</div>
 
-            <div className="mb-10 flex gap-10">
-              <div className="space-y-4">
-                <Label>Recipient Name</Label>
-                <Input {...register("recipientName")} disabled={isLoading} />
-                <FieldError message={errors.recipientName?.message} />
-              </div>
-              <div className="mb-10 flex flex-wrap gap-10">
-                <div className="space-y-2">
-                  <Label>Recipient Mobile Number</Label>
-                  <InputOTP
-                    maxLength={10}
-                    value={watch("recipientMobile")}
-                    onChange={(val) => setValue("recipientMobile", val)}
-                    disabled={isLoading}
-                    pattern="\d*"
-                    inputMode="numeric"
-                  >
-                    <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-                        <InputOTPSlot key={i} index={i} />
-                      ))}
-                    </InputOTPGroup>
-                  </InputOTP>
-                  <FieldError message={errors.recipientMobile?.message} />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label className="font-bold">Destination Address</Label>
-              <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Zip Code</Label>
-                  <Input
-                    value={destinationAddress.zipCode}
-                    onChange={(e) =>
-                      setDestinationAddress((prev) => ({
-                        ...prev,
-                        zipCode: e.target.value,
-                      }))
-                    }
-                    disabled={isLoading}
-                  />
-                  <FieldError message={errors.destinationAddressId?.message} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Address Line</Label>
-                  <Input
-                    value={destinationAddress.addressLine}
-                    onChange={(e) =>
-                      setDestinationAddress((prev) => ({
-                        ...prev,
-                        addressLine: e.target.value,
-                      }))
-                    }
-                    disabled={isLoading}
-                  />
-                  <FieldError message={errors.destinationAddressId?.message} />
-                </div>
-                <div className="space-y-2">
-                  <Label>City</Label>
-                  <Input
-                    value={destinationAddress.city}
-                    onChange={(e) =>
-                      setDestinationAddress((prev) => ({
-                        ...prev,
-                        city: e.target.value,
-                      }))
-                    }
-                    disabled={isLoading}
-                  />
-                  <FieldError message={errors.destinationAddressId?.message} />
-                </div>
-                <div className="space-y-2">
-                  <Label>State</Label>
-                  <Input
-                    value={destinationAddress.state}
-                    onChange={(e) =>
-                      setDestinationAddress((prev) => ({
-                        ...prev,
-                        state: e.target.value,
-                      }))
-                    }
-                    disabled={isLoading}
-                  />
-                  <FieldError message={errors.destinationAddressId?.message} />
-                </div>
-              </div>
-              <FieldError message={errors.destinationAddressId?.message} />
-            </div>
-
-            <div className="space-y-4">
-              <Label className="font-bold">Origin Address</Label>
-              <Input
-                placeholder="Search by Pin Code"
-                onChange={(e) => setOriginZipCodeFilter(e.target.value)}
-                className="mb-2"
-              />
-              {isLoadingWarehouseAddresses ? (
-                <p>Loading origin addresses...</p>
-              ) : (
-                <div className="flex gap-4 overflow-x-auto p-4">
-                  {filteredWarehouseAddresses?.map((address) => (
-                    <Card
-                      key={address.address_id}
-                      className={`h-48 w-96 flex-shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 ${
-                        watch("originAddressId") === address.address_id
-                          ? "border-blue-500 ring-1 ring-blue-500"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setValue("originAddressId", address.address_id)
-                      }
-                    >
-                      <CardHeader>
-                        <h3 className="font-semibold">{address.name}</h3>
-                      </CardHeader>
-                      <CardContent>
-                        <p>{address.address_line}</p>
-                        <p>
-                          {address.city}, {address.state} - {address.zip_code}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-48 w-96 bg-blue-200 hover:bg-blue-300"
-                    onClick={() => setShowOriginAddressModal(true)}
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Origin
-                    Address
-                  </Button>
-                </div>
-              )}
-              <FieldError message={errors.originAddressId?.message} />
-            </div>
-
-            <div className="space-y-4">
-              <Label className="font-bold">Package Details</Label>
-              <div className="mb-10 grid grid-cols-2 gap-10 p-4">
-                <div className="space-y-2">
-                  <Label>Package Weight</Label>
-                  <Input
-                    placeholder="Package Weight (in kg)"
-                    type="number"
-                    step="any"
-                    {...register("packageWeight", {
-                      valueAsNumber: true,
-                    })}
-                  />
-                  <FieldError message={errors.packageWeight?.message} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Package Height</Label>
-                  <Input
-                    placeholder="Package Height (in cm)"
-                    type="number"
-                    step="any"
-                    {...register("packageHeight", {
-                      valueAsNumber: true,
-                    })}
-                  />
-                  <FieldError message={errors.packageHeight?.message} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Package Breadth</Label>
-                  <Input
-                    placeholder="Package Breadth (in cm)"
-                    type="number"
-                    step="any"
-                    {...register("packageBreadth", {
-                      valueAsNumber: true,
-                    })}
-                  />
-                  <FieldError message={errors.packageBreadth?.message} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Package Length</Label>
-                  <Input
-                    placeholder="Package Length (in cm)"
-                    type="number"
-                    step="any"
-                    {...register("packageLength", {
-                      valueAsNumber: true,
-                    })}
-                  />
-                  <FieldError message={errors.packageLength?.message} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Package Weight Image</Label>
-                  <Image
-                    src="/sample_package_image.jpeg"
-                    alt="Package Image Preview"
-                    className="h-32 w-32 rounded border object-cover"
-                    width={200}
-                    height={200}
-                  />
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      handleFileChange(
-                        e,
-                        "packageImage",
-                        setPackageImagePreview
-                      );
-                    }}
-                  />
-                  {packageImagePreview && (
-                    <Image
-                      src={packageImagePreview}
-                      alt="Package Image Preview"
-                      className="h-32 w-32 rounded border object-cover"
-                      width={200}
-                      height={200}
-                    />
-                  )}
-                  <FieldError
-                    message={errors.packageImage?.message as string}
-                  />
-                </div>
-              </div>
-            </div>
-            <Button
-              type="button"
-              onClick={handleCalculateRate}
-              disabled={isCalculatingRate}
-            >
-              {isCalculatingRate ? "Calculating..." : "Calculate Rate"}
-            </Button>
-            {calculatedRate && (
-              <div className="font-semibold text-lg">
-                Calculated Rate: ₹{calculatedRate.toFixed(2)}
-                {origin && destination && (
-                  <div className="font-normal text-sm">
-                    From: {origin.city}, {origin.state}
-                    <br />
-                    To: {destination.city}, {destination.state}
-                  </div>
-                )}
-              </div>
-            )}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={
-                isLoading || !calculatedRate || createShipmentMutation.isPending
-              }
-            >
-              {isLoading ? "Creating..." : "Create Shipment"}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="justify-center">
-          <p className="text-muted-foreground text-sm">
-            Need help?{" "}
-            <Link
-              href="/dashboard/support"
-              className="text-primary hover:underline"
-            >
-              Contact Support
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
-  );
+						<div className="space-y-4">
+							<Label className="font-bold">Package Details</Label>
+							<div className="mb-10 grid grid-cols-2 gap-10 p-4">
+								<div className="space-y-2">
+									<Label>Package Weight</Label>
+									<Input
+										placeholder="Package Weight (in kg)"
+										type="number"
+										step="any"
+										{...register("packageWeight", {
+											valueAsNumber: true,
+										})}
+									/>
+									<FieldError message={errors.packageWeight?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>Package Height</Label>
+									<Input
+										placeholder="Package Height (in cm)"
+										type="number"
+										step="any"
+										{...register("packageHeight", {
+											valueAsNumber: true,
+										})}
+									/>
+									<FieldError message={errors.packageHeight?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>Package Breadth</Label>
+									<Input
+										placeholder="Package Breadth (in cm)"
+										type="number"
+										step="any"
+										{...register("packageBreadth", {
+											valueAsNumber: true,
+										})}
+									/>
+									<FieldError message={errors.packageBreadth?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>Package Length</Label>
+									<Input
+										placeholder="Package Length (in cm)"
+										type="number"
+										step="any"
+										{...register("packageLength", {
+											valueAsNumber: true,
+										})}
+									/>
+									<FieldError message={errors.packageLength?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label>Package Weight Image</Label>
+									<Image
+										src="/sample_package_image.jpeg"
+										alt="Package Image Preview"
+										className="h-32 w-32 rounded border object-cover"
+										width={200}
+										height={200}
+									/>
+									<Input
+										type="file"
+										accept="image/*"
+										onChange={(e) => {
+											handleFileChange(
+												e,
+												"packageImage",
+												setPackageImagePreview,
+											);
+										}}
+									/>
+									{packageImagePreview && (
+										<Image
+											src={packageImagePreview}
+											alt="Package Image Preview"
+											className="h-32 w-32 rounded border object-cover"
+											width={200}
+											height={200}
+										/>
+									)}
+									<FieldError
+										message={errors.packageImage?.message as string}
+									/>
+								</div>
+							</div>
+						</div>
+						<Button
+							type="button"
+							onClick={handleCalculateRate}
+							disabled={isCalculatingRate}
+						>
+							{isCalculatingRate ? "Calculating..." : "Calculate Rate"}
+						</Button>
+						{calculatedRate && (
+							<div className="font-semibold text-lg">
+								Calculated Rate: ₹{calculatedRate.toFixed(2)}
+								{origin && destination && (
+									<div className="font-normal text-sm">
+										From: {origin.city}, {origin.state}
+										<br />
+										To: {destination.city}, {destination.state}
+									</div>
+								)}
+							</div>
+						)}
+						<Button
+							type="submit"
+							className="w-full"
+							disabled={
+								isLoading || !calculatedRate || createShipmentMutation.isPending
+							}
+						>
+							{isLoading ? "Creating..." : "Create Shipment"}
+						</Button>
+					</form>
+				</CardContent>
+				<CardFooter className="justify-center">
+					<p className="text-muted-foreground text-sm">
+						Need help?{" "}
+						<Link
+							href="/dashboard/support"
+							className="text-primary hover:underline"
+						>
+							Contact Support
+						</Link>
+					</p>
+				</CardFooter>
+			</Card>
+		</div>
+	);
 }

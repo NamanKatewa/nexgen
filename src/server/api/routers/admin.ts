@@ -104,7 +104,7 @@ export const adminRouter = createTRPCRouter({
 				payment_status: true,
 				transaction_type: true,
 				amount: true,
-				transaction_date: true,
+				created_at: true,
 			},
 		});
 		return transactions;
@@ -112,11 +112,11 @@ export const adminRouter = createTRPCRouter({
 	getPassbook: adminProcedure.query(async () => {
 		const transactions = await db.transaction.findMany({
 			orderBy: {
-				transaction_date: "desc",
+				created_at: "desc",
 			},
 			select: {
 				transaction_id: true,
-				transaction_date: true,
+				created_at: true,
 				amount: true,
 				transaction_type: true,
 				payment_status: true,

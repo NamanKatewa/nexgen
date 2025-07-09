@@ -24,8 +24,6 @@ import { type TSignupSchema, signupSchema } from "~/schemas/auth";
 
 export default function SignupPage() {
 	const [errorMessage, setErrorMessage] = useState("");
-	const [confirmPassword, setConfirmPassword] = useState("");
-	const [confirmPasswordError, setConfirmPasswordError] = useState("");
 	const router = useRouter();
 	const utils = api.useUtils();
 
@@ -53,13 +51,6 @@ export default function SignupPage() {
 
 	const onSubmit = (data: TSignupSchema) => {
 		setErrorMessage("");
-		setConfirmPasswordError("");
-
-		if (data.password !== confirmPassword) {
-			setConfirmPasswordError("Passwords do not match");
-			return;
-		}
-
 		signupMutation.mutate(data);
 	};
 
@@ -127,10 +118,9 @@ export default function SignupPage() {
 					<PasswordInput
 						id="confirmPassword"
 						label="Confirm Password"
-						value={confirmPassword}
-						onChange={(e) => setConfirmPassword(e.target.value)}
+						{...register("confirmPassword")}
 						disabled={signupMutation.isPending}
-						error={confirmPasswordError}
+						error={errors.confirmPassword?.message}
 					/>
 
 					<div className="space-y-2">

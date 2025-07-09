@@ -10,8 +10,6 @@ export const walletRouter = createTRPCRouter({
 	addFunds: protectedProcedure
 		.input(addFundsSchema)
 		.mutation(async ({ input, ctx }) => {
-			if (!ctx.user) return null;
-
 			const user = await db.user.findUnique({
 				where: { user_id: ctx.user.user_id },
 				include: { wallet: { select: { wallet_id: true } } },
@@ -25,11 +23,9 @@ export const walletRouter = createTRPCRouter({
 			try {
 				const transaction = await db.transaction.create({
 					data: {
-						wallet: { connect: { wallet_id: user.wallet?.wallet_id } },
-						user: { connect: { user_id: user.user_id } },
+						user_id: user.user_id,
 						transaction_type: "Credit",
 						payment_status: "Pending",
-						transaction_date: new Date(Date.now()),
 						amount: input.amount,
 					},
 				});
@@ -92,7 +88,7 @@ export const walletRouter = createTRPCRouter({
 			await db.transaction.updateMany({
 				where: {
 					payment_status: "Pending",
-					transaction_date: {
+					created_at: {
 						lt: tenMinutesAgo,
 					},
 				},
@@ -105,11 +101,11 @@ export const walletRouter = createTRPCRouter({
 		const transactions = await db.transaction.findMany({
 			where: { user_id: ctx.user.user_id },
 			orderBy: {
-				transaction_date: "desc",
+				created_at: "desc",
 			},
 			select: {
 				transaction_id: true,
-				transaction_date: true,
+				created_at: true,
 				amount: true,
 				transaction_type: true,
 				payment_status: true,

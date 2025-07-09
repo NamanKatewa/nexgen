@@ -79,11 +79,10 @@ async function main() {
 		for (let j = 0; j < numberOfTransactions; j++) {
 			await prisma.transaction.create({
 				data: {
-					wallet_id: wallet.wallet_id,
 					user_id: user.user_id,
 					transaction_type: faker.helpers.arrayElement(["Credit", "Debit"]),
 					amount: faker.finance.amount({ min: 10, max: 1000, dec: 2 }),
-					transaction_date: faker.date.past(),
+					created_at: faker.date.past(),
 					payment_status: faker.helpers.arrayElement([
 						"Pending",
 						"Completed",

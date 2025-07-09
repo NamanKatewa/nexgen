@@ -43,14 +43,14 @@ enum CARRIER_STATUS {
 }
 
 enum ORDER_PAYMENT_STATUS {
+  Pending
   Paid
-  Approved
-  Rejected
 }
 
 enum ORDER_STATUS {
   PendingApproval
   Approved
+  Rejected
 }
 
 enum SUPPORT_STATUS {
@@ -197,28 +197,24 @@ model Wallet {
   updated_at   DateTime      @updatedAt
 
   user         User          @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  transactions Transaction[]
 }
 
 model Transaction {
   transaction_id   String           @id @default(uuid())
-  wallet_id        String
   user_id          String
   transaction_type TRANSACTION_TYPE
   amount           Decimal          @db.Decimal(10, 2)
-  transaction_date DateTime
   payment_status   PAYMENT_STATUS
   order_id         String?          @unique
+  created_at       DateTime         @default(now())
 
-  wallet Wallet @relation(fields: [wallet_id], references: [wallet_id], onDelete: Cascade)
-  user   User   @relation(fields: [user_id], references: [user_id])
+  user   User   @relation(fields: [user_id], references: [user_id],onDelete: Cascade)
   order  Order? @relation(fields: [order_id], references: [order_id])
 }
 
 model Order {
   order_id         String               @id @default(uuid())
   user_id          String
-  order_date       DateTime             @default(now())
   total_amount     Decimal              @db.Decimal(10, 2)
   payment_status   ORDER_PAYMENT_STATUS
   order_status     ORDER_STATUS
@@ -236,17 +232,17 @@ model Shipment {
   human_readable_shipment_id String          @unique
   order_id               String
   carrier_id             String?
-  awb_lr_no              String          @unique
+  awb_lr_no              String?          @unique
   current_status         SHIPMENT_STATUS
   origin_address_id      String
   destination_address_id String
   recipient_name         String
   recipient_mobile       String
-  package_image            String
+  package_image_url      String
   package_weight         Decimal         @db.Decimal(10, 2)
   package_dimensions     String
   shipping_cost          Decimal         @db.Decimal(10, 2)
-  label_url              String
+  label_url              String?
   created_at             DateTime        @default(now())
   updated_at             DateTime        @updatedAt
 

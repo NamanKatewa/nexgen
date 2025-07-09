@@ -8,7 +8,7 @@ import { DataTable } from "~/components/DataTable";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
-const paymentStatusTypes = ["Pending", "Completed", "Failed"];
+import { paymentStatusTypes } from "~/constants";
 
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "~/server/api/root";
@@ -31,9 +31,11 @@ const WalletTopupPage = () => {
 		setFilterType("ALL");
 	};
 
-	const filteredData = (transactions ?? []).filter((item) => {
-		return filterType === "ALL" || item.payment_status === filterType;
-	});
+	const filteredData = React.useMemo(() => {
+		return (transactions ?? []).filter((item) => {
+			return filterType === "ALL" || item.payment_status === filterType;
+		});
+	}, [transactions, filterType]);
 
 	const columns = [
 		{
@@ -59,8 +61,8 @@ const WalletTopupPage = () => {
 			header: "Date",
 			className: "w-30 px-4 text-center text-blue-950",
 			render: (item: Transaction) =>
-				item.transaction_date
-					? format(new Date(item.transaction_date), "dd/MM/yyyy")
+				item.created_at
+					? format(new Date(item.created_at), "dd/MM/yyyy")
 					: "N/A",
 		},
 		{

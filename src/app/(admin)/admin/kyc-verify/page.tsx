@@ -8,15 +8,7 @@ import KycDetailsModal from "~/components/KycDetailsModal";
 import { api } from "~/trpc/react";
 import type { KycItem } from "~/types/kyc";
 
-const entityTypes = [
-	"Individual",
-	"SelfEmployement",
-	"ProprietorshipFirm",
-	"LimitedLiabilityParternship",
-	"PrivateLimitedCompany",
-	"PublicLimitedCompany",
-	"PartnershipFirm",
-];
+import { entityTypes } from "~/constants";
 
 const VerifyKycPage = () => {
 	const { data: kycList, isLoading } = api.admin.pendingKyc.useQuery<KycItem[]>(
@@ -37,12 +29,14 @@ const VerifyKycPage = () => {
 		setFilterType("ALL");
 	};
 
-	const filteredData = ((kycList as KycItem[]) ?? []).filter((item) => {
-		return (
-			(filterGST === "ALL" || (filterGST === "YES" ? item.gst : !item.gst)) &&
-			(filterType === "ALL" || item.entity_type === filterType)
-		);
-	});
+	const filteredData = React.useMemo(() => {
+		return ((kycList as KycItem[]) ?? []).filter((item) => {
+			return (
+				(filterGST === "ALL" || (filterGST === "YES" ? item.gst : !item.gst)) &&
+				(filterType === "ALL" || item.entity_type === filterType)
+			);
+		});
+	}, [kycList, filterGST, filterType]);
 
 	const columns = [
 		{
