@@ -8,6 +8,7 @@ import {
 	LayoutDashboard,
 	NotebookText,
 	Package,
+	PackageCheck,
 	Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -20,12 +21,12 @@ const sidebarLinks = [
 	{ href: "/admin/kyc-verify", icon: FileUser, label: "Verify KYC" },
 	{ href: "/admin/wallet", icon: Wallet, label: "Wallet Top-Ups" },
 	{ href: "/admin/passbook", icon: NotebookText, label: "Passbook" },
-	{ href: "/admin/orders", icon: Package, label: "Orders" },
 	{
-		href: "/admin/order-requests",
-		icon: LayoutDashboard,
-		label: "Order Requests",
+		href: "/admin/order-approve",
+		icon: PackageCheck,
+		label: "Approve Orders",
 	},
+	{ href: "/admin/orders", icon: Package, label: "Orders" },
 	{ href: "/admin/all-orders", icon: LayoutDashboard, label: "All Orders" },
 	{
 		href: "/admin/tracking/dashboard",

@@ -2,11 +2,11 @@
 
 import clsx from "clsx";
 import {
-	ArchiveRestore,
 	ChevronLeft,
 	ChevronRight,
 	LayoutDashboard,
 	NotebookText,
+	PackagePlus,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,12 +18,12 @@ const sidebarLinks = [
 	{ href: "/dashboard/passbook", icon: NotebookText, label: "Passbook" },
 	{
 		href: "/dashboard/create-shipment",
-		icon: ArchiveRestore,
+		icon: PackagePlus,
 		label: "Create Shipment",
 	},
 	{
 		href: "/dashboard/create-bulk-shipment",
-		icon: ArchiveRestore,
+		icon: PackagePlus,
 		label: "Create Bulk Shipment",
 	},
 ];

@@ -21,9 +21,12 @@ interface FilterOption {
 interface FilterConfig {
 	id: string;
 	label: string;
-	options: FilterOption[];
-	selectedValue: string;
-	onValueChange: (value: string) => void;
+	type?: "select" | "text"; // Add type property
+	options?: FilterOption[]; // Make options optional
+	selectedValue?: string; // Make selectedValue optional
+	onValueChange?: (value: string) => void; // Make onValueChange optional
+	value?: string; // Add value for text input
+	onChange?: (value: string) => void; // Add onChange for text input
 }
 
 interface ColumnConfig<T> {

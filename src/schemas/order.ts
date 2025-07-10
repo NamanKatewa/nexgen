@@ -104,3 +104,12 @@ export type TOrderSchema = z.infer<typeof orderSchema>;
 export type TExcelOrderSchema = z.infer<typeof excelOrderSchema>;
 export type TShipmentSchema = z.infer<typeof submitShipmentSchema>;
 export type TExcelShipmentSchema = z.infer<typeof excelShipmentSchema>;
+
+export const approveOrderSchema = z.object({
+	orderId: z.string(),
+});
+
+export const rejectOrderSchema = z.object({
+	orderId: z.string(),
+	reason: z.string().min(1, "Rejection reason is required"),
+});
