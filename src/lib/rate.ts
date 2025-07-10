@@ -65,7 +65,11 @@ export async function findRate({
 		]);
 
 		if (lower && upper) {
-			const interpolated = interpolateRate(lower, upper, packageWeight);
+			const interpolated = interpolateRate(
+				{ rate: lower.rate, weight_slab: lower.weight_slab },
+				{ rate: upper.rate, weight_slab: upper.weight_slab },
+				packageWeight,
+			);
 			return interpolated;
 		}
 		if (lower) {
@@ -107,7 +111,11 @@ export async function findRate({
 	]);
 
 	if (lower && upper) {
-		const interpolated = interpolateRate(lower, upper, packageWeight);
+		const interpolated = interpolateRate(
+			{ rate: lower.rate, weight_slab: lower.weight_slab },
+			{ rate: upper.rate, weight_slab: upper.weight_slab },
+			packageWeight,
+		);
 		return interpolated;
 	}
 	if (lower) {
@@ -116,4 +124,130 @@ export async function findRate({
 	}
 
 	return null;
+}
+
+export async function findBulkRates({
+	userId,
+	shipmentDetails,
+	isUserRate,
+}: {
+	userId?: string;
+	shipmentDetails: {
+		zoneFrom: string;
+		zoneTo: string;
+		weightSlab: number;
+		packageWeight: number;
+	}[];
+	isUserRate: boolean;
+}) {
+	const uniqueRateKeys = new Set<string>();
+	for (const detail of shipmentDetails) {
+		uniqueRateKeys.add(
+			`${detail.zoneFrom}-${detail.zoneTo}-${detail.weightSlab}`,
+		);
+	}
+
+	const rateLookups = Array.from(uniqueRateKeys).map((key) => {
+		const [zoneFrom, zoneTo, weightSlabStr] = key.split("-") as [
+			string,
+			string,
+			string,
+		];
+		const weightSlab = Number.parseFloat(weightSlabStr);
+		return { zoneFrom, zoneTo, weightSlab };
+	});
+
+	const ratesMap = new Map<
+		string,
+		{ rate: number; weight_slab: number; zone_from: string; zone_to: string }
+	>();
+
+	if (isUserRate && userId) {
+		const userRates = await db.userRate.findMany({
+			where: {
+				user_id: userId,
+				OR: rateLookups.map((lookup) => ({
+					zone_from: lookup.zoneFrom,
+					zone_to: lookup.zoneTo,
+					weight_slab: lookup.weightSlab,
+				})),
+			},
+		});
+		for (const rate of userRates) {
+			ratesMap.set(`${rate.zone_from}-${rate.zone_to}-${rate.weight_slab}`, {
+				...rate,
+				zone_from: rate.zone_from,
+				zone_to: rate.zone_to,
+			});
+		}
+	}
+
+	const defaultRates = await db.defaultRate.findMany({
+		where: {
+			OR: rateLookups.map((lookup) => ({
+				zone_from: lookup.zoneFrom,
+				zone_to: lookup.zoneTo,
+				weight_slab: lookup.weightSlab,
+			})),
+		},
+	});
+	for (const rate of defaultRates) {
+		// Prioritize user rates if they exist
+		const key = `${rate.zone_from}-${rate.zone_to}-${rate.weight_slab}`;
+		if (!ratesMap.has(key)) {
+			ratesMap.set(key, {
+				...rate,
+				zone_from: rate.zone_from,
+				zone_to: rate.zone_to,
+			});
+		}
+	}
+
+	const results: (number | null)[] = [];
+
+	for (const detail of shipmentDetails) {
+		const key = `${detail.zoneFrom}-${detail.zoneTo}-${detail.weightSlab}`;
+		let calculatedRate: number | null = null;
+
+		const exactRate = ratesMap.get(key);
+		if (exactRate) {
+			calculatedRate = exactRate.rate;
+		} else {
+			// If exact slab not found, try to find lower and upper for interpolation
+			const lowerRates = Array.from(ratesMap.values())
+				.filter(
+					(r) =>
+						r.zone_from === detail.zoneFrom &&
+						r.zone_to === detail.zoneTo &&
+						r.weight_slab < detail.weightSlab,
+				)
+				.sort((a, b) => b.weight_slab - a.weight_slab);
+
+			const upperRates = Array.from(ratesMap.values())
+				.filter(
+					(r) =>
+						r.zone_from === detail.zoneFrom &&
+						r.zone_to === detail.zoneTo &&
+						r.weight_slab > detail.weightSlab,
+				)
+				.sort((a, b) => a.weight_slab - b.weight_slab);
+
+			const lower = lowerRates.length > 0 ? lowerRates[0] : null;
+			const upper = upperRates.length > 0 ? upperRates[0] : null;
+
+			if (lower && upper) {
+				calculatedRate = interpolateRate(
+					{ rate: lower.rate, weight_slab: lower.weight_slab },
+					{ rate: upper.rate, weight_slab: upper.weight_slab },
+					detail.packageWeight,
+				);
+			} else if (lower) {
+				calculatedRate =
+					(lower.rate / lower.weight_slab) * detail.packageWeight;
+			}
+		}
+		results.push(calculatedRate);
+	}
+
+	return results;
 }

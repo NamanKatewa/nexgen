@@ -153,7 +153,7 @@ export default function CreateShipmentPage() {
 	const createShipmentMutation = api.order.createShipment.useMutation({
 		onSuccess: () => {
 			setIsLoading(false);
-			// router.refresh();
+			router.push("/dashboard");
 		},
 		onError(err) {
 			setErrorMessage(err.message);

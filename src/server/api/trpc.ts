@@ -90,10 +90,13 @@ export const protectedProcedure = t.procedure
 			});
 		}
 
+		type AuthContext = typeof ctx & {
+			user: NonNullable<typeof ctx.user>;
+		};
 		return next({
 			ctx: {
 				...ctx,
-				user: ctx.user,
+				user: ctx.user as AuthContext["user"],
 			},
 		});
 	});

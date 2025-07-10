@@ -4,595 +4,1197 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ADDRESS_TYPE } from "@prisma/client";
 import { AlertCircle, PlusCircle } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { Path } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { AddAddressModal } from "~/components/AddAddressModal";
+import * as XLSX from "xlsx";
 import { FieldError } from "~/components/FieldError";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardFooter,
-	CardHeader,
-} from "~/components/ui/card";
+import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSlot,
-} from "~/components/ui/input-otp";
 import { Label } from "~/components/ui/label";
 import { fileToBase64 } from "~/lib/file-utils";
-import { type TShipmentSchema, submitShipmentSchema } from "~/schemas/order";
+import {
+  type TExcelOrderSchema,
+  type TExcelShipmentSchema,
+  excelOrderSchema,
+  submitShipmentSchema,
+} from "~/schemas/order";
 import { api } from "~/trpc/react";
 
-interface PincodeDetails {
-	city: string;
-	state: string;
-}
+export default function CreateBulkShipmentPage() {
+  const router = useRouter();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [shipments, setShipments] = useState<TExcelShipmentSchema[]>([]);
+  const [calculatedRates, setCalculatedRates] = useState<(number | null)[]>([]);
+  const [totalCalculatedRate, setTotalCalculatedRate] = useState<number | null>(
+    null
+  );
 
-export default function CreateShipmentPage() {
-	const router = useRouter();
-	const [errorMessage, setErrorMessage] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
-	const [showOriginAddressModal, setShowOriginAddressModal] = useState(false);
-	const [autofilledAddressDetails, setAutofilledAddressDetails] = useState<
-		NonNullable<typeof userAddresses>[number] | undefined
-	>(undefined);
-	const [originZipCodeFilter, setOriginZipCodeFilter] = useState("");
-	const [packageImagePreview, setPackageImagePreview] = useState<string | null>(
-		null,
-	);
-	const [calculatedRate, setCalculatedRate] = useState<number | null>(null);
-	const [origin, setOrigin] = useState<PincodeDetails | null>(null);
-	const [destination, setDestination] = useState<PincodeDetails | null>(null);
+  const {
+    data: bulkRatesData,
+    error: bulkRatesError,
+    isFetching: isCalculatingBulkRates,
+    refetch: refetchBulkRates,
+  } = api.rate.calculateBulkRates.useQuery(
+    shipments.map((s) => ({
+      originZipCode: s.originZipCode,
+      destinationZipCode: s.destinationZipCode,
+      packageWeight: s.packageWeight,
+    })),
+    {
+      enabled: false, // Only fetch on demand
+      refetchOnWindowFocus: false,
+    }
+  );
 
-	const {
-		register,
-		handleSubmit,
-		setValue,
-		watch,
-		formState: { errors },
-		getValues,
-	} = useForm<TShipmentSchema>({
-		resolver: zodResolver(submitShipmentSchema),
-		defaultValues: {
-			recipientName: "",
-			recipientMobile: "",
-			packageWeight: 0,
-			packageHeight: 0,
-			packageLength: 0,
-			packageBreadth: 0,
-			originAddressId: "",
-			destinationAddressId: "",
-			packageImage: {
-				data: "",
-				name: "",
-				type: "",
-				size: 0,
-			},
-		},
-	});
+  const {
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    getValues,
+    trigger,
+    setError,
+    clearErrors,
+  } = useForm<TExcelOrderSchema>({
+    resolver: zodResolver(excelOrderSchema),
+    defaultValues: {
+      shipments: [],
+    },
+  });
 
-	const handleFileChange = async (
-		event: React.ChangeEvent<HTMLInputElement>,
-		fieldName: "packageImage",
-		setPreview: React.Dispatch<React.SetStateAction<string | null>>,
-	) => {
-		const file = event.target.files?.[0];
-		if (file) {
-			setPreview(URL.createObjectURL(file));
+  const createManyOrGetExistingAddressesMutation =
+    api.address.createManyOrGetExisting.useMutation();
 
-			try {
-				const base64Data = await fileToBase64(file);
-				setValue(fieldName, {
-					data: base64Data,
-					name: file.name,
-					type: file.type,
-					size: file.size,
-				});
-			} catch (error) {
-				console.error("Error converting file to Base64:", error);
-				setErrorMessage("Failed to process image file");
-				setValue(fieldName, { data: "", name: "", type: "", size: 0 });
-				setPreview(null);
-			}
-		} else {
-			setValue(fieldName, { data: "", name: "", type: "", size: 0 });
-			setPreview(null);
-		}
-	};
+  useEffect(() => {
+    if (bulkRatesData) {
+      const newShipments = shipments.map((shipment, index) => ({
+        ...shipment,
+        calculatedRate: bulkRatesData[index] ?? null,
+      }));
+      setShipments(newShipments);
+      setCalculatedRates(bulkRatesData);
+      setTotalCalculatedRate(
+        bulkRatesData.reduce((sum: number, rate) => sum + (rate ?? 0), 0)
+      );
+      setErrorMessage("");
+    }
+  }, [bulkRatesData]);
 
-	const {
-		data: warehouseAddresses,
-		isLoading: isLoadingWarehouseAddresses,
-		refetch: refetchWarehouseAddresses,
-	} = api.address.getAddresses.useQuery({ type: ADDRESS_TYPE.Warehouse });
-	const { data: userAddresses } = api.address.getAddresses.useQuery({
-		type: ADDRESS_TYPE.User,
-	});
+  useEffect(() => {
+    if (bulkRatesError) {
+      setErrorMessage(bulkRatesError.message);
+      setCalculatedRates([]);
+      setTotalCalculatedRate(null);
+    }
+  }, [bulkRatesError]);
 
-	const addAddressMutation = api.address.createAddress.useMutation();
+  const handleCalculateRates = useCallback(async () => {
+    setErrorMessage("");
+    clearErrors();
 
-	const filteredWarehouseAddresses = useMemo(() => {
-		if (!warehouseAddresses) return undefined;
-		return warehouseAddresses.filter((address) =>
-			String(address.zip_code).includes(originZipCodeFilter),
-		);
-	}, [warehouseAddresses, originZipCodeFilter]);
+    // Validate all shipments before calculating rates
+    const isValid = await trigger("shipments");
+    if (!isValid) {
+      setErrorMessage("Please correct the errors in the shipment details.");
+      return;
+    }
 
-	const [destinationAddress, setDestinationAddress] = useState({
-		zipCode: "",
-		addressLine: "",
-		city: "",
-		state: "",
-	});
-	const recipientName = watch("recipientName");
+    // Check if all required fields for rate calculation are present
+    const canCalculate = shipments.every(
+      (s) => s.originZipCode && s.destinationZipCode && s.packageWeight > 0
+    );
 
-	useEffect(() => {
-		if (userAddresses && recipientName) {
-			let potentialAddresses = userAddresses.filter(
-				(address) => address.name === recipientName,
-			);
+    if (!canCalculate) {
+      setErrorMessage(
+        "Please ensure all shipments have valid origin/destination zip codes and package weights."
+      );
+      return;
+    }
+    try {
+      await refetchBulkRates();
+    } catch (error) {
+      console.error("Error calculating bulk rates:", error);
+      setErrorMessage("Failed to calculate rates. Please try again.");
+    }
+  }, [shipments, refetchBulkRates, trigger, clearErrors]);
 
-			if (destinationAddress.zipCode) {
-				potentialAddresses = potentialAddresses.filter(
-					(address) => String(address.zip_code) === destinationAddress.zipCode,
-				);
-			}
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "array" });
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          setErrorMessage(
+            "The uploaded Excel file does not contain any sheets."
+          );
+          setIsLoading(false);
+          return;
+        }
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          setErrorMessage(
+            "Could not find the specified sheet in the Excel file."
+          );
+          setIsLoading(false);
+          return;
+        }
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) {
+          setErrorMessage(
+            "Could not find the specified sheet in the Excel file."
+          );
+          setIsLoading(false);
+          return;
+        }
+        const json = XLSX.utils.sheet_to_json(worksheet) as Record<
+          string,
+          unknown
+        >[];
 
-			if (potentialAddresses.length === 1) {
-				const matchedAddress = potentialAddresses[0];
-				if (matchedAddress) {
-					setValue("destinationAddressId", matchedAddress.address_id);
-					setDestinationAddress({
-						zipCode: String(matchedAddress.zip_code),
-						addressLine: matchedAddress.address_line,
-						city: matchedAddress.city,
-						state: matchedAddress.state,
-					});
-					setAutofilledAddressDetails(matchedAddress);
-				}
-			} else {
-				setValue("destinationAddressId", "");
-				setAutofilledAddressDetails(undefined);
-				if (potentialAddresses.length === 0) {
-					setDestinationAddress({
-						zipCode: "",
-						addressLine: "",
-						city: "",
-						state: "",
-					});
-				}
-			}
-		} else {
-			setValue("destinationAddressId", "");
-			setAutofilledAddressDetails(undefined);
-			setDestinationAddress({
-				zipCode: "",
-				addressLine: "",
-				city: "",
-				state: "",
-			});
-		}
-	}, [userAddresses, destinationAddress.zipCode, recipientName, setValue]);
+        const parsedShipments: TExcelShipmentSchema[] = json
+          .filter(
+            (r): r is Record<string, unknown> => r !== undefined && r !== null
+          )
+          .map((row: Record<string, unknown>) => ({
+            recipientName: String(row["Recipient Name"]) || "",
+            recipientMobile: String(row["Recipient Mobile Number"] || ""),
+            packageWeight: Number(row["Package Weight (kg)"]) || 0,
+            packageHeight: Number(row["Package Height (cm)"]) || 0,
+            packageLength: Number(row["Package Length (cm)"]) || 0,
+            packageBreadth: Number(row["Package Breadth (cm)"]) || 0,
+            originAddressLine: String(row["Origin Address Line"]) || "",
+            originZipCode: String(row["Origin Zip Code"] || ""),
+            originCity: String(row["Origin City"]) || "",
+            originState: String(row["Origin State"]) || "",
+            destinationAddressLine:
+              String(row["Destination Address Line"]) || "",
+            destinationZipCode: String(row["Destination Zip Code"] || ""),
+            destinationCity: String(row["Destination City"]) || "",
+            destinationState: String(row["Destination State"]) || "",
+            packageImage: { data: "", name: "", type: "", size: 0 },
+          }));
+        setShipments(parsedShipments);
+        setValue(
+          "shipments",
+          parsedShipments.map((s) => ({
+            ...s,
+            originAddressId: "",
+            destinationAddressId: "",
+            calculatedRate: null, // Reset calculated rate
+          }))
+        );
+        setCalculatedRates([]); // Clear previous calculated rates
+        setTotalCalculatedRate(null); // Clear total calculated rate
+        trigger("shipments"); // Trigger validation for all shipments after parsing
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  };
 
-	const createShipmentMutation = api.order.createShipment.useMutation({
-		onSuccess: () => {
-			setIsLoading(false);
-			// router.refresh();
-		},
-		onError(err) {
-			setErrorMessage(err.message);
-			setIsLoading(false);
-		},
-	});
+  const handleImageFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        const base64Data = await fileToBase64(file);
+        const newShipments = [...shipments];
+        // Update the packageImage for the specific shipment in the local state
+        if (newShipments[index]) {
+          newShipments[index] = {
+            ...newShipments[index],
+            packageImage: {
+              data: base64Data,
+              name: file.name,
+              type: file.type,
+              size: file.size,
+            },
+          };
+        }
+        setShipments(newShipments);
+        // Also update the form state
+        setValue(`shipments.${index}.packageImage`, {
+          data: base64Data,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
+        trigger(`shipments.${index}.packageImage`);
+      } catch (error) {
+        console.error("Error converting file to Base64:", error);
+        setErrorMessage(
+          `Failed to process image file for shipment ${index + 1}`
+        );
+        const newShipments = [...shipments];
+        if (newShipments[index]) {
+          newShipments[index] = {
+            ...newShipments[index],
+            packageImage: { data: "", name: "", type: "", size: 0 },
+          };
+        }
+        setShipments(newShipments);
+        setValue(`shipments.${index}.packageImage`, {
+          data: "",
+          name: "",
+          type: "",
+          size: 0,
+        });
+      }
+    } else {
+      const newShipments = [...shipments];
+      if (newShipments[index]) {
+        newShipments[index] = {
+          ...newShipments[index],
+          packageImage: { data: "", name: "", type: "", size: 0 },
+        };
+      }
+      setShipments(newShipments);
+      setValue(`shipments.${index}.packageImage`, {
+        data: "",
+        name: "",
+        type: "",
+        size: 0,
+      });
+      trigger(`shipments.${index}.packageImage`);
+    }
+  };
 
-	const [queryInput, setQueryInput] = useState<{
-		originZipCode: string;
-		destinationZipCode: string;
-		packageWeight: number;
-	} | null>(null);
+  const createBulkShipmentMutation = api.order.createBulkShipments.useMutation({
+    onSuccess: (data) => {
+      setIsLoading(false);
+      setErrorMessage("");
+      if (data.success) {
+        router.push("/dashboard");
+      } else {
+        setErrorMessage(
+          data.message ?? "An error occurred while creating bulk shipments."
+        );
+      }
+    },
+    onError: (err) => {
+      setErrorMessage(err.message);
+      setIsLoading(false);
+    },
+  });
 
-	const {
-		data: rateData,
-		error: rateError,
-		isFetching: isCalculatingRate,
-	} = api.rate.calculateRate.useQuery(
-		queryInput ?? {
-			originZipCode: "",
-			destinationZipCode: "",
-			packageWeight: 0,
-		},
-		{
-			enabled: !!queryInput,
-		},
-	);
+  const onSubmit = async (data: TExcelOrderSchema) => {
+    setIsLoading(true);
+    setErrorMessage("");
+    clearErrors(); // Clear all previous errors
 
-	useEffect(() => {
-		if (rateData) {
-			setCalculatedRate(rateData.rate);
-			setOrigin(rateData.origin);
-			setDestination(rateData.destination);
-			setErrorMessage("");
-			setQueryInput(null);
-		}
-	}, [rateData]);
+    const originAddressesToCreate = data.shipments.map((shipment) => ({
+      name: `Origin for ${shipment.recipientName}`,
+      addressLine: shipment.originAddressLine ?? "",
+      zipCode: Number(shipment.originZipCode ?? 0),
+      city: shipment.originCity ?? "",
+      state: shipment.originState ?? "",
+      type: ADDRESS_TYPE.Warehouse,
+    }));
 
-	useEffect(() => {
-		if (rateError) {
-			setErrorMessage(rateError.message);
-			setCalculatedRate(null);
-			setQueryInput(null);
-		}
-	}, [rateError]);
+    const destinationAddressesToCreate = data.shipments.map((shipment) => ({
+      name: shipment.recipientName,
+      addressLine: shipment.destinationAddressLine ?? "",
+      zipCode: Number(shipment.destinationZipCode ?? 0),
+      city: shipment.destinationCity ?? "",
+      state: shipment.destinationState ?? "",
+      type: ADDRESS_TYPE.User,
+    }));
 
-	const handleCalculateRate = () => {
-		const data = getValues();
-		const originAddress = warehouseAddresses?.find(
-			(address) => address.address_id === data.originAddressId,
-		);
+    const allAddressesToProcess = [
+      ...originAddressesToCreate,
+      ...destinationAddressesToCreate,
+    ];
 
-		if (!originAddress || !destinationAddress.zipCode || !data.packageWeight) {
-			setErrorMessage(
-				"Please select origin, destination, and enter package weight.",
-			);
-			return;
-		}
+    let originAddressIds: string[] = [];
+    let destinationAddressIds: string[] = [];
 
-		setQueryInput({
-			originZipCode: String(originAddress.zip_code),
-			destinationZipCode: destinationAddress.zipCode,
-			packageWeight: data.packageWeight,
-		});
-	};
+    try {
+      const allAddressIds =
+        await createManyOrGetExistingAddressesMutation.mutateAsync(
+          allAddressesToProcess
+        );
 
-	const onSubmit = async (data: TShipmentSchema) => {
-		setIsLoading(true);
-		setErrorMessage("");
+      originAddressIds = allAddressIds.slice(0, data.shipments.length);
+      destinationAddressIds = allAddressIds.slice(data.shipments.length);
+    } catch (error) {
+      setErrorMessage(
+        `Failed to process addresses: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+      setIsLoading(false);
+      return;
+    }
 
-		let finalDestinationAddressId = data.destinationAddressId;
+    const processedShipments = data.shipments.map((shipment, index) => ({
+      ...shipment,
+      originAddressId: originAddressIds[index] ?? "",
+      destinationAddressId: destinationAddressIds[index] ?? "",
+    }));
 
-		if (finalDestinationAddressId && autofilledAddressDetails) {
-			if (
-				destinationAddress.addressLine !==
-					autofilledAddressDetails.address_line ||
-				Number(destinationAddress.zipCode) !==
-					autofilledAddressDetails.zip_code ||
-				destinationAddress.city !== autofilledAddressDetails.city ||
-				destinationAddress.state !== autofilledAddressDetails.state
-			) {
-				finalDestinationAddressId = "";
-			}
-		}
+    // Client-side validation for each shipment with updated IDs
+    const validationResults = await Promise.all(
+      processedShipments.map((shipment) =>
+        submitShipmentSchema.safeParseAsync(shipment)
+      )
+    );
 
-		if (!finalDestinationAddressId) {
-			try {
-				const newAddress = await addAddressMutation.mutateAsync({
-					name: data.recipientName,
-					addressLine: destinationAddress.addressLine,
-					zipCode: Number(destinationAddress.zipCode),
-					city: destinationAddress.city,
-					state: destinationAddress.state,
-					type: ADDRESS_TYPE.User,
-				});
-				finalDestinationAddressId = newAddress.address_id;
-			} catch (error) {
-				let message = "Failed to add new destination address.";
-				if (error instanceof Error) {
-					message = error.message;
-				}
-				setErrorMessage(message);
-				setIsLoading(false);
-				return;
-			}
-		}
+    const hasErrors = validationResults.some((result) => !result.success);
 
-		createShipmentMutation.mutate({
-			...data,
-			destinationAddressId: finalDestinationAddressId,
-		});
-	};
+    if (hasErrors) {
+      for (const [index, result] of validationResults.entries()) {
+        if (!result.success) {
+          for (const err of result.error.errors) {
+            // Map Zod error path to react-hook-form path
+            const path = `shipments.${index}.${err.path[0]}`;
+            // If the error is on originAddressId or destinationAddressId, apply it to all related fields
+            if (err.path[0] === "originAddressId") {
+              setError(
+                `shipments.${index}.originAddressLine` as Path<TExcelOrderSchema>,
+                { type: "manual", message: err.message }
+              );
+              setError(
+                `shipments.${index}.originZipCode` as Path<TExcelOrderSchema>,
+                { type: "manual", message: err.message }
+              );
+              setError(
+                `shipments.${index}.originCity` as Path<TExcelOrderSchema>,
+                { type: "manual", message: err.message }
+              );
+              setError(
+                `shipments.${index}.originState` as Path<TExcelOrderSchema>,
+                { type: "manual", message: err.message }
+              );
+            } else if (err.path[0] === "destinationAddressId") {
+              setError(
+                `shipments.${index}.destinationAddressLine` as Path<TExcelOrderSchema>,
+                { type: "manual", message: err.message }
+              );
+              setError(
+                `shipments.${index}.destinationZipCode` as Path<TExcelOrderSchema>,
+                { type: "manual", message: err.message }
+              );
+              setError(
+                `shipments.${index}.destinationCity` as Path<TExcelOrderSchema>,
+                { type: "manual", message: err.message }
+              );
+              setError(
+                `shipments.${index}.destinationState` as Path<TExcelOrderSchema>,
+                { type: "manual", message: err.message }
+              );
+            } else {
+              setError(path as Path<TExcelOrderSchema>, {
+                type: "manual",
+                message: err.message,
+              });
+            }
+          }
+        }
+      }
+      setErrorMessage(
+        "Some shipments have validation errors after address processing. Please correct them."
+      );
+      console.error(
+        "Validation errors:",
+        validationResults.filter((res) => !res.success)
+      );
+      setIsLoading(false);
+      return;
+    }
 
-	return (
-		<div className="flex min-h-screen items-center justify-center p-4">
-			<Card className="w-full bg-blue-100/20">
-				<AddAddressModal
-					isOpen={showOriginAddressModal}
-					onClose={() => setShowOriginAddressModal(false)}
-					onAddressAdded={() => refetchWarehouseAddresses()}
-					addressType={ADDRESS_TYPE.Warehouse}
-				/>
-				<CardHeader>
-					<h1 className="text-center font-semibold text-2xl text-blue-950">
-						Create Shipment
-					</h1>
-					<p className="text-center text-blue-900 text-sm">
-						Enter the shipment details.
-					</p>
-				</CardHeader>
-				<CardContent>
-					<form
-						onSubmit={handleSubmit(onSubmit)}
-						className="space-y-4 text-blue-950"
-					>
-						{errorMessage && (
-							<Alert variant="destructive">
-								<AlertCircle className="h-4 w-4" />
-								<AlertDescription>{errorMessage}</AlertDescription>
-							</Alert>
-						)}
+    createBulkShipmentMutation.mutate({ shipments: processedShipments });
+  };
 
-						<div className="mb-10 flex gap-10">
-							<div className="space-y-4">
-								<Label>Recipient Name</Label>
-								<Input {...register("recipientName")} disabled={isLoading} />
-								<FieldError message={errors.recipientName?.message} />
-							</div>
-							<div className="mb-10 flex flex-wrap gap-10">
-								<div className="space-y-2">
-									<Label>Recipient Mobile Number</Label>
-									<InputOTP
-										maxLength={10}
-										value={watch("recipientMobile")}
-										onChange={(val) => setValue("recipientMobile", val)}
-										disabled={isLoading}
-										pattern="\d*"
-										inputMode="numeric"
-									>
-										<InputOTPGroup>
-											{[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-												<InputOTPSlot key={i} index={i} />
-											))}
-										</InputOTPGroup>
-									</InputOTP>
-									<FieldError message={errors.recipientMobile?.message} />
-								</div>
-							</div>
-						</div>
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full bg-blue-100/20">
+        <CardHeader>
+          <h1 className="text-center font-semibold text-2xl text-blue-950">
+            Create Bulk Shipments
+          </h1>
+          <p className="text-center text-blue-900 text-sm">
+            Upload an Excel file to create multiple shipments.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4 text-blue-950"
+          >
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="excelFile">Upload Excel File</Label>
+              <Input
+                id="excelFile"
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileUpload}
+                disabled={isLoading}
+              />
+              <p className="text-gray-500 text-sm">
+                Download sample template:{" "}
+                <a
+                  href="/templates/sample_bulk_shipments.xlsx"
+                  download
+                  className="text-blue-600 hover:underline"
+                >
+                  sample_bulk_shipments.xlsx
+                </a>
+              </p>
+            </div>
 
-						<div className="space-y-4">
-							<Label className="font-bold">Destination Address</Label>
-							<div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-								<div className="space-y-2">
-									<Label>Zip Code</Label>
-									<Input
-										value={destinationAddress.zipCode}
-										onChange={(e) =>
-											setDestinationAddress((prev) => ({
-												...prev,
-												zipCode: e.target.value,
-											}))
-										}
-										disabled={isLoading}
-									/>
-									<FieldError message={errors.destinationAddressId?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>Address Line</Label>
-									<Input
-										value={destinationAddress.addressLine}
-										onChange={(e) =>
-											setDestinationAddress((prev) => ({
-												...prev,
-												addressLine: e.target.value,
-											}))
-										}
-										disabled={isLoading}
-									/>
-									<FieldError message={errors.destinationAddressId?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>City</Label>
-									<Input
-										value={destinationAddress.city}
-										onChange={(e) =>
-											setDestinationAddress((prev) => ({
-												...prev,
-												city: e.target.value,
-											}))
-										}
-										disabled={isLoading}
-									/>
-									<FieldError message={errors.destinationAddressId?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>State</Label>
-									<Input
-										value={destinationAddress.state}
-										onChange={(e) =>
-											setDestinationAddress((prev) => ({
-												...prev,
-												state: e.target.value,
-											}))
-										}
-										disabled={isLoading}
-									/>
-									<FieldError message={errors.destinationAddressId?.message} />
-								</div>
-							</div>
-							<FieldError message={errors.destinationAddressId?.message} />
-						</div>
+            {shipments.length > 0 && (
+              <div className="mt-8">
+                <h2 className="mb-4 font-bold text-xl">
+                  Shipments to be Processed
+                </h2>
+                <div className="overflow-x-auto">
+                  <table
+                    className="divide-y divide-gray-200"
+                    style={{ width: "max-content", minWidth: "100%" }}
+                  >
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ width: "60px" }}
+                        >
+                          #
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "150px" }}
+                        >
+                          Recipient Name
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "130px" }}
+                        >
+                          Recipient Mobile
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "100px" }}
+                        >
+                          Weight (kg)
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "100px" }}
+                        >
+                          Height (cm)
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "100px" }}
+                        >
+                          Length (cm)
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "100px" }}
+                        >
+                          Breadth (cm)
+                        </th>
+                        <th
+                          className="px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ width: "250px" }}
+                        >
+                          Origin Address Line
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "120px" }}
+                        >
+                          Origin Zip Code
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "120px" }}
+                        >
+                          Origin City
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "120px" }}
+                        >
+                          Origin State
+                        </th>
+                        <th
+                          className="px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ width: "250px" }}
+                        >
+                          Destination Address Line
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "130px" }}
+                        >
+                          Destination Zip Code
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "130px" }}
+                        >
+                          Destination City
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "130px" }}
+                        >
+                          Destination State
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "180px" }}
+                        >
+                          Package Image
+                        </th>
+                        <th
+                          className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+                          style={{ minWidth: "120px" }}
+                        >
+                          Calculated Rate
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {shipments.map((shipment, index) => (
+                        <tr
+                          key={`${shipment.recipientName}-${index}`}
+                          className="align-top"
+                        >
+                          <td
+                            className="px-3 py-2 text-center align-top text-gray-500 text-sm"
+                            style={{ width: "60px" }}
+                          >
+                            {index + 1}
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "150px" }}
+                          >
+                            <Input
+                              value={shipment.recipientName}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].recipientName = newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.recipientName` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.recipientName` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.recipientName
+                                  ?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.recipientName
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "130px" }}
+                          >
+                            <Input
+                              value={shipment.recipientMobile}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].recipientMobile =
+                                    newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.recipientMobile` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.recipientMobile` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.recipientMobile
+                                  ?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.recipientMobile
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "100px" }}
+                          >
+                            <Input
+                              type="number"
+                              step="any"
+                              value={shipment.packageWeight}
+                              onChange={(e) => {
+                                const newValue = Number(e.target.value);
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].packageWeight = newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.packageWeight` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.packageWeight` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.packageWeight
+                                  ?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.packageWeight
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "100px" }}
+                          >
+                            <Input
+                              type="number"
+                              step="any"
+                              value={shipment.packageHeight}
+                              onChange={(e) => {
+                                const newValue = Number(e.target.value);
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].packageHeight = newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.packageHeight` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.packageHeight` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.packageHeight
+                                  ?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.packageHeight
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "100px" }}
+                          >
+                            <Input
+                              type="number"
+                              step="any"
+                              value={shipment.packageLength}
+                              onChange={(e) => {
+                                const newValue = Number(e.target.value);
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].packageLength = newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.packageLength` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.packageLength` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.packageLength
+                                  ?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.packageLength
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "100px" }}
+                          >
+                            <Input
+                              type="number"
+                              step="any"
+                              value={shipment.packageBreadth}
+                              onChange={(e) => {
+                                const newValue = Number(e.target.value);
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].packageBreadth = newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.packageBreadth` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.packageBreadth` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.packageBreadth
+                                  ?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.packageBreadth
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          {/* origin address fields */}
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ width: "250px" }}
+                          >
+                            <textarea
+                              value={shipment.originAddressLine}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].originAddressLine =
+                                    newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.originAddressLine` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.originAddressLine` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full resize-none rounded border px-2 py-1 text-sm ${
+                                errors.shipments?.[index]?.originAddressLine ||
+                                errors.shipments?.[index]?.originZipCode ||
+                                errors.shipments?.[index]?.originCity ||
+                                errors.shipments?.[index]?.originState
+                                  ? "border-red-500"
+                                  : "border-gray-300"
+                              }`}
+                              rows={2}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.originAddressLine
+                                  ?.message ||
+                                errors.shipments?.[index]?.originZipCode
+                                  ?.message ||
+                                errors.shipments?.[index]?.originCity
+                                  ?.message ||
+                                errors.shipments?.[index]?.originState?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "120px" }}
+                          >
+                            <Input
+                              value={shipment.originZipCode}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].originZipCode = newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.originZipCode` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.originZipCode` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.originZipCode ||
+                                errors.shipments?.[index]?.originCity ||
+                                errors.shipments?.[index]?.originState
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.originZipCode
+                                  ?.message ||
+                                errors.shipments?.[index]?.originCity
+                                  ?.message ||
+                                errors.shipments?.[index]?.originState?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "120px" }}
+                          >
+                            <Input
+                              value={shipment.originCity}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].originCity = newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.originCity` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.originCity` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.originCity
+                                  ?.message ||
+                                errors.shipments?.[index]?.originState?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.originCity
+                                  ?.message ||
+                                errors.shipments?.[index]?.originState?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "120px" }}
+                          >
+                            <Input
+                              value={shipment.originState}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].originState = newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.originState` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.originState` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.originState?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.originState?.message
+                              }
+                            />
+                          </td>
+                          {/* destination address fields */}
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ width: "250px" }}
+                          >
+                            <textarea
+                              value={shipment.destinationAddressLine}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].destinationAddressLine =
+                                    newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.destinationAddressLine` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.destinationAddressLine` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full resize-none rounded border px-2 py-1 text-sm ${
+                                errors.shipments?.[index]
+                                  ?.destinationAddressLine ||
+                                errors.shipments?.[index]?.destinationZipCode ||
+                                errors.shipments?.[index]?.destinationCity ||
+                                errors.shipments?.[index]?.destinationState
+                                  ? "border-red-500"
+                                  : "border-gray-300"
+                              }`}
+                              rows={2}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]
+                                  ?.destinationAddressLine?.message ||
+                                errors.shipments?.[index]?.destinationZipCode
+                                  ?.message ||
+                                errors.shipments?.[index]?.destinationCity
+                                  ?.message ||
+                                errors.shipments?.[index]?.destinationState
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "130px" }}
+                          >
+                            <Input
+                              value={shipment.destinationZipCode}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].destinationZipCode =
+                                    newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.destinationZipCode` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.destinationZipCode` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.destinationZipCode ||
+                                errors.shipments?.[index]?.destinationCity ||
+                                errors.shipments?.[index]?.destinationState
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.destinationZipCode
+                                  ?.message ||
+                                errors.shipments?.[index]?.destinationCity
+                                  ?.message ||
+                                errors.shipments?.[index]?.destinationState
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "130px" }}
+                          >
+                            <Input
+                              value={shipment.destinationCity}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].destinationCity =
+                                    newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.destinationCity` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.destinationCity` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.destinationCity
+                                  ?.message ||
+                                errors.shipments?.[index]?.destinationState
+                                  ?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.destinationCity
+                                  ?.message ||
+                                errors.shipments?.[index]?.destinationState
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "130px" }}
+                          >
+                            <Input
+                              value={shipment.destinationState}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                const newShipments = [...shipments];
+                                if (newShipments[index]) {
+                                  newShipments[index].destinationState =
+                                    newValue;
+                                  setShipments(newShipments);
+                                  setValue(
+                                    `shipments.${index}.destinationState` as Path<TExcelOrderSchema>,
+                                    newValue
+                                  );
+                                  trigger(
+                                    `shipments.${index}.destinationState` as Path<TExcelOrderSchema>
+                                  );
+                                }
+                              }}
+                              className={`w-full ${
+                                errors.shipments?.[index]?.destinationState
+                                  ?.message
+                                  ? "border-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.destinationState
+                                  ?.message
+                              }
+                            />
+                          </td>
+                          {/* package image */}
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "180px" }}
+                          >
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleImageFileChange(e, index)}
+                              className="mb-2 w-full"
+                            />
+                            {shipment.packageImage?.data && (
+                              <Image
+                                src={shipment.packageImage.data}
+                                alt="Package Preview"
+                                className="h-16 w-16 rounded border object-cover"
+                                width={64}
+                                height={64}
+                              />
+                            )}
+                            <FieldError
+                              message={
+                                errors.shipments?.[index]?.packageImage
+                                  ?.message as string
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-2 align-top text-gray-500 text-sm"
+                            style={{ minWidth: "120px" }}
+                          >
+                            {shipment.calculatedRate !== null &&
+                            shipment.calculatedRate !== undefined
+                              ? `₹${shipment.calculatedRate.toFixed(2)}`
+                              : "N/A"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            {shipments.length > 0 && (
+              <Button
+                type="button"
+                onClick={handleCalculateRates}
+                disabled={isCalculatingBulkRates || isLoading}
+                className="w-full"
+              >
+                {isCalculatingBulkRates ? "Calculating..." : "Calculate Rates"}
+              </Button>
+            )}
 
-						<div className="space-y-4">
-							<Label className="font-bold">Origin Address</Label>
-							<Input
-								placeholder="Search by Pin Code"
-								onChange={(e) => setOriginZipCodeFilter(e.target.value)}
-								className="mb-2"
-							/>
-							{isLoadingWarehouseAddresses ? (
-								<p>Loading origin addresses...</p>
-							) : (
-								<div className="flex gap-4 overflow-x-auto p-4">
-									{filteredWarehouseAddresses?.map((address) => (
-										<Card
-											key={address.address_id}
-											className={`h-48 w-96 flex-shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 ${
-												watch("originAddressId") === address.address_id
-													? "border-blue-500 ring-1 ring-blue-500"
-													: ""
-											}`}
-											onClick={() =>
-												setValue("originAddressId", address.address_id)
-											}
-										>
-											<CardHeader>
-												<h3 className="font-semibold">{address.name}</h3>
-											</CardHeader>
-											<CardContent>
-												<p>{address.address_line}</p>
-												<p>
-													{address.city}, {address.state} - {address.zip_code}
-												</p>
-											</CardContent>
-										</Card>
-									))}
-									<Button
-										type="button"
-										variant="outline"
-										className="h-48 w-96 bg-blue-200 hover:bg-blue-300"
-										onClick={() => setShowOriginAddressModal(true)}
-									>
-										<PlusCircle className="mr-2 h-4 w-4" /> Add New Origin
-										Address
-									</Button>
-								</div>
-							)}
-							<FieldError message={errors.originAddressId?.message} />
-						</div>
+            {totalCalculatedRate !== null && (
+              <div className="mt-4 text-right font-semibold text-xl">
+                Total Estimated Rate: ₹{totalCalculatedRate.toFixed(2)}
+              </div>
+            )}
 
-						<div className="space-y-4">
-							<Label className="font-bold">Package Details</Label>
-							<div className="mb-10 grid grid-cols-2 gap-10 p-4">
-								<div className="space-y-2">
-									<Label>Package Weight</Label>
-									<Input
-										placeholder="Package Weight (in kg)"
-										type="number"
-										step="any"
-										{...register("packageWeight", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.packageWeight?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>Package Height</Label>
-									<Input
-										placeholder="Package Height (in cm)"
-										type="number"
-										step="any"
-										{...register("packageHeight", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.packageHeight?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>Package Breadth</Label>
-									<Input
-										placeholder="Package Breadth (in cm)"
-										type="number"
-										step="any"
-										{...register("packageBreadth", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.packageBreadth?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>Package Length</Label>
-									<Input
-										placeholder="Package Length (in cm)"
-										type="number"
-										step="any"
-										{...register("packageLength", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.packageLength?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>Package Weight Image</Label>
-									<Image
-										src="/sample_package_image.jpeg"
-										alt="Package Image Preview"
-										className="h-32 w-32 rounded border object-cover"
-										width={200}
-										height={200}
-									/>
-									<Input
-										type="file"
-										accept="image/*"
-										onChange={(e) => {
-											handleFileChange(
-												e,
-												"packageImage",
-												setPackageImagePreview,
-											);
-										}}
-									/>
-									{packageImagePreview && (
-										<Image
-											src={packageImagePreview}
-											alt="Package Image Preview"
-											className="h-32 w-32 rounded border object-cover"
-											width={200}
-											height={200}
-										/>
-									)}
-									<FieldError
-										message={errors.packageImage?.message as string}
-									/>
-								</div>
-							</div>
-						</div>
-						<Button
-							type="button"
-							onClick={handleCalculateRate}
-							disabled={isCalculatingRate}
-						>
-							{isCalculatingRate ? "Calculating..." : "Calculate Rate"}
-						</Button>
-						{calculatedRate && (
-							<div className="font-semibold text-lg">
-								Calculated Rate: ₹{calculatedRate.toFixed(2)}
-								{origin && destination && (
-									<div className="font-normal text-sm">
-										From: {origin.city}, {origin.state}
-										<br />
-										To: {destination.city}, {destination.state}
-									</div>
-								)}
-							</div>
-						)}
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={
-								isLoading || !calculatedRate || createShipmentMutation.isPending
-							}
-						>
-							{isLoading ? "Creating..." : "Create Shipment"}
-						</Button>
-					</form>
-				</CardContent>
-				<CardFooter className="justify-center">
-					<p className="text-muted-foreground text-sm">
-						Need help?{" "}
-						<Link
-							href="/dashboard/support"
-							className="text-primary hover:underline"
-						>
-							Contact Support
-						</Link>
-					</p>
-				</CardFooter>
-			</Card>
-		</div>
-	);
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={
+                isLoading ||
+                shipments.length === 0 ||
+                createBulkShipmentMutation.isPending ||
+                totalCalculatedRate === null
+              }
+            >
+              {isLoading ? "Creating..." : "Create Bulk Shipments"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
