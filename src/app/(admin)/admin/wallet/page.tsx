@@ -26,16 +26,28 @@ const WalletTopupPage = () => {
 	type Transaction = Transactions extends Array<infer T> ? T : never;
 
 	const [filterType, setFilterType] = useState("ALL");
+	const [emailFilter, setEmailFilter] = useState("");
+	const [nameFilter, setNameFilter] = useState("");
 
 	const handleClearFilters = () => {
 		setFilterType("ALL");
+		setEmailFilter("");
+		setNameFilter("");
 	};
 
 	const filteredData = React.useMemo(() => {
 		return (transactions ?? []).filter((item) => {
-			return filterType === "ALL" || item.payment_status === filterType;
+			const paymentMatch =
+				filterType === "ALL" || item.payment_status === filterType;
+			const emailMatch = item.user.email
+				.toLowerCase()
+				.includes(emailFilter.toLowerCase());
+			const nameMatch = item.user.name
+				.toLowerCase()
+				.includes(nameFilter.toLowerCase());
+			return paymentMatch && emailMatch && nameMatch;
 		});
-	}, [transactions, filterType]);
+	}, [transactions, filterType, emailFilter, nameFilter]);
 
 	const columns = [
 		{
@@ -84,6 +96,20 @@ const WalletTopupPage = () => {
 	];
 
 	const filters = [
+		{
+			id: "email-filter",
+			label: "Email",
+			type: "text" as const,
+			value: emailFilter,
+			onChange: setEmailFilter,
+		},
+		{
+			id: "name-filter",
+			label: "Name",
+			type: "text" as const,
+			value: nameFilter,
+			onChange: setNameFilter,
+		},
 		{
 			id: "payment-status-filter",
 			label: "Payment Status",

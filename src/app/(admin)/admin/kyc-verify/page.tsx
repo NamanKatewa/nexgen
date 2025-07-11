@@ -6,12 +6,14 @@ import { Button } from "~/components/ui/button";
 import { DataTable } from "~/components/DataTable";
 import KycDetailsModal from "~/components/KycDetailsModal";
 import { api } from "~/trpc/react";
-import type { KycItem } from "~/types/kyc";
 
 import { entityTypes } from "~/constants";
 
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "~/server/api/root";
+
 const VerifyKycPage = () => {
-	const { data: kycList, isLoading } = api.admin.pendingKyc.useQuery<KycItem[]>(
+	const { data: kycList, isLoading } = api.admin.pendingKyc.useQuery(
 		undefined,
 		{
 			retry: 3,
@@ -19,31 +21,42 @@ const VerifyKycPage = () => {
 		},
 	);
 
+	type KycList = inferRouterOutputs<AppRouter>["admin"]["pendingKyc"];
+	type KycItem = KycList extends Array<infer T> ? T : never;
+
 	const [filterGST, setFilterGST] = useState("ALL");
 	const [filterType, setFilterType] = useState("ALL");
+	const [emailFilter, setEmailFilter] = useState("");
+	const [nameFilter, setNameFilter] = useState("");
 	const [showKycDetailsModal, setShowKycDetailsModal] = useState(false);
 	const [selectedKycItem, setSelectedKycItem] = useState<KycItem | null>(null);
 
 	const handleClearFilters = () => {
 		setFilterGST("ALL");
 		setFilterType("ALL");
+		setEmailFilter("");
+		setNameFilter("");
 	};
 
 	const filteredData = React.useMemo(() => {
-		return ((kycList as KycItem[]) ?? []).filter((item) => {
+		return (kycList ?? []).filter((item) => {
 			return (
 				(filterGST === "ALL" || (filterGST === "YES" ? item.gst : !item.gst)) &&
-				(filterType === "ALL" || item.entity_type === filterType)
+				(filterType === "ALL" || item.entity_type === filterType) &&
+				item.user.email.toLowerCase().includes(emailFilter.toLowerCase()) &&
+				(item.entity_name ?? "")
+					.toLowerCase()
+					.includes(nameFilter.toLowerCase())
 			);
 		});
-	}, [kycList, filterGST, filterType]);
+	}, [kycList, filterGST, filterType, nameFilter, emailFilter]);
 
 	const columns = [
 		{
 			key: "entity_name",
 			header: "Entity",
 			className: "w-70 px-4 text-blue-950",
-			render: (item: KycItem) => item.entity_name,
+			render: (item: KycItem) => item.entity_name ?? "N/A",
 		},
 		{
 			key: "user_email",
@@ -72,6 +85,20 @@ const VerifyKycPage = () => {
 	];
 
 	const filters = [
+		{
+			id: "email-filter",
+			label: "Email",
+			type: "text" as const,
+			value: emailFilter,
+			onChange: setEmailFilter,
+		},
+		{
+			id: "name-filter",
+			label: "Name",
+			type: "text" as const,
+			value: nameFilter,
+			onChange: setNameFilter,
+		},
 		{
 			id: "gst-filter",
 			label: "GST",

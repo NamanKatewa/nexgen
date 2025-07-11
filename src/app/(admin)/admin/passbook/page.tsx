@@ -26,10 +26,14 @@ const PassbookPage = () => {
 
 	const [filterStatus, setFilterStatus] = useState("ALL");
 	const [filterTxnType, setFilterTxnType] = useState("ALL");
+	const [emailFilter, setEmailFilter] = useState("");
+	const [nameFilter, setNameFilter] = useState("");
 
 	const handleClearFilters = () => {
 		setFilterStatus("ALL");
 		setFilterTxnType("ALL");
+		setEmailFilter("");
+		setNameFilter("");
 	};
 
 	const filteredData = React.useMemo(() => {
@@ -38,33 +42,39 @@ const PassbookPage = () => {
 				filterStatus === "ALL" || item.payment_status === filterStatus;
 			const typeMatch =
 				filterTxnType === "ALL" || item.transaction_type === filterTxnType;
-			return statusMatch && typeMatch;
+			const emailMatch = item.user.email
+				.toLowerCase()
+				.includes(emailFilter.toLowerCase());
+			const nameMatch = item.user.name
+				.toLowerCase()
+				.includes(nameFilter.toLowerCase());
+			return statusMatch && typeMatch && emailMatch && nameMatch;
 		});
-	}, [transactions, filterStatus, filterTxnType]);
+	}, [transactions, filterStatus, filterTxnType, emailFilter, nameFilter]);
 
 	const columns = [
 		{
 			key: "user.name",
 			header: "Name",
-			className: "w-40 px-4 text-blue-950",
+			className: "w-40 px-4",
 			render: (item: Transaction) => item.user.name,
 		},
 		{
 			key: "user.email",
 			header: "Email",
-			className: "w-50 px-4 text-blue-950",
+			className: "w-50 px-4",
 			render: (item: Transaction) => item.user.email,
 		},
 		{
 			key: "amount",
 			header: "Amount",
-			className: "w-20 px-4 text-center text-blue-950",
+			className: "w-20 px-4 text-center",
 			render: (item: Transaction) => `₹${String(item.amount)}`,
 		},
 		{
 			key: "transaction_date",
 			header: "Date",
-			className: "w-30 px-4 text-center text-blue-950",
+			className: "w-30 px-4 text-center",
 			render: (item: Transaction) =>
 				item.created_at
 					? format(new Date(item.created_at), "dd/MM/yyyy")
@@ -73,7 +83,7 @@ const PassbookPage = () => {
 		{
 			key: "transaction_type",
 			header: "Transaction Type",
-			className: "w-40 px-4 text-center text-blue-950",
+			className: "w-40 px-4 text-center",
 			render: (item: Transaction) => (
 				<Badge
 					className={cn("text-950", {
@@ -88,7 +98,7 @@ const PassbookPage = () => {
 		{
 			key: "payment_status",
 			header: "Payment Status",
-			className: "w-50 px-4 text-center text-blue-950",
+			className: "w-50 px-4 text-center",
 			render: (item: Transaction) => (
 				<Badge
 					className={cn("text-950", {
@@ -101,9 +111,30 @@ const PassbookPage = () => {
 				</Badge>
 			),
 		},
+		{
+			key: "description",
+			header: "Description",
+			className: "w-50 px-4 text-center",
+			render: (item: Transaction) =>
+				item.description ? item.description : "N/A",
+		},
 	];
 
 	const filters = [
+		{
+			id: "email-filter",
+			label: "Email",
+			type: "text" as const,
+			value: emailFilter,
+			onChange: setEmailFilter,
+		},
+		{
+			id: "name-filter",
+			label: "Name",
+			type: "text" as const,
+			value: nameFilter,
+			onChange: setNameFilter,
+		},
 		{
 			id: "payment-status-filter",
 			label: "Payment Status",

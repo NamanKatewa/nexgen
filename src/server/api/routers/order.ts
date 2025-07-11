@@ -157,6 +157,7 @@ export const orderRouter = createTRPCRouter({
 						amount: Decimal(rate),
 						payment_status: "Completed",
 						order_id: order.order_id,
+						description: "Single Shipment Created",
 					},
 				});
 
@@ -371,6 +372,7 @@ export const orderRouter = createTRPCRouter({
 						amount: totalAmount,
 						payment_status: "Completed",
 						order_id: order.order_id,
+						description: "Bulk Shipments Created",
 					},
 				});
 

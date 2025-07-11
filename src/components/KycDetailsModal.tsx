@@ -19,7 +19,12 @@ import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 
 import { api } from "~/trpc/react";
-import type { KycItem } from "~/types/kyc";
+
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "~/server/api/root";
+
+type KycListType = inferRouterOutputs<AppRouter>["admin"]["pendingKyc"];
+type KycItemType = KycListType extends Array<infer T> ? T : never;
 
 type BillingAddress = {
 	address_line: string;
@@ -49,7 +54,7 @@ function isBillingAddress(obj: unknown): obj is BillingAddress {
 interface KycDetailsModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	kycItem: KycItem | null;
+	kycItem: KycItemType | null;
 }
 
 const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
@@ -261,22 +266,26 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 							<div className="flex items-center justify-between">
 								{kycItem.aadhar_image_front && (
 									<Image
-										src={kycItem.aadhar_image_front || ""}
+										src={kycItem.aadhar_image_front as string}
 										alt="Aadhar Front"
 										width={100}
 										height={70}
 										className="h-14 w-24 cursor-pointer rounded border"
-										onClick={() => previewImage(kycItem.aadhar_image_front)}
+										onClick={() =>
+											previewImage(kycItem.aadhar_image_front as string)
+										}
 									/>
 								)}
 								{kycItem.aadhar_image_back && (
 									<Image
-										src={kycItem.aadhar_image_back}
+										src={kycItem.aadhar_image_back as string}
 										alt="Aadhar Back"
 										width={100}
 										height={70}
 										className="h-14 w-24 cursor-pointer rounded border"
-										onClick={() => previewImage(kycItem.aadhar_image_back)}
+										onClick={() =>
+											previewImage(kycItem.aadhar_image_back as string)
+										}
 									/>
 								)}
 							</div>
@@ -288,22 +297,26 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 							<div className="flex gap-2">
 								{kycItem.pan_image_front && (
 									<Image
-										src={kycItem.pan_image_front}
+										src={kycItem.pan_image_front as string}
 										alt="PAN Front"
 										width={100}
 										height={70}
 										className="h-14 w-24 cursor-pointer rounded border"
-										onClick={() => previewImage(kycItem.pan_image_front)}
+										onClick={() =>
+											previewImage(kycItem.pan_image_front as string)
+										}
 									/>
 								)}
 								{kycItem.pan_image_back && (
 									<Image
-										src={kycItem.pan_image_back}
+										src={kycItem.pan_image_back as string}
 										alt="PAN Back"
 										width={100}
 										height={70}
 										className="h-14 w-24 cursor-pointer rounded border"
-										onClick={() => previewImage(kycItem.pan_image_back)}
+										onClick={() =>
+											previewImage(kycItem.pan_image_back as string)
+										}
 									/>
 								)}
 							</div>

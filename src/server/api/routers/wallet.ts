@@ -27,6 +27,7 @@ export const walletRouter = createTRPCRouter({
 						transaction_type: "Credit",
 						payment_status: "Pending",
 						amount: input.amount,
+						description: "Funds added to wallet",
 					},
 				});
 

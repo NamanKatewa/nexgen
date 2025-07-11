@@ -71,11 +71,12 @@ export default function CreateBulkShipmentPage() {
 
 	useEffect(() => {
 		if (bulkRatesData) {
-			const newShipments = shipments.map((shipment, index) => ({
-				...shipment,
-				calculatedRate: bulkRatesData[index] ?? null,
-			}));
-			setShipments(newShipments);
+			setShipments((prevShipments) => {
+				return prevShipments.map((shipment, index) => ({
+					...shipment,
+					calculatedRate: bulkRatesData[index] ?? null,
+				}));
+			});
 			setCalculatedRates(bulkRatesData);
 			setTotalCalculatedRate(
 				bulkRatesData.reduce((sum: number, rate) => sum + (rate ?? 0), 0),
