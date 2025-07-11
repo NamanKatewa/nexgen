@@ -201,15 +201,15 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 					<div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
 						<div className="space-y-2">
 							<Label>Entity Name</Label>
-							<Input value={kycItem.entity_name || "N/A"} readOnly />
+							<Input value={kycItem.entity_name || "N/A"} readOnly tabIndex={-1} />
 						</div>
 						<div className="space-y-2">
 							<Label>Email</Label>
-							<Input value={kycItem.user.email || "N/A"} readOnly />
+							<Input value={kycItem.user.email || "N/A"} readOnly tabIndex={-1} />
 						</div>
 						<div className="space-y-2">
 							<Label>Entity Type</Label>
-							<Input value={kycItem.entity_type || "N/A"} readOnly />
+							<Input value={kycItem.entity_type || "N/A"} readOnly tabIndex={-1} />
 						</div>
 						<div className="space-y-2">
 							<Label>Website URL</Label>
@@ -219,11 +219,12 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 									target="_blank"
 									rel="noreferrer"
 									className="block w-full rounded-md border border-input bg-background px-3 py-2 text-blue-600 text-sm underline"
+									tabIndex={-1}
 								>
 									{kycItem.website_url}
 								</a>
 							) : (
-								<Input value="N/A" readOnly />
+								<Input value="N/A" readOnly tabIndex={-1} />
 							)}
 						</div>
 						<div className="space-y-2">
@@ -244,25 +245,26 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 										: "N/A"
 								}
 								readOnly
+								tabIndex={-1}
 							/>
 						</div>
 
 						<div className="space-y-2 md:col-span-2">
 							<Label>Billing Address</Label>
 							{address ? (
-								<div className="rounded-md border border-input bg-background px-3 py-2 text-sm">
+								<div className="rounded-md border border-input bg-background px-3 py-2 text-sm" tabIndex={-1}>
 									{address.address_line}
 									<br />
 									{address.city}, {address.state} - {address.zip_code}
 								</div>
 							) : (
-								<Input value="N/A" readOnly />
+								<Input value="N/A" readOnly tabIndex={-1} />
 							)}
 						</div>
 
 						<div className="space-y-2">
 							<Label>Aadhar Number</Label>
-							<Input value={kycItem.aadhar_number || "N/A"} readOnly />
+							<Input value={kycItem.aadhar_number || "N/A"} readOnly tabIndex={-1} />
 							<div className="flex items-center justify-between">
 								{kycItem.aadhar_image_front && (
 									<Image
@@ -274,6 +276,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 										onClick={() =>
 											previewImage(kycItem.aadhar_image_front as string)
 										}
+										tabIndex={-1}
 									/>
 								)}
 								{kycItem.aadhar_image_back && (
@@ -286,6 +289,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 										onClick={() =>
 											previewImage(kycItem.aadhar_image_back as string)
 										}
+										tabIndex={-1}
 									/>
 								)}
 							</div>
@@ -293,7 +297,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 
 						<div className="space-y-2">
 							<Label>PAN Number</Label>
-							<Input value={kycItem.pan_number || "N/A"} readOnly />
+							<Input value={kycItem.pan_number || "N/A"} readOnly tabIndex={-1} />
 							<div className="flex gap-2">
 								{kycItem.pan_image_front && (
 									<Image
@@ -305,6 +309,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 										onClick={() =>
 											previewImage(kycItem.pan_image_front as string)
 										}
+										tabIndex={-1}
 									/>
 								)}
 								{kycItem.pan_image_back && (
@@ -317,6 +322,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 										onClick={() =>
 											previewImage(kycItem.pan_image_back as string)
 										}
+										tabIndex={-1}
 									/>
 								)}
 							</div>
