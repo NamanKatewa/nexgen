@@ -64,6 +64,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 }) => {
 	const [errorMessage, setErrorMessage] = useState("");
 	const [rejectReason, setRejectReason] = useState("");
+	const [rejectErrorMessage, setRejectErrorMessage] = useState("");
 	const [showApproveConfirmModal, setShowApproveConfirmModal] = useState(false);
 	const [showRejectConfirmModal, setShowRejectConfirmModal] = useState(false);
 
@@ -118,6 +119,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 						<Button
 							variant="outline"
 							onClick={() => setShowApproveConfirmModal(false)}
+							disabled={verifyKyc.isPending}
 						>
 							Cancel
 						</Button>
@@ -150,6 +152,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 							cannot be undone.
 						</DialogDescription>
 					</DialogHeader>
+					{rejectErrorMessage && <p className="text-red-500 text-sm mt-2">{rejectErrorMessage}</p>}
 					<div className="mt-4">
 						<Label htmlFor="reject-reason">Reason for Rejection</Label>
 						<Textarea
@@ -164,6 +167,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 						<Button
 							variant="outline"
 							onClick={() => setShowRejectConfirmModal(false)}
+							disabled={rejectKyc.isPending}
 						>
 							Cancel
 						</Button>
@@ -178,7 +182,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 									setShowRejectConfirmModal(false);
 									onClose();
 								} else {
-									setErrorMessage("Rejection reason cannot be empty.");
+									setRejectErrorMessage("Rejection reason cannot be empty.");
 								}
 							}}
 							disabled={rejectKyc.isPending}
@@ -189,7 +193,16 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 				</DialogContent>
 			</Dialog>
 
-			<Dialog open={isOpen} onOpenChange={onClose}>
+			<Dialog open={isOpen} onOpenChange={(open) => {
+					if (!open) {
+						onClose();
+						setErrorMessage("");
+						setRejectReason("");
+						setRejectErrorMessage("");
+						setShowApproveConfirmModal(false);
+						setShowRejectConfirmModal(false);
+					}
+				}}>
 				<DialogContent className="w-4xl bg-blue-50 text-blue-950">
 					<DialogHeader>
 						<DialogTitle>KYC Details for {kycItem.entity_name}</DialogTitle>
@@ -334,6 +347,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 							variant="destructive"
 							onClick={() => setShowRejectConfirmModal(true)}
 							className="cursor-pointer"
+							disabled={verifyKyc.isPending || rejectKyc.isPending}
 						>
 							Reject
 						</Button>
@@ -341,7 +355,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 							variant="default"
 							className="cursor-pointer bg-green-600 text-white hover:bg-green-700"
 							onClick={() => setShowApproveConfirmModal(true)}
-							disabled={verifyKyc.isPending}
+							disabled={verifyKyc.isPending || rejectKyc.isPending}
 						>
 							{verifyKyc.isPending ? "Approving..." : "Approve"}
 						</Button>
