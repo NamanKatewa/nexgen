@@ -130,7 +130,7 @@ export const orderRouter = createTRPCRouter({
 					});
 				}
 
-				if (wallet.balance < Decimal(rate)) {
+								if (wallet.balance.lessThan(new Decimal(rate))) {
 					throw new TRPCError({
 						code: "BAD_GATEWAY",
 						message: "Insufficient wallet balance. Recharge your wallet.",
@@ -343,7 +343,7 @@ export const orderRouter = createTRPCRouter({
 					message: "User wallet not found.",
 				});
 			}
-			if (wallet.balance < totalAmount) {
+			if (wallet.balance.lessThan(totalAmount)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Insufficient wallet balance to create all shipments.",
