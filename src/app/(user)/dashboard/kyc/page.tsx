@@ -12,387 +12,721 @@ import { FieldError } from "~/components/FieldError";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardFooter,
-	CardHeader,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSlot,
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
 } from "~/components/ui/input-otp";
 import { Label } from "~/components/ui/label";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "~/components/ui/select";
 import { type TKycSchema, submitKycSchema } from "~/schemas/kyc";
 import { api } from "~/trpc/react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Progress } from "~/components/ui/progress";
 
 export default function KycFormPage() {
-	const router = useRouter();
-	const [errorMessage, setErrorMessage] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
 
-	const [aadharFrontPreview, setAadharFrontPreview] = useState<string | null>(
-		null,
-	);
-	const [aadharBackPreview, setAadharBackPreview] = useState<string | null>(
-		null,
-	);
-	const [panFrontPreview, setPanFrontPreview] = useState<string | null>(null);
-	const [panBackPreview, setPanBackPreview] = useState<string | null>(null);
+  const [aadharFrontPreview, setAadharFrontPreview] = useState<string | null>(
+    null
+  );
+  const [aadharBackPreview, setAadharBackPreview] = useState<string | null>(
+    null
+  );
+  const [panFrontPreview, setPanFrontPreview] = useState<string | null>(null);
+  const [panBackPreview, setPanBackPreview] = useState<string | null>(null);
 
-	const kycSubmitMutation = api.kyc.kycSubmit.useMutation({
-		onSuccess: () => {
-			setIsLoading(false);
-			router.push("/dashboard/submitted");
-		},
-		onError(error) {
-			setErrorMessage(error.message);
-			setIsLoading(false);
-		},
-	});
+  const kycSubmitMutation = api.kyc.kycSubmit.useMutation({
+    onSuccess: () => {
+      setIsLoading(false);
+      router.push("/dashboard/submitted");
+    },
+    onError(error) {
+      setErrorMessage(error.message);
+      setIsLoading(false);
+    },
+  });
 
-	const {
-		register,
-		handleSubmit,
-		setValue,
-		watch,
-		formState: { errors },
-	} = useForm<TKycSchema>({
-		resolver: zodResolver(submitKycSchema),
-		defaultValues: {
-			gst: false,
-			submission_date: new Date(),
-		},
-	});
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    trigger,
+    clearErrors,
+    formState: { errors },
+  } = useForm<TKycSchema>({
+    resolver: zodResolver(submitKycSchema),
+    defaultValues: {
+      gst: false,
+      submission_date: new Date(),
+    },
+    mode: "onTouched", // Add this line to enable real-time validation on blur
+  });
 
-	const fileToBase64 = (file: File): Promise<string> => {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.readAsDataURL(file);
-			reader.onload = () => resolve(reader.result as string);
-			reader.onerror = (error) => reject(error);
-		});
-	};
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
-	const handleFileChange = async (
-		event: React.ChangeEvent<HTMLInputElement>,
-		fieldName: keyof TKycSchema,
-		setPreview: React.Dispatch<React.SetStateAction<string | null>>,
-	) => {
-		const file = event.target.files?.[0];
-		if (file) {
-			setPreview(URL.createObjectURL(file));
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    fieldName: keyof TKycSchema,
+    setPreview: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
 
-			try {
-				const base64Data = await fileToBase64(file);
-				setValue(fieldName, {
-					data: base64Data,
-					name: file.name,
-					type: file.type,
-					size: file.size,
-				});
-			} catch (error) {
-				console.error("Error converting file to Base64:", error);
-				setErrorMessage("Failed to process image file");
-				setValue(fieldName, undefined);
-				setPreview(null);
-			}
-		} else {
-			setValue(fieldName, undefined);
-			setPreview(null);
-		}
-	};
+      try {
+        const base64Data = await fileToBase64(file);
+        setValue(fieldName, {
+          data: base64Data,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
+        clearErrors(fieldName); // Clear error for this field
+      } catch (error) {
+        console.error("Error converting file to Base64:", error);
+        setErrorMessage("Failed to process image file");
+        setValue(fieldName, undefined);
+        setPreview(null);
+      } finally {
+        // Ensure errors are cleared even if there's an issue with file processing
+        clearErrors(fieldName);
+      }
+    } else {
+      setValue(fieldName, undefined);
+      setPreview(null);
+      clearErrors(fieldName); // Clear error if file is unselected
+    }
+  };
 
-	const onSubmit = async (data: TKycSchema) => {
-		setIsLoading(true);
-		setErrorMessage("");
-		kycSubmitMutation.mutate(data);
-	};
+  const onSubmit = async (data: TKycSchema) => {
+    setIsLoading(true);
+    setErrorMessage("");
+    kycSubmitMutation.mutate(data);
+  };
 
-	return (
-		<div className="flex min-h-screen items-center justify-center p-4">
-			<Card className="w-full bg-blue-100/20">
-				<CardHeader>
-					<h1 className="text-center font-semibold text-2xl text-blue-950">
-						KYC Form
-					</h1>
-					<p className="text-center text-blue-900 text-sm">
-						Enter your business verification details
-					</p>
-				</CardHeader>
-				<CardContent>
-					<form
-						onSubmit={handleSubmit(onSubmit)}
-						className="space-y-4 text-blue-950"
-					>
-						{errorMessage && (
-							<Alert variant="destructive">
-								<AlertCircle className="h-4 w-4" />
-								<AlertDescription>{errorMessage}</AlertDescription>
-							</Alert>
-						)}
+  const handleNext = async () => {
+    let isValid = false;
+    if (currentStep === 0) {
+      isValid = await trigger(["entityName", "entityType", "websiteUrl"]);
+    } else if (currentStep === 1) {
+      isValid = await trigger([
+        "billingAddress.zipCode",
+        "billingAddress.city",
+        "billingAddress.state",
+        "billingAddress.addressLine",
+      ]);
+    } else if (currentStep === 2) {
+      isValid = await trigger([
+        "aadharNumber",
+        "aadharImageFront",
+        "aadharImageBack",
+        "panNumber",
+        "panImageFront",
+        "panImageBack",
+      ]);
+    }
 
-						<div className="mb-10 flex gap-10">
-							<div className="space-y-2">
-								<Label>Entity Name</Label>
-								<Input {...register("entityName")} disabled={isLoading} />
-								<FieldError message={errors.entityName?.message} />
-							</div>
+    if (isValid) {
+      setCurrentStep((prev) => prev + 1);
+    }
+  };
 
-							<div className="space-y-2">
-								<Label>Entity Type</Label>
-								<Select
-									onValueChange={(val) =>
-										setValue("entityType", val as ENTITY_TYPE)
-									}
-									disabled={isLoading}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="Select entity type" />
-									</SelectTrigger>
-									<SelectContent>
-										{[
-											{ label: "Individual", value: "Individual" },
-											{ label: "Self Employment", value: "SelfEmployement" },
-											{
-												label: "Proprietorship Firm",
-												value: "ProprietorshipFirm",
-											},
-											{
-												label: "Limited Liability Partnership",
-												value: "LimitedLiabilityParternship",
-											},
-											{
-												label: "Private Limited Company",
-												value: "PrivateLimitedCompany",
-											},
-											{
-												label: "Public Limited Company",
-												value: "PublicLimitedCompany",
-											},
-											{ label: "Partnership Firm", value: "PartnershipFirm" },
-										].map(({ label, value }) => (
-											<SelectItem key={value} value={value}>
-												{label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-								<FieldError message={errors.entityType?.message} />
-							</div>
+  const handlePrevious = () => {
+    setCurrentStep((prev) => prev - 1);
+  };
 
-							<div className="space-y-2">
-								<Label>Website URL (optional)</Label>
-								<Input {...register("websiteUrl")} disabled={isLoading} />
-								<FieldError message={errors.websiteUrl?.message} />
-							</div>
-						</div>
+  const steps = [
+    "Entity Details",
+    "Address Details",
+    "Document Uploads",
+    "Review & Submit",
+  ];
 
-						<div className="space-y-2">
-							<Label>Billing Address</Label>
-							<div className="mb-10 grid grid-cols-2 gap-10">
-								<Input
-									placeholder="Zip Code"
-									type="number"
-									{...register("billingAddress.zipCode", {
-										valueAsNumber: true,
-									})}
-								/>
-								<Input
-									placeholder="City"
-									{...register("billingAddress.city")}
-								/>
-								<Input
-									placeholder="State"
-									{...register("billingAddress.state")}
-								/>
-								<Input
-									className="col-span-2"
-									placeholder="Address Line"
-									{...register("billingAddress.addressLine")}
-								/>
-							</div>
-							<FieldError
-								message={errors.billingAddress?.addressLine?.message}
-							/>
-						</div>
+  const progressValue = ((currentStep + 1) / steps.length) * 100;
 
-						<div className="mb-10 flex flex-wrap gap-10">
-							<div className="space-y-2">
-								<Label>Aadhar Number</Label>
-								<InputOTP
-									maxLength={12}
-									value={watch("aadharNumber")}
-									onChange={(val) => setValue("aadharNumber", val)}
-									disabled={isLoading}
-									pattern="\d*"
-									inputMode="numeric"
-								>
-									<InputOTPGroup>
-										{[0, 1, 2, 3].map((i) => (
-											<InputOTPSlot key={nanoid()} index={i} />
-										))}
-									</InputOTPGroup>
-									<span className="px-2">-</span>
-									<InputOTPGroup>
-										{[4, 5, 6, 7].map((i) => (
-											<InputOTPSlot key={nanoid()} index={i} />
-										))}
-									</InputOTPGroup>
-									<span className="px-2">-</span>
-									<InputOTPGroup>
-										{[8, 9, 10, 11].map((i) => (
-											<InputOTPSlot key={nanoid()} index={i} />
-										))}
-									</InputOTPGroup>
-								</InputOTP>
-								<FieldError message={errors.aadharNumber?.message} />
-							</div>
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-3xl bg-blue-100/20">
+        <CardHeader>
+          <h1 className="text-center font-semibold text-2xl text-blue-950">
+            KYC Form
+          </h1>
+          <p className="text-center text-blue-900 text-sm">
+            Enter your business verification details
+          </p>
+          <Progress value={progressValue} className="w-full mt-4" />
+        </CardHeader>
+        <CardContent>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-6 text-blue-950"
+          >
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
 
-							<div className="space-y-2">
-								<Label>Aadhar Front Image</Label>
-								<Input
-									type="file"
-									accept="image/*"
-									onChange={(e) => {
-										handleFileChange(
-											e,
-											"aadharImageFront",
-											setAadharFrontPreview,
-										);
-									}}
-								/>
-								{aadharFrontPreview && (
-									<img
-										src={aadharFrontPreview}
-										alt="Aadhar Front Preview"
-										className="h-32 w-32 rounded border object-cover"
-									/>
-								)}
-								<FieldError
-									message={errors.aadharImageFront?.message as string}
-								/>
-							</div>
+            <Tabs
+              value={currentStep.toString()}
+              onValueChange={(value) => setCurrentStep(parseInt(value))}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-4">
+                {steps.map((stepName, index) => (
+                  <TabsTrigger
+                    key={stepName}
+                    value={index.toString()}
+                    disabled={index > currentStep}
+                  >
+                    {stepName}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-							<div className="space-y-2">
-								<Label>Aadhar Back Image</Label>
-								<Input
-									type="file"
-									accept="image/*"
-									onChange={(e) => {
-										handleFileChange(
-											e,
-											"aadharImageBack",
-											setAadharBackPreview,
-										);
-									}}
-								/>
-								{aadharBackPreview && (
-									<img
-										src={aadharBackPreview}
-										alt="Aadhar Back Preview"
-										className="h-32 w-32 rounded border object-cover"
-									/>
-								)}
-								<FieldError
-									message={errors.aadharImageBack?.message as string}
-								/>
-							</div>
-						</div>
+              <TabsContent value="0" className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="entityName">Entity Name</Label>
+                    <Input
+                      id="entityName"
+                      {...register("entityName", {
+                        onChange: () => clearErrors("entityName"),
+                      })}
+                      disabled={isLoading}
+                    />
+                    <FieldError message={errors.entityName?.message} />
+                  </div>
 
-						<div className="mb-10 flex flex-wrap gap-10">
-							<div className="space-y-2">
-								<Label>PAN Number</Label>
-								<InputOTP
-									maxLength={10}
-									value={watch("panNumber")}
-									onChange={(val) => setValue("panNumber", val.toUpperCase())}
-									disabled={isLoading}
-									pattern="[A-Z0-9]*"
-									className="uppercase"
-								>
-									{[...Array(10)].map((_, i) => (
-										<InputOTPSlot key={nanoid()} index={i} />
-									))}
-								</InputOTP>
-								<FieldError message={errors.panNumber?.message} />
-							</div>
+                  <div className="space-y-2">
+                    <Label htmlFor="entityType">Entity Type</Label>
+                    <Select
+                      onValueChange={(val) => {
+                        setValue("entityType", val as ENTITY_TYPE);
+                        clearErrors("entityType");
+                      }}
+                      disabled={isLoading}
+                      value={watch("entityType")}
+                    >
+                      <SelectTrigger id="entityType">
+                        <SelectValue placeholder="Select entity type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          { label: "Individual", value: "Individual" },
+                          {
+                            label: "Self Employment",
+                            value: "SelfEmployement",
+                          },
+                          {
+                            label: "Proprietorship Firm",
+                            value: "ProprietorshipFirm",
+                          },
+                          {
+                            label: "Limited Liability Partnership",
+                            value: "LimitedLiabilityParternship",
+                          },
+                          {
+                            label: "Private Limited Company",
+                            value: "PrivateLimitedCompany",
+                          },
+                          {
+                            label: "Public Limited Company",
+                            value: "PublicLimitedCompany",
+                          },
+                          {
+                            label: "Partnership Firm",
+                            value: "PartnershipFirm",
+                          },
+                        ].map(({ label, value }) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FieldError message={errors.entityType?.message} />
+                  </div>
 
-							<div className="space-y-2">
-								<Label>PAN Front Image</Label>
-								<Input
-									type="file"
-									accept="image/*"
-									onChange={(e) => {
-										handleFileChange(e, "panImageFront", setPanFrontPreview);
-									}}
-								/>
-								{panFrontPreview && (
-									<img
-										src={panFrontPreview}
-										alt="PAN Front Preview"
-										className="h-32 w-32 rounded border object-cover"
-									/>
-								)}
-								<FieldError message={errors.panImageFront?.message as string} />
-							</div>
+                  <div className="space-y-2">
+                    <Label htmlFor="websiteUrl">Website URL (optional)</Label>
+                    <Input
+                      id="websiteUrl"
+                      {...register("websiteUrl", {
+                        onChange: () => clearErrors("websiteUrl"),
+                      })}
+                      disabled={isLoading}
+                    />
+                    <FieldError message={errors.websiteUrl?.message} />
+                  </div>
+                </div>
+              </TabsContent>
 
-							<div className="space-y-2">
-								<Label>PAN Back Image</Label>
-								<Input
-									type="file"
-									accept="image/*"
-									onChange={(e) => {
-										handleFileChange(e, "panImageBack", setPanBackPreview);
-									}}
-								/>
-								{panBackPreview && (
-									<img
-										src={panBackPreview}
-										alt="PAN Back Preview"
-										className="h-32 w-32 rounded border object-cover"
-									/>
-								)}
-								<FieldError message={errors.panImageBack?.message as string} />
-							</div>
-						</div>
+              <TabsContent value="1" className="pt-6">
+                <div className="space-y-4">
+                  <Label>Billing Address</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="billingAddress.zipCode">Zip Code</Label>
+                      <Input
+                        id="billingAddress.zipCode"
+                        placeholder="Zip Code"
+                        type="number"
+                        {...register("billingAddress.zipCode", {
+                          valueAsNumber: true,
+                          onChange: () => clearErrors("billingAddress.zipCode"),
+                        })}
+                      />
+                      <FieldError
+                        message={errors.billingAddress?.zipCode?.message}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="billingAddress.city">City</Label>
+                      <Input
+                        id="billingAddress.city"
+                        placeholder="City"
+                        {...register("billingAddress.city", {
+                          onChange: () => clearErrors("billingAddress.city"),
+                        })}
+                      />
+                      <FieldError
+                        message={errors.billingAddress?.city?.message}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="billingAddress.state">State</Label>
+                      <Input
+                        id="billingAddress.state"
+                        placeholder="State"
+                        {...register("billingAddress.state", {
+                          onChange: () => clearErrors("billingAddress.state"),
+                        })}
+                      />
+                      <FieldError
+                        message={errors.billingAddress?.state?.message}
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="billingAddress.addressLine">
+                        Address Line
+                      </Label>
+                      <Input
+                        id="billingAddress.addressLine"
+                        placeholder="Address Line"
+                        {...register("billingAddress.addressLine", {
+                          onChange: () =>
+                            clearErrors("billingAddress.addressLine"),
+                        })}
+                      />
+                      <FieldError
+                        message={errors.billingAddress?.addressLine?.message}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
 
-						<div className="flex items-center space-x-2">
-							<input
-								type="checkbox"
-								{...register("gst")}
-								className="h-4 w-4 bg-blue-950 text-amber-100"
-							/>
-							<Label htmlFor="gst">Do you have GST?</Label>
-						</div>
+              <TabsContent value="2" className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="aadharNumber">Aadhar Number</Label>
+                    <InputOTP
+                      id="aadharNumber"
+                      maxLength={12}
+                      value={watch("aadharNumber")}
+                      onChange={(val) => {
+                        setValue("aadharNumber", val);
+                        clearErrors("aadharNumber");
+                      }}
+                      disabled={isLoading}
+                      pattern="\d*"
+                      inputMode="numeric"
+                    >
+                      <InputOTPGroup>
+                        {[0, 1, 2, 3].map((i) => (
+                          <InputOTPSlot key={nanoid()} index={i} />
+                        ))}
+                      </InputOTPGroup>
+                      <span className="px-2">-</span>
+                      <InputOTPGroup>
+                        {[4, 5, 6, 7].map((i) => (
+                          <InputOTPSlot key={nanoid()} index={i} />
+                        ))}
+                      </InputOTPGroup>
+                      <span className="px-2">-</span>
+                      <InputOTPGroup>
+                        {[8, 9, 10, 11].map((i) => (
+                          <InputOTPSlot key={nanoid()} index={i} />
+                        ))}
+                      </InputOTPGroup>
+                    </InputOTP>
+                    <FieldError message={errors.aadharNumber?.message} />
+                  </div>
 
-						<Button type="submit" className="w-full" disabled={isLoading}>
-							{isLoading || kycSubmitMutation.isPending
-								? "Submitting..."
-								: "Submit KYC"}
-						</Button>
-					</form>
-				</CardContent>
-				<CardFooter className="justify-center">
-					<p className="text-muted-foreground text-sm">
-						Need help?{" "}
-						<Link
-							href="/dashboard/support"
-							className="text-primary hover:underline"
-						>
-							Contact Support
-						</Link>
-					</p>
-				</CardFooter>
-			</Card>
-		</div>
-	);
+                  <div className="space-y-2">
+                    <Label htmlFor="aadharImageFront">Aadhar Front Image</Label>
+                    <Input
+                      id="aadharImageFront"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFileChange(
+                          e,
+                          "aadharImageFront",
+                          setAadharFrontPreview
+                        );
+                      }}
+                    />
+                    <div className="h-32 w-32 rounded border overflow-hidden mt-2 flex items-center justify-center bg-gray-100">
+                      {aadharFrontPreview && (
+                        <img
+                          src={aadharFrontPreview}
+                          alt="Aadhar Front Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <FieldError
+                      message={errors.aadharImageFront?.message as string}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="aadharImageBack">Aadhar Back Image</Label>
+                    <Input
+                      id="aadharImageBack"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFileChange(
+                          e,
+                          "aadharImageBack",
+                          setAadharBackPreview
+                        );
+                      }}
+                    />
+                    <div className="h-32 w-32 rounded border overflow-hidden mt-2 flex items-center justify-center bg-gray-100">
+                      {aadharBackPreview && (
+                        <img
+                          src={aadharBackPreview}
+                          alt="Aadhar Back Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <FieldError
+                      message={errors.aadharImageBack?.message as string}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="panNumber">PAN Number</Label>
+                    <InputOTP
+                      id="panNumber"
+                      maxLength={10}
+                      value={watch("panNumber")}
+                      onChange={(val) => {
+                        setValue("panNumber", val.toUpperCase());
+                        clearErrors("panNumber");
+                      }}
+                      disabled={isLoading}
+                      pattern="[A-Z0-9]*"
+                      className="uppercase"
+                    >
+                      {[...Array(10)].map((_, i) => (
+                        <InputOTPSlot key={nanoid()} index={i} />
+                      ))}
+                    </InputOTP>
+                    <FieldError message={errors.panNumber?.message} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="panImageFront">PAN Front Image</Label>
+                    <Input
+                      id="panImageFront"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFileChange(
+                          e,
+                          "panImageFront",
+                          setPanFrontPreview
+                        );
+                      }}
+                    />
+                    <div className="h-32 w-32 rounded border overflow-hidden mt-2 flex items-center justify-center bg-gray-100">
+                      {panFrontPreview && (
+                        <img
+                          src={panFrontPreview}
+                          alt="PAN Front Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <FieldError
+                      message={errors.panImageFront?.message as string}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="panImageBack">PAN Back Image</Label>
+                    <Input
+                      id="panImageBack"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFileChange(e, "panImageBack", setPanBackPreview);
+                      }}
+                    />
+                    <div className="h-32 w-32 rounded border overflow-hidden mt-2 flex items-center justify-center bg-gray-100">
+                      {panBackPreview && (
+                        <img
+                          src={panBackPreview}
+                          alt="PAN Back Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <FieldError
+                      message={errors.panImageBack?.message as string}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="3" className="pt-6">
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold text-blue-950">
+                    Review Your Details
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2 p-4 border rounded-md bg-white/50">
+                      <h3 className="font-medium text-lg text-blue-950">
+                        Entity Details
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">
+                            Entity Name:
+                          </strong>
+                        </p>
+                        <p className="col-span-1">{watch("entityName")}</p>
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">
+                            Entity Type:
+                          </strong>
+                        </p>
+                        <p className="col-span-1">{watch("entityType")}</p>
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">
+                            Website URL:
+                          </strong>
+                        </p>
+                        <p className="col-span-1">{watch("websiteUrl")}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 p-4 border rounded-md bg-white/50">
+                      <h3 className="font-medium text-lg text-blue-950">
+                        Billing Address
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">
+                            Address Line:
+                          </strong>
+                        </p>
+                        <p className="col-span-1">
+                          {watch("billingAddress.addressLine")}
+                        </p>
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">City:</strong>
+                        </p>
+                        <p className="col-span-1">
+                          {watch("billingAddress.city")}
+                        </p>
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">State:</strong>
+                        </p>
+                        <p className="col-span-1">
+                          {watch("billingAddress.state")}
+                        </p>
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">Zip Code:</strong>
+                        </p>
+                        <p className="col-span-1">
+                          {watch("billingAddress.zipCode")}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 p-4 border rounded-md bg-white/50">
+                      <h3 className="font-medium text-lg text-blue-950">
+                        Aadhar Details
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">
+                            Aadhar Number:
+                          </strong>
+                        </p>
+                        <p className="col-span-1">{watch("aadharNumber")}</p>
+                        {aadharFrontPreview && (
+                          <p className="col-span-1">
+                            <strong className="text-blue-950">
+                              Aadhar Front:
+                            </strong>
+                          </p>
+                        )}
+                        {aadharFrontPreview && (
+                          <p className="col-span-1">
+                            <img
+                              src={aadharFrontPreview}
+                              alt="Aadhar Front"
+                              className="h-20 w-20 object-cover inline-block"
+                            />
+                          </p>
+                        )}
+                        {aadharBackPreview && (
+                          <p className="col-span-1">
+                            <strong className="text-blue-950">
+                              Aadhar Back:
+                            </strong>
+                          </p>
+                        )}
+                        {aadharBackPreview && (
+                          <p className="col-span-1">
+                            <img
+                              src={aadharBackPreview}
+                              alt="Aadhar Back"
+                              className="h-20 w-20 object-cover inline-block"
+                            />
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 p-4 border rounded-md bg-white/50">
+                      <h3 className="font-medium text-lg text-blue-950">
+                        PAN Details
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        <p className="col-span-1">
+                          <strong className="text-blue-950">PAN Number:</strong>
+                        </p>
+                        <p className="col-span-1">{watch("panNumber")}</p>
+                        {panFrontPreview && (
+                          <p className="col-span-1">
+                            <strong className="text-blue-950">
+                              PAN Front:
+                            </strong>
+                          </p>
+                        )}
+                        {panFrontPreview && (
+                          <p className="col-span-1">
+                            <img
+                              src={panFrontPreview}
+                              alt="PAN Front"
+                              className="h-20 w-20 object-cover inline-block"
+                            />
+                          </p>
+                        )}
+                        {panBackPreview && (
+                          <p className="col-span-1">
+                            <strong className="text-blue-950">PAN Back:</strong>
+                          </p>
+                        )}
+                        {panBackPreview && (
+                          <p className="col-span-1">
+                            <img
+                              src={panBackPreview}
+                              alt="PAN Back"
+                              className="h-20 w-20 object-cover inline-block"
+                            />
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 mt-4">
+                    <input
+                      type="checkbox"
+                      {...register("gst")}
+                      className="h-4 w-4 bg-blue-950 text-amber-100"
+                    />
+                    <Label htmlFor="gst">Do you have GST?</Label>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-between mt-4">
+              <Button
+                type="button"
+                onClick={handlePrevious}
+                disabled={isLoading || currentStep === 0}
+                className={currentStep === 0 ? "invisible" : ""}
+              >
+                Previous
+              </Button>
+              {currentStep < steps.length - 1 ? (
+                <Button type="button" onClick={handleNext} disabled={isLoading}>
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleSubmit(onSubmit)}
+                  disabled={isLoading}
+                >
+                  {isLoading || kycSubmitMutation.isPending
+                    ? "Submitting..."
+                    : "Submit KYC"}
+                </Button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-muted-foreground text-sm">
+            Need help?{" "}
+            <Link
+              href="/dashboard/support"
+              className="text-primary hover:underline"
+            >
+              Contact Support
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
+  );
 }
