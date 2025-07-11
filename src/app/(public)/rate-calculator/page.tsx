@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FormWrapper } from "~/components/FormWrapper";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -18,7 +19,6 @@ interface PincodeDetails {
 }
 
 const RateCalculator = () => {
-	const [errorMessage, setErrorMessage] = useState("");
 	const [rate, setRate] = useState<number | null>(null);
 	const [origin, setOrigin] = useState<PincodeDetails | null>(null);
 	const [destination, setDestination] = useState<PincodeDetails | null>(null);
@@ -51,15 +51,15 @@ const RateCalculator = () => {
 			setOrigin(data.origin);
 			setDestination(data.destination);
 			setSubmittedData(null);
+			toast.success("Rate calculated successfully!");
 		}
 		if (error) {
-			setErrorMessage(error.message);
+			toast.error(error.message);
 			setSubmittedData(null);
 		}
 	}, [data, error]);
 
 	const onSubmit = (data: TRateSchema) => {
-		setErrorMessage("");
 		setRate(null);
 		setOrigin(null);
 		setDestination(null);
@@ -71,7 +71,6 @@ const RateCalculator = () => {
 			<FormWrapper
 				title="Calculate Shipping Rates"
 				description="Enter the details to calculate the shipping rate"
-				errorMessage={errorMessage}
 				cardClassName="w-full max-w-[400px] bg-blue-100/20 p-6 shadow-lg backdrop-blur-md md:p-8"
 			>
 				<form

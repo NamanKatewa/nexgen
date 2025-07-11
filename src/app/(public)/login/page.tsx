@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FormWrapper } from "~/components/FormWrapper";
 import { PasswordInput } from "~/components/PasswordInput";
 import { Button } from "~/components/ui/button";
@@ -18,7 +19,6 @@ import { type TLoginSchema, loginSchema } from "~/schemas/auth";
 
 const Login = () => {
 	const [isLoading, setIsLoading] = useState(false);
-	const [errorMessage, setErrorMessage] = useState("");
 	const router = useRouter();
 	const utils = api.useUtils();
 
@@ -27,16 +27,18 @@ const Login = () => {
 			localStorage.setItem("token", data.token);
 			document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
 			await utils.auth.me.invalidate();
-
-			if (data.user.role === "Admin") {
-				router.push("/admin/dashboard");
-			} else {
-				router.push("/dashboard");
-			}
-			router.refresh();
+			toast.success("Login successful! Redirecting...");
+			setTimeout(() => {
+				if (data.user.role === "Admin") {
+					router.push("/admin/dashboard");
+				} else {
+					router.push("/dashboard");
+				}
+				router.refresh();
+			}, 2000);
 		},
 		onError: (error) => {
-			setErrorMessage(error.message);
+			toast.error(error.message);
 			setIsLoading(false);
 		},
 	});
@@ -51,7 +53,6 @@ const Login = () => {
 
 	const onSubmit = (data: TLoginSchema) => {
 		setIsLoading(true);
-		setErrorMessage("");
 		loginMutation.mutate(data);
 	};
 
@@ -64,7 +65,6 @@ const Login = () => {
 			<FormWrapper
 				title="Welcome back"
 				description="Enter your credentials to login"
-				errorMessage={errorMessage}
 				footerText={
 					<p className="text-gray-500 text-sm">
 						Don&apos;t have an account?{" "}

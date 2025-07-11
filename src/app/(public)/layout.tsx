@@ -5,6 +5,7 @@ import { Geist } from "next/font/google";
 
 import Footer from "~/components/Footer";
 import Navbar from "~/components/Navbar";
+import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
 					<Navbar />
 					{children}
 					<Footer />
+					<Toaster />
 				</TRPCReactProvider>
 			</body>
 		</html>

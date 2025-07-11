@@ -13,7 +13,6 @@ import {
 interface FormWrapperProps {
 	title: string;
 	description?: string;
-	errorMessage?: string;
 	footerText?: React.ReactNode;
 	children: React.ReactNode;
 	cardClassName?: string;
@@ -25,7 +24,6 @@ interface FormWrapperProps {
 const FormWrapper: React.FC<FormWrapperProps> = ({
 	title,
 	description,
-	errorMessage,
 	footerText,
 	children,
 	cardClassName,
@@ -43,15 +41,7 @@ const FormWrapper: React.FC<FormWrapperProps> = ({
 					<p className="text-center text-blue-900 text-sm">{description}</p>
 				)}
 			</CardHeader>
-			<CardContent className={contentClassName}>
-				{errorMessage && (
-					<Alert variant="destructive" className="mb-4">
-						<AlertCircle className="h-4 w-4" />
-						<AlertDescription>{errorMessage}</AlertDescription>
-					</Alert>
-				)}
-				{children}
-			</CardContent>
+			<CardContent className={contentClassName}>{children}</CardContent>
 			{footerText && (
 				<CardFooter className={footerClassName}>{footerText}</CardFooter>
 			)}

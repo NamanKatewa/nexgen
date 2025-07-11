@@ -2,15 +2,15 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ADDRESS_TYPE } from "@prisma/client";
-import { AlertCircle, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { Path } from "react-hook-form";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { FieldError } from "~/components/FieldError";
-import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
@@ -26,7 +26,7 @@ import { api } from "~/trpc/react";
 
 export default function CreateBulkShipmentPage() {
 	const router = useRouter();
-	const [errorMessage, setErrorMessage] = useState("");
+
 	const [isLoading, setIsLoading] = useState(false);
 	const [shipments, setShipments] = useState<TExcelShipmentSchema[]>([]);
 	const [calculatedRates, setCalculatedRates] = useState<(number | null)[]>([]);
@@ -81,26 +81,24 @@ export default function CreateBulkShipmentPage() {
 			setTotalCalculatedRate(
 				bulkRatesData.reduce((sum: number, rate) => sum + (rate ?? 0), 0),
 			);
-			setErrorMessage("");
 		}
 	}, [bulkRatesData]);
 
 	useEffect(() => {
 		if (bulkRatesError) {
-			setErrorMessage(bulkRatesError.message);
+			toast.error(bulkRatesError.message);
 			setCalculatedRates([]);
 			setTotalCalculatedRate(null);
 		}
 	}, [bulkRatesError]);
 
 	const handleCalculateRates = useCallback(async () => {
-		setErrorMessage("");
 		clearErrors();
 
 		// Validate all shipments before calculating rates
 		const isValid = await trigger("shipments");
 		if (!isValid) {
-			setErrorMessage("Please correct the errors in the shipment details.");
+			toast.error("Please correct the errors in the shipment details.");
 			return;
 		}
 
@@ -110,7 +108,7 @@ export default function CreateBulkShipmentPage() {
 		);
 
 		if (!canCalculate) {
-			setErrorMessage(
+			toast.error(
 				"Please ensure all shipments have valid origin/destination zip codes and package weights.",
 			);
 			return;
@@ -119,7 +117,7 @@ export default function CreateBulkShipmentPage() {
 			await refetchBulkRates();
 		} catch (error) {
 			console.error("Error calculating bulk rates:", error);
-			setErrorMessage("Failed to calculate rates. Please try again.");
+			toast.error("Failed to calculate rates. Please try again.");
 		}
 	}, [shipments, refetchBulkRates, trigger, clearErrors]);
 
@@ -131,25 +129,19 @@ export default function CreateBulkShipmentPage() {
 				const data = e.target?.result;
 				const workbook = XLSX.read(data, { type: "array" });
 				if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-					setErrorMessage(
-						"The uploaded Excel file does not contain any sheets.",
-					);
+					toast.error("The uploaded Excel file does not contain any sheets.");
 					setIsLoading(false);
 					return;
 				}
 				const sheetName = workbook.SheetNames[0];
 				if (!sheetName) {
-					setErrorMessage(
-						"Could not find the specified sheet in the Excel file.",
-					);
+					toast.error("Could not find the specified sheet in the Excel file.");
 					setIsLoading(false);
 					return;
 				}
 				const worksheet = workbook.Sheets[sheetName];
 				if (!worksheet) {
-					setErrorMessage(
-						"Could not find the specified sheet in the Excel file.",
-					);
+					toast.error("Could not find the specified sheet in the Excel file.");
 					setIsLoading(false);
 					return;
 				}
@@ -230,9 +222,7 @@ export default function CreateBulkShipmentPage() {
 				trigger(`shipments.${index}.packageImage`);
 			} catch (error) {
 				console.error("Error converting file to Base64:", error);
-				setErrorMessage(
-					`Failed to process image file for shipment ${index + 1}`,
-				);
+				toast.error(`Failed to process image file for shipment ${index + 1}`);
 				const newShipments = [...shipments];
 				if (newShipments[index]) {
 					newShipments[index] = {
@@ -270,24 +260,26 @@ export default function CreateBulkShipmentPage() {
 	const createBulkShipmentMutation = api.order.createBulkShipments.useMutation({
 		onSuccess: (data) => {
 			setIsLoading(false);
-			setErrorMessage("");
-			if (data.success) {
+			toast.success("Bulk shipments created successfully! Redirecting...");
+			setTimeout(() => {
 				router.push("/dashboard");
-			} else {
-				setErrorMessage(
+				router.refresh();
+			}, 2000);
+			if (!data.success) {
+				toast.error(
 					data.message ?? "An error occurred while creating bulk shipments.",
 				);
 			}
 		},
 		onError: (err) => {
-			setErrorMessage(err.message);
+			toast.error(err.message);
 			setIsLoading(false);
 		},
 	});
 
 	const onSubmit = async (data: TExcelOrderSchema) => {
 		setIsLoading(true);
-		setErrorMessage("");
+
 		clearErrors(); // Clear all previous errors
 
 		const originAddressesToCreate = data.shipments.map((shipment) => ({
@@ -325,7 +317,7 @@ export default function CreateBulkShipmentPage() {
 			originAddressIds = allAddressIds.slice(0, data.shipments.length);
 			destinationAddressIds = allAddressIds.slice(data.shipments.length);
 		} catch (error) {
-			setErrorMessage(
+			toast.error(
 				`Failed to process addresses: ${
 					error instanceof Error ? error.message : "Unknown error"
 				}`,
@@ -399,7 +391,7 @@ export default function CreateBulkShipmentPage() {
 					}
 				}
 			}
-			setErrorMessage(
+			toast.error(
 				"Some shipments have validation errors after address processing. Please correct them.",
 			);
 			console.error(
@@ -429,12 +421,6 @@ export default function CreateBulkShipmentPage() {
 						onSubmit={handleSubmit(onSubmit)}
 						className="space-y-4 text-blue-950"
 					>
-						{errorMessage && (
-							<Alert variant="destructive">
-								<AlertCircle className="h-4 w-4" />
-								<AlertDescription>{errorMessage}</AlertDescription>
-							</Alert>
-						)}
 						<div className="space-y-2">
 							<Label htmlFor="excelFile">Upload Excel File</Label>
 							<Input

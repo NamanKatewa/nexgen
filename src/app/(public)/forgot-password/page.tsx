@@ -1,15 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MailCheck } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
 import { FormWrapper } from "~/components/FormWrapper";
 import { PasswordInput } from "~/components/PasswordInput";
-import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
@@ -30,8 +29,6 @@ export default function ResetPage() {
 	const router = useRouter();
 	const [step, setStep] = useState<"email" | "reset">("email");
 	const [email, setEmail] = useState("");
-	const [message, setMessage] = useState("");
-	const [errorMessage, setErrorMessage] = useState("");
 	const [resendTimer, setResendTimer] = useState(60);
 
 	const emailForm = useForm<TForgotPasswordSchema>({
@@ -55,43 +52,33 @@ export default function ResetPage() {
 
 	const forgotPassword = api.auth.forgotPassword.useMutation({
 		onSuccess: () => {
-			setMessage("OTP sent to your email.");
+			toast.success("OTP sent to your email.");
 			setStep("reset");
 			setResendTimer(60);
 		},
 		onError: (error) => {
-			setErrorMessage(error.message);
+			toast.error(error.message);
 		},
 	});
 
 	const resetPassword = api.auth.resetPasswordWithOtp.useMutation({
 		onSuccess: () => {
-			setMessage("Password reset successful. Redirecting to login...");
+			toast.success("Password reset successful. Redirecting to login...");
+			setTimeout(() => {
+				router.push("/login");
+			}, 2000);
 		},
 		onError: (error) => {
-			setErrorMessage(error.message);
+			toast.error(error.message);
 		},
 	});
 
-	useEffect(() => {
-		if (resetPassword.isSuccess) {
-			const timeout = setTimeout(() => {
-				router.push("/login");
-			}, 5000);
-			return () => clearTimeout(timeout);
-		}
-	}, [resetPassword.isSuccess, router]);
-
 	const handleEmailSubmit = (data: TForgotPasswordSchema) => {
 		setEmail(data.email);
-		setErrorMessage("");
-		setMessage("");
 		forgotPassword.mutate(data);
 	};
 
 	const handleResetSubmit = (data: TResetPasswordWithOtpSchema) => {
-		setErrorMessage("");
-		setMessage("");
 		resetPassword.mutate(data);
 	};
 
@@ -105,18 +92,8 @@ export default function ResetPage() {
 		<div className="flex min-h-screen items-center justify-center p-4">
 			<FormWrapper
 				title="Forgot Password"
-				errorMessage={errorMessage}
 				cardClassName="w-[500px] bg-blue-100/20"
 			>
-				{message && (
-					<Alert variant="default" className="mb-4 bg-green-300">
-						<MailCheck className="h-4 w-4" />
-						<AlertDescription className="text-blue-950">
-							{message}
-						</AlertDescription>
-					</Alert>
-				)}
-
 				{step === "email" && (
 					<form
 						onSubmit={emailForm.handleSubmit(handleEmailSubmit)}

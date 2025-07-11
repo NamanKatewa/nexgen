@@ -1,9 +1,8 @@
-"use client";
-
 import { format } from "date-fns";
 import Image from "next/image";
 import type React from "react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -62,9 +61,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 	onClose,
 	kycItem,
 }) => {
-	const [errorMessage, setErrorMessage] = useState("");
 	const [rejectReason, setRejectReason] = useState("");
-	const [rejectErrorMessage, setRejectErrorMessage] = useState("");
 	const [showApproveConfirmModal, setShowApproveConfirmModal] = useState(false);
 	const [showRejectConfirmModal, setShowRejectConfirmModal] = useState(false);
 
@@ -72,19 +69,21 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 	const verifyKyc = api.admin.verifyKyc.useMutation({
 		onSuccess: () => {
 			utils.admin.pendingKyc.invalidate();
+			toast.success("KYC application approved successfully!");
 			onClose();
 		},
 		onError: (error) => {
-			setErrorMessage(error.message);
+			toast.error(error.message);
 		},
 	});
 	const rejectKyc = api.admin.rejectKyc.useMutation({
 		onSuccess: () => {
 			utils.admin.pendingKyc.invalidate();
+			toast.success("KYC application rejected successfully!");
 			onClose();
 		},
 		onError: (error) => {
-			setErrorMessage(error.message);
+			toast.error(error.message);
 		},
 	});
 
@@ -152,7 +151,6 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 							cannot be undone.
 						</DialogDescription>
 					</DialogHeader>
-					{rejectErrorMessage && <p className="text-red-500 text-sm mt-2">{rejectErrorMessage}</p>}
 					<div className="mt-4">
 						<Label htmlFor="reject-reason">Reason for Rejection</Label>
 						<Textarea
@@ -182,7 +180,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 									setShowRejectConfirmModal(false);
 									onClose();
 								} else {
-									setRejectErrorMessage("Rejection reason cannot be empty.");
+									toast.error("Rejection reason cannot be empty.");
 								}
 							}}
 							disabled={rejectKyc.isPending}
@@ -193,36 +191,48 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 				</DialogContent>
 			</Dialog>
 
-			<Dialog open={isOpen} onOpenChange={(open) => {
+			<Dialog
+				open={isOpen}
+				onOpenChange={(open) => {
 					if (!open) {
 						onClose();
-						setErrorMessage("");
 						setRejectReason("");
-						setRejectErrorMessage("");
 						setShowApproveConfirmModal(false);
 						setShowRejectConfirmModal(false);
 					}
-				}}>
+				}}
+			>
 				<DialogContent className="w-4xl bg-blue-50 text-blue-950">
 					<DialogHeader>
 						<DialogTitle>KYC Details for {kycItem.entity_name}</DialogTitle>
 						<DialogDescription className="text-blue-950">
 							Review the details.
 						</DialogDescription>
-						{errorMessage && <p className="text-red-500">{errorMessage}</p>}
 					</DialogHeader>
 					<div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
 						<div className="space-y-2">
 							<Label>Entity Name</Label>
-							<Input value={kycItem.entity_name || "N/A"} readOnly tabIndex={-1} />
+							<Input
+								value={kycItem.entity_name || "N/A"}
+								readOnly
+								tabIndex={-1}
+							/>
 						</div>
 						<div className="space-y-2">
 							<Label>Email</Label>
-							<Input value={kycItem.user.email || "N/A"} readOnly tabIndex={-1} />
+							<Input
+								value={kycItem.user.email || "N/A"}
+								readOnly
+								tabIndex={-1}
+							/>
 						</div>
 						<div className="space-y-2">
 							<Label>Entity Type</Label>
-							<Input value={kycItem.entity_type || "N/A"} readOnly tabIndex={-1} />
+							<Input
+								value={kycItem.entity_type || "N/A"}
+								readOnly
+								tabIndex={-1}
+							/>
 						</div>
 						<div className="space-y-2">
 							<Label>Website URL</Label>
@@ -265,7 +275,10 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 						<div className="space-y-2 md:col-span-2">
 							<Label>Billing Address</Label>
 							{address ? (
-								<div className="rounded-md border border-input bg-background px-3 py-2 text-sm" tabIndex={-1}>
+								<div
+									className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+									tabIndex={-1}
+								>
 									{address.address_line}
 									<br />
 									{address.city}, {address.state} - {address.zip_code}
@@ -277,7 +290,11 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 
 						<div className="space-y-2">
 							<Label>Aadhar Number</Label>
-							<Input value={kycItem.aadhar_number || "N/A"} readOnly tabIndex={-1} />
+							<Input
+								value={kycItem.aadhar_number || "N/A"}
+								readOnly
+								tabIndex={-1}
+							/>
 							<div className="flex items-center justify-between">
 								{kycItem.aadhar_image_front && (
 									<Image
@@ -310,7 +327,11 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 
 						<div className="space-y-2">
 							<Label>PAN Number</Label>
-							<Input value={kycItem.pan_number || "N/A"} readOnly tabIndex={-1} />
+							<Input
+								value={kycItem.pan_number || "N/A"}
+								readOnly
+								tabIndex={-1}
+							/>
 							<div className="flex gap-2">
 								{kycItem.pan_image_front && (
 									<Image

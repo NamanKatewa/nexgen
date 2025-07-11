@@ -2,15 +2,15 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ADDRESS_TYPE } from "@prisma/client";
-import { AlertCircle, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { AddAddressModal } from "~/components/AddAddressModal";
 import { FieldError } from "~/components/FieldError";
-import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
 	Card,
@@ -36,7 +36,6 @@ interface PincodeDetails {
 
 export default function CreateShipmentPage() {
 	const router = useRouter();
-	const [errorMessage, setErrorMessage] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [showOriginAddressModal, setShowOriginAddressModal] = useState(false);
 	const [autofilledAddressDetails, setAutofilledAddressDetails] = useState<
@@ -80,7 +79,7 @@ export default function CreateShipmentPage() {
 				});
 			} catch (error) {
 				console.error("Error converting file to Base64:", error);
-				setErrorMessage("Failed to process image file");
+				toast.error("Failed to process image file");
 				setValue(fieldName, { data: "", name: "", type: "", size: 0 });
 				setPreview(null);
 			}
@@ -153,10 +152,13 @@ export default function CreateShipmentPage() {
 	const createShipmentMutation = api.order.createShipment.useMutation({
 		onSuccess: () => {
 			setIsLoading(false);
-			router.push("/dashboard");
+			toast.success("Shipment created successfully! Redirecting...");
+			setTimeout(() => {
+				router.push("/dashboard");
+			}, 2000);
 		},
 		onError(err) {
-			setErrorMessage(err.message);
+			toast.error(err.message);
 			setIsLoading(false);
 		},
 	});
@@ -187,14 +189,14 @@ export default function CreateShipmentPage() {
 			setCalculatedRate(rateData.rate);
 			setOrigin(rateData.origin);
 			setDestination(rateData.destination);
-			setErrorMessage("");
 			setQueryInput(null);
+			toast.success("Rate calculated successfully!");
 		}
 	}, [rateData]);
 
 	useEffect(() => {
 		if (rateError) {
-			setErrorMessage(rateError.message);
+			toast.error(rateError.message);
 			setCalculatedRate(null);
 			setQueryInput(null);
 		}
@@ -207,7 +209,7 @@ export default function CreateShipmentPage() {
 		);
 
 		if (!originAddress || !destinationAddress.zipCode || !data.packageWeight) {
-			setErrorMessage(
+			toast.error(
 				"Please select origin, destination, and enter package weight.",
 			);
 			return;
@@ -222,7 +224,6 @@ export default function CreateShipmentPage() {
 
 	const onSubmit = async (data: TShipmentSchema) => {
 		setIsLoading(true);
-		setErrorMessage("");
 
 		let finalDestinationAddressId = data.destinationAddressId;
 
@@ -255,7 +256,7 @@ export default function CreateShipmentPage() {
 				if (error instanceof Error) {
 					message = error.message;
 				}
-				setErrorMessage(message);
+				toast.error(message);
 				setIsLoading(false);
 				return;
 			}
@@ -289,13 +290,6 @@ export default function CreateShipmentPage() {
 						onSubmit={handleSubmit(onSubmit)}
 						className="space-y-4 text-blue-950"
 					>
-						{errorMessage && (
-							<Alert variant="destructive">
-								<AlertCircle className="h-4 w-4" />
-								<AlertDescription>{errorMessage}</AlertDescription>
-							</Alert>
-						)}
-
 						<div className="mb-10 flex gap-10">
 							<div className="space-y-4">
 								<Label>Recipient Name</Label>
@@ -379,7 +373,6 @@ export default function CreateShipmentPage() {
 												state: e.target.value,
 											}))
 										}
-										disabled={isLoading}
 									/>
 									<FieldError message={errors.destinationAddressId?.message} />
 								</div>

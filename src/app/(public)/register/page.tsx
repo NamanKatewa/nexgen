@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
 import { FormWrapper } from "~/components/FormWrapper";
 import { PasswordInput } from "~/components/PasswordInput";
@@ -23,7 +24,6 @@ import { api } from "~/trpc/react";
 import { type TSignupSchema, signupSchema } from "~/schemas/auth";
 
 export default function SignupPage() {
-	const [errorMessage, setErrorMessage] = useState("");
 	const router = useRouter();
 	const utils = api.useUtils();
 
@@ -31,12 +31,15 @@ export default function SignupPage() {
 		onSuccess: async (data) => {
 			localStorage.setItem("token", data.token);
 			document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
-			await utils.auth.me.invalidate;
-			router.push("/dashboard");
-			router.refresh();
+			await utils.auth.me.invalidate();
+			toast.success("Account created successfully! Redirecting...");
+			setTimeout(() => {
+				router.push("/dashboard");
+				router.refresh();
+			}, 2000);
 		},
 		onError: (error) => {
-			setErrorMessage(error.message);
+			toast.error(error.message);
 		},
 	});
 
@@ -50,7 +53,6 @@ export default function SignupPage() {
 	});
 
 	const onSubmit = (data: TSignupSchema) => {
-		setErrorMessage("");
 		signupMutation.mutate(data);
 	};
 
@@ -59,7 +61,6 @@ export default function SignupPage() {
 			<FormWrapper
 				title="Create Account"
 				description="Enter your details to create your account"
-				errorMessage={errorMessage}
 				footerText={
 					<p className="text-muted-foreground text-sm">
 						Already have an account?{" "}

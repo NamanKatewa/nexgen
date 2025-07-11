@@ -1,10 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ADDRESS_TYPE } from "@prisma/client";
-import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
-import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
@@ -31,7 +30,6 @@ export function AddAddressModal({
 	onAddressAdded,
 	addressType,
 }: AddAddressModalProps) {
-	const [errorMessage, setErrorMessage] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const {
@@ -46,21 +44,19 @@ export function AddAddressModal({
 	const createAddressMutation = api.address.createAddress.useMutation({
 		onSuccess: () => {
 			setIsLoading(false);
+			toast.success("Address added successfully!");
 			onAddressAdded();
 			reset();
 			onClose();
 		},
 		onError: (error) => {
-			setErrorMessage(
-				error.message || "Something went wrong. Please try again.",
-			);
+			toast.error(error.message || "Something went wrong. Please try again.");
 			setIsLoading(false);
 		},
 	});
 
 	const onSubmit = async (data: TAddressSchema) => {
 		setIsLoading(true);
-		setErrorMessage("");
 		createAddressMutation.mutate({ ...data, type: addressType });
 	};
 
@@ -71,12 +67,6 @@ export function AddAddressModal({
 					<DialogTitle>Add New {addressType} Address</DialogTitle>
 				</DialogHeader>
 				<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-					{errorMessage && (
-						<Alert variant="destructive">
-							<AlertCircle className="h-4 w-4" />
-							<AlertDescription>{errorMessage}</AlertDescription>
-						</Alert>
-					)}
 					<div className="space-y-2">
 						<Label htmlFor="name">Name</Label>
 						<Input id="name" {...register("name")} disabled={isLoading} />
