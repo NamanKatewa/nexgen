@@ -1,3 +1,4 @@
+import logger from "~/lib/logger";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { findBulkRates, findRate } from "~/lib/rate";
@@ -6,113 +7,155 @@ import { rateSchema } from "~/schemas/rate";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
 export const rateRouter = createTRPCRouter({
-	calculateRate: publicProcedure
-		.input(rateSchema)
-		.query(async ({ input, ctx }) => {
-			const { originZipCode, destinationZipCode, packageWeight } = input;
-			const userId = ctx.user?.user_id;
+  calculateRate: publicProcedure
+    .input(rateSchema)
+    .query(async ({ input, ctx }) => {
+      const { user } = ctx;
+      const logData = { userId: user?.user_id, input };
+      logger.info("Calculating rate", logData);
 
-			const originDetails = await getPincodeDetails(originZipCode);
-			const destinationDetails = await getPincodeDetails(destinationZipCode);
+      try {
+        const { originZipCode, destinationZipCode, packageWeight } = input;
 
-			if (!originDetails || !destinationDetails) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid origin or destination pincode",
-				});
-			}
+        const originDetails = await getPincodeDetails(originZipCode);
+        const destinationDetails = await getPincodeDetails(destinationZipCode);
 
-			const { zone } = getZone(originDetails, destinationDetails);
-			const weightSlab = Math.ceil(packageWeight * 2) / 2;
+        if (!originDetails || !destinationDetails) {
+          logger.warn("Invalid origin or destination pincode", { ...logData });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid origin or destination pincode",
+          });
+        }
 
-			if (userId) {
-				const userRate = await findRate({
-					userId,
-					zoneFrom: "z",
-					zoneTo: zone,
-					weightSlab,
-					packageWeight,
-					isUserRate: true,
-				});
-				if (userRate !== null) {
-					return {
-						rate: userRate,
-						origin: originDetails,
-						destination: destinationDetails,
-					};
-				}
-			}
+        const { zone } = getZone(originDetails, destinationDetails);
+        const weightSlab = Math.ceil(packageWeight * 2) / 2;
 
-			const defaultRate = await findRate({
-				zoneFrom: "z",
-				zoneTo: zone,
-				weightSlab,
-				packageWeight,
-				isUserRate: false,
-			});
-			if (defaultRate !== null) {
-				return {
-					rate: defaultRate,
-					origin: originDetails,
-					destination: destinationDetails,
-				};
-			}
+        if (user?.user_id) {
+          logger.info("Attempting to find user-specific rate", { ...logData });
+          const userRate = await findRate({
+            userId: user.user_id,
+            zoneFrom: "z",
+            zoneTo: zone,
+            weightSlab,
+            packageWeight,
+            isUserRate: true,
+          });
+          if (userRate !== null) {
+            logger.info("Found user-specific rate", {
+              ...logData,
+              rate: userRate,
+              source: "user",
+            });
+            return {
+              rate: userRate,
+              origin: originDetails,
+              destination: destinationDetails,
+            };
+          }
+          logger.info(
+            "User-specific rate not found, falling back to default rate",
+            { ...logData }
+          );
+        }
 
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "Rate not found for the given parameters",
-			});
-		}),
+        logger.info("Attempting to find default rate", { ...logData });
+        const defaultRate = await findRate({
+          zoneFrom: "z",
+          zoneTo: zone,
+          weightSlab,
+          packageWeight,
+          isUserRate: false,
+        });
+        if (defaultRate !== null) {
+          logger.info("Found default rate", {
+            ...logData,
+            rate: defaultRate,
+            source: "default",
+          });
+          return {
+            rate: defaultRate,
+            origin: originDetails,
+            destination: destinationDetails,
+          };
+        }
 
-	calculateBulkRates: publicProcedure
-		.input(
-			z.array(
-				z.object({
-					originZipCode: z.string(),
-					destinationZipCode: z.string(),
-					packageWeight: z.number(),
-				}),
-			),
-		)
-		.query(async ({ input, ctx }) => {
-			const userId = ctx.user?.user_id;
-			const shipmentDetailsForRateCalculation: {
-				zoneFrom: string;
-				zoneTo: string;
-				weightSlab: number;
-				packageWeight: number;
-			}[] = [];
+        logger.error("No rate found (user or default)", { ...logData });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Rate not found for the given parameters",
+        });
+      } catch (error) {
+        logger.error("Failed to calculate rate", { ...logData, error });
+        throw error;
+      }
+    }),
 
-			for (const shipment of input) {
-				const originDetails = await getPincodeDetails(shipment.originZipCode);
-				const destinationDetails = await getPincodeDetails(
-					shipment.destinationZipCode,
-				);
+  calculateBulkRates: publicProcedure
+    .input(
+      z.array(
+        z.object({
+          originZipCode: z.string(),
+          destinationZipCode: z.string(),
+          packageWeight: z.number(),
+        })
+      )
+    )
+    .query(async ({ input, ctx }) => {
+      const { user } = ctx;
+      const logData = { userId: user?.user_id, inputCount: input.length };
+      logger.info("Calculating bulk rates", logData);
 
-				if (!originDetails || !destinationDetails) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Invalid origin or destination pincode in bulk request",
-					});
-				}
+      try {
+        const shipmentDetailsForRateCalculation: {
+          zoneFrom: string;
+          zoneTo: string;
+          weightSlab: number;
+          packageWeight: number;
+        }[] = [];
 
-				const { zone } = getZone(originDetails, destinationDetails);
-				const weightSlab = Math.ceil(shipment.packageWeight * 2) / 2;
+        for (const shipment of input) {
+          const originDetails = await getPincodeDetails(shipment.originZipCode);
+          const destinationDetails = await getPincodeDetails(
+            shipment.destinationZipCode
+          );
 
-				shipmentDetailsForRateCalculation.push({
-					zoneFrom: "z", // Assuming 'z' is a placeholder or default for origin zone
-					zoneTo: zone,
-					weightSlab,
-					packageWeight: shipment.packageWeight,
-				});
-			}
+          if (!originDetails || !destinationDetails) {
+            logger.warn(
+              "Invalid origin or destination pincode in bulk request",
+              { ...logData, shipment }
+            );
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Invalid origin or destination pincode in bulk request",
+            });
+          }
 
-			const rates = await findBulkRates({
-				userId,
-				shipmentDetails: shipmentDetailsForRateCalculation,
-				isUserRate: !!userId, // Pass true if userId exists, false otherwise
-			});
+          const { zone } = getZone(originDetails, destinationDetails);
+          const weightSlab = Math.ceil(shipment.packageWeight * 2) / 2;
 
-			return rates;
-		}),
+          shipmentDetailsForRateCalculation.push({
+            zoneFrom: "z", // Assuming 'z' is a placeholder or default for origin zone
+            zoneTo: zone,
+            weightSlab,
+            packageWeight: shipment.packageWeight,
+          });
+        }
+
+        const rates = await findBulkRates({
+          userId: user?.user_id,
+          shipmentDetails: shipmentDetailsForRateCalculation,
+          isUserRate: !!user?.user_id,
+        });
+
+        logger.info("Successfully calculated bulk rates", {
+          ...logData,
+          rateCount: rates.length,
+        });
+        return rates;
+      } catch (error) {
+        logger.error("Failed to calculate bulk rates", { ...logData, error });
+        throw error;
+      }
+    }),
 });

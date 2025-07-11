@@ -1,3 +1,4 @@
+import logger from "~/lib/logger";
 import { TRPCError } from "@trpc/server";
 import { compare, hash } from "bcryptjs";
 import { addMinutes } from "date-fns";
@@ -6,226 +7,322 @@ import { sendEmail } from "~/lib/email";
 import { signToken } from "~/lib/jwt";
 import { generateOTP } from "~/lib/utils";
 import {
-	forgotPasswordSchema,
-	loginSchema,
-	resetPasswordWithOtpSchema,
-	signupSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  resetPasswordWithOtpSchema,
+  signupSchema,
 } from "~/schemas/auth";
 import {
-	createTRPCRouter,
-	protectedProcedure,
-	publicProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
 export const authRouter = createTRPCRouter({
-	me: publicProcedure.query(async ({ ctx }) => {
-		if (!ctx.user) return null;
+  me: publicProcedure.query(async ({ ctx }) => {
+    const { user } = ctx;
+    if (!user) {
+      logger.info("No user found in context for 'me' query");
+      return null;
+    }
 
-		const wallet = await db.wallet.findUnique({
-			where: { user_id: ctx.user.user_id },
-			select: { balance: true },
-		});
+    const logData = { userId: user.user_id };
+    logger.info("Fetching user details for 'me' query", logData);
 
-		return {
-			id: ctx.user.user_id,
-			email: ctx.user.email,
-			role: ctx.user.role,
-			name: ctx.user.name,
-			status: ctx.user.status,
-			walletBalance: wallet?.balance,
-		};
-	}),
+    try {
+      const wallet = await db.wallet.findUnique({
+        where: { user_id: user.user_id },
+        select: { balance: true },
+      });
 
-	signup: publicProcedure.input(signupSchema).mutation(async ({ input }) => {
-		const userExists = await db.user.findUnique({
-			where: { email: input.email },
-		});
-		if (userExists)
-			throw new TRPCError({ code: "CONFLICT", message: "User already exists" });
+      const result = {
+        id: user.user_id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        status: user.status,
+        walletBalance: wallet?.balance,
+      };
 
-		const passwordHash = await hash(input.password, 10);
-		const user = await db.user.create({
-			data: {
-				name: input.name,
-				email: input.email,
-				mobile_number: input.mobileNumber,
-				company_name: input.companyName,
-				monthly_order: input.monthlyOrder,
-				business_type: input.businessType,
-				password_hash: passwordHash,
-			},
-		});
+      logger.info("Successfully fetched user details", logData);
+      return result;
+    } catch (error) {
+      logger.error("Failed to fetch user details", { ...logData, error });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Something went wrong",
+      });
+    }
+  }),
 
-		const kyc = await db.kyc.create({
-			data: {
-				user: { connect: { user_id: user.user_id } },
-			},
-			select: { kyc_status: true },
-		});
+  signup: publicProcedure
+    .input(signupSchema)
+    .mutation(async ({ input, ctx }) => {
+      const logData = { email: input.email };
+      logger.info("User signup attempt", logData);
 
-		await db.wallet.create({
-			data: {
-				user: { connect: { user_id: user.user_id } },
-				balance: 0,
-			},
-		});
+      const userExists = await db.user.findUnique({
+        where: { email: input.email },
+      });
+      if (userExists) {
+        logger.warn("User already exists", logData);
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "User already exists",
+        });
+      }
 
-		const token = signToken({
-			id: user.user_id,
-			role: user.role,
-			email: user.email,
-			name: user.name,
-			status: user.status,
-			kyc_status: kyc.kyc_status,
-		});
+      try {
+        const passwordHash = await hash(input.password, 10);
+        const user = await db.user.create({
+          data: {
+            name: input.name,
+            email: input.email,
+            mobile_number: input.mobileNumber,
+            company_name: input.companyName,
+            monthly_order: input.monthlyOrder,
+            business_type: input.businessType,
+            password_hash: passwordHash,
+          },
+        });
 
-		(await cookies()).set({
-			name: "token",
-			value: token,
-			httpOnly: true,
-			path: "/",
-			sameSite: "lax",
-			secure: process.env.NODE_ENV === "production",
-			maxAge: 60 * 60 * 24 * 7,
-		});
+        const kyc = await db.kyc.create({
+          data: {
+            user: { connect: { user_id: user.user_id } },
+          },
+          select: { kyc_status: true },
+        });
 
-		return {
-			token,
-			user: {
-				email: user.email,
-				role: user.role,
-				name: user.name,
-				status: user.status,
-				kyc_status: kyc.kyc_status,
-			},
-		};
-	}),
+        await db.wallet.create({
+          data: {
+            user: { connect: { user_id: user.user_id } },
+            balance: 0,
+          },
+        });
 
-	login: publicProcedure.input(loginSchema).mutation(async ({ input }) => {
-		const user = await db.user.findUnique({ where: { email: input.email } });
+        const tokenPayload = {
+          id: user.user_id,
+          role: user.role,
+          email: user.email,
+          name: user.name,
+          status: user.status,
+          kyc_status: kyc.kyc_status,
+        };
+        const token = signToken(tokenPayload);
 
-		if (!user || !user.password_hash)
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message: "Invalid credentials",
-			});
+        (await cookies()).set({
+          name: "token",
+          value: token,
+          httpOnly: true,
+          path: "/",
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 60 * 24 * 7,
+        });
 
-		const isValidPass = await compare(input.password, user.password_hash);
-		if (!isValidPass)
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message: "Invalid credentials",
-			});
+        logger.info("User signed up successfully", {
+          ...logData,
+          userId: user.user_id,
+        });
+        return {
+          token,
+          user: tokenPayload,
+        };
+      } catch (error) {
+        logger.error("User signup failed", { ...logData, error });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Something went wrong",
+        });
+      }
+    }),
 
-		const kyc = await db.kyc.findUnique({
-			where: {
-				user_id: user.user_id,
-			},
-			select: { kyc_status: true },
-		});
+  login: publicProcedure.input(loginSchema).mutation(async ({ input, ctx }) => {
+    const logData = { email: input.email };
+    logger.info("User login attempt", logData);
 
-		if (!kyc)
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Invalid KYC",
-			});
+    const user = await db.user.findUnique({ where: { email: input.email } });
 
-		const token = signToken({
-			id: user.user_id,
-			role: user.role,
-			email: user.email,
-			name: user.name,
-			status: user.status,
-			kyc_status: kyc.kyc_status,
-		});
+    if (!user || !user.password_hash) {
+      logger.warn(
+        "Invalid credentials - user not found or no password hash",
+        logData
+      );
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Invalid credentials",
+      });
+    }
 
-		(await cookies()).set({
-			name: "token",
-			value: token,
-			httpOnly: true,
-			path: "/",
-			sameSite: "lax",
-			secure: process.env.NODE_ENV === "production",
-			maxAge: 60 * 60 * 24 * 7,
-		});
+    const isValidPass = await compare(input.password, user.password_hash);
+    if (!isValidPass) {
+      logger.warn("Invalid credentials - password mismatch", logData);
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Invalid credentials",
+      });
+    }
 
-		return {
-			token,
-			user: {
-				email: user.email,
-				role: user.role,
-				name: user.name,
-				status: user.status,
-				kyc_status: kyc.kyc_status,
-			},
-		};
-	}),
+    try {
+      const kyc = await db.kyc.findUnique({
+        where: {
+          user_id: user.user_id,
+        },
+        select: { kyc_status: true },
+      });
 
-	logout: protectedProcedure.mutation(async () => {
-		(await cookies()).set({ name: "token", value: "", maxAge: 0, path: "/" });
-		return true;
-	}),
+      if (!kyc) {
+        logger.error("KYC not found for user", {
+          ...logData,
+          userId: user.user_id,
+        });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Invalid KYC",
+        });
+      }
 
-	forgotPassword: publicProcedure
-		.input(forgotPasswordSchema)
-		.mutation(async ({ input }) => {
-			const user = await db.user.findUnique({ where: { email: input.email } });
-			if (!user)
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "No user with this email.",
-				});
+      const tokenPayload = {
+        id: user.user_id,
+        role: user.role,
+        email: user.email,
+        name: user.name,
+        status: user.status,
+        kyc_status: kyc.kyc_status,
+      };
+      const token = signToken(tokenPayload);
 
-			const otp = generateOTP();
-			const expiry = addMinutes(new Date(), 10);
+      (await cookies()).set({
+        name: "token",
+        value: token,
+        httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7,
+      });
 
-			const reset = await db.passwordReset.upsert({
-				where: { email: input.email },
-				update: { otp, expiresAt: expiry },
-				create: { email: input.email, otp, expiresAt: expiry },
-			});
+      logger.info("User logged in successfully", {
+        ...logData,
+        userId: user.user_id,
+      });
+      return {
+        token,
+        user: tokenPayload,
+      };
+    } catch (error) {
+      logger.error("User login failed", { ...logData, error });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Something went wrong",
+      });
+    }
+  }),
 
-			if (!reset)
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Database Error",
-				});
+  logout: protectedProcedure.mutation(async ({ ctx }) => {
+    const { logger, user } = ctx;
+    const logData = { userId: user.user_id };
+    logger.info("User logout", logData);
+    try {
+      (await cookies()).set({ name: "token", value: "", maxAge: 0, path: "/" });
+      logger.info("User logged out successfully", logData);
+      return true;
+    } catch (error) {
+      logger.error("User logout failed", { ...logData, error });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Something went wrong",
+      });
+    }
+  }),
 
-			const mail = await sendEmail({
-				to: user.email,
-				subject: "Password Reset OTP",
-				html: `<p>Your OTP is <strong>${otp}</strong>. It expires in 10 minutes.</p>`,
-			});
+  forgotPassword: publicProcedure
+    .input(forgotPasswordSchema)
+    .mutation(async ({ input, ctx }) => {
+      const logData = { email: input.email };
+      logger.info("Forgot password request", logData);
 
-			return true;
-		}),
+      const user = await db.user.findUnique({ where: { email: input.email } });
+      if (!user) {
+        logger.warn("User not found for forgot password request", logData);
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No user with this email.",
+        });
+      }
 
-	resetPasswordWithOtp: publicProcedure
-		.input(resetPasswordWithOtpSchema)
-		.mutation(async ({ input }) => {
-			const record = await db.passwordReset.findUnique({
-				where: { email: input.email },
-			});
+      try {
+        const otp = generateOTP();
+        const expiry = addMinutes(new Date(), 10);
 
-			if (!record || record.otp !== input.otp)
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid or expired OTP",
-				});
+        await db.passwordReset.upsert({
+          where: { email: input.email },
+          update: { otp, expiresAt: expiry },
+          create: { email: input.email, otp, expiresAt: expiry },
+        });
 
-			if (record.expiresAt < new Date())
-				throw new TRPCError({ code: "BAD_REQUEST", message: "OTP expired" });
+        await sendEmail({
+          to: user.email,
+          subject: "Password Reset OTP",
+          html: `<p>Your OTP is <strong>${otp}</strong>. It expires in 10 minutes.</p>`,
+        });
 
-			const hashedPassword = await hash(input.password, 10);
+        logger.info("Successfully sent password reset OTP", logData);
+        return true;
+      } catch (error) {
+        logger.error("Failed to send password reset OTP", {
+          ...logData,
+          error,
+        });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Database Error",
+        });
+      }
+    }),
 
-			await db.user.update({
-				where: { email: input.email },
-				data: { password_hash: hashedPassword },
-			});
+  resetPasswordWithOtp: publicProcedure
+    .input(resetPasswordWithOtpSchema)
+    .mutation(async ({ input, ctx }) => {
+      const logData = { email: input.email };
+      logger.info("Reset password with OTP attempt", logData);
 
-			await db.passwordReset.delete({ where: { email: input.email } });
+      try {
+        const record = await db.passwordReset.findUnique({
+          where: { email: input.email },
+        });
 
-			return true;
-		}),
+        if (!record || record.otp !== input.otp) {
+          logger.warn("Invalid or expired OTP", logData);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid or expired OTP",
+          });
+        }
+
+        if (record.expiresAt < new Date()) {
+          logger.warn("OTP expired", logData);
+          throw new TRPCError({ code: "BAD_REQUEST", message: "OTP expired" });
+        }
+
+        const hashedPassword = await hash(input.password, 10);
+
+        await db.user.update({
+          where: { email: input.email },
+          data: { password_hash: hashedPassword },
+        });
+
+        await db.passwordReset.delete({ where: { email: input.email } });
+
+        logger.info("Password reset successfully", logData);
+        return true;
+      } catch (error) {
+        logger.error("Password reset failed", { ...logData, error });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Something went wrong",
+        });
+      }
+    }),
 });
