@@ -24,7 +24,7 @@ export const kycRouter = createTRPCRouter({
 
         const address = await db.address.create({
           data: {
-            type: "Kyc",
+            type: "Warehouse",
             zip_code: input.billingAddress.zipCode,
             city: input.billingAddress.city,
             state: input.billingAddress.state,
