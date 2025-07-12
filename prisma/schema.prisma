@@ -91,7 +91,6 @@ enum ENTITY_TYPE {
 }
 
 enum ADDRESS_TYPE {
-  Kyc
   User
   Warehouse
 }
