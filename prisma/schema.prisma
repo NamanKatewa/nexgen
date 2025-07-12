@@ -116,8 +116,9 @@ model User {
   tickets      SupportTicket[]
   employee     Employee?
   verifiedKYCs Kyc[]           @relation("VerifiedByAdmin")
-  addresses    Address[]
-  userRates    UserRate[]
+  addresses       Address[]
+  userRates       UserRate[]
+  pendingAddresses PendingAddress[]
 }
 
 model DefaultRate {
@@ -291,6 +292,20 @@ model Employee {
 
   user    User            @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   tickets SupportTicket[]
+}
+
+model PendingAddress {
+  pending_address_id String   @id @default(uuid())
+  zip_code           Int
+  city               String
+  state              String
+  address_line       String
+  name               String
+  user_id            String
+  is_approved        Boolean  @default(false)
+  created_at         DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model PasswordReset {

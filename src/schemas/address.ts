@@ -15,3 +15,11 @@ export const addressSchema = z.object({
 });
 
 export type TAddressSchema = z.infer<typeof addressSchema>;
+
+export const approvePendingAddressSchema = z.object({
+	pendingAddressId: z.string(),
+});
+
+export const rejectPendingAddressSchema = z.object({
+	pendingAddressId: z.string(),
+});

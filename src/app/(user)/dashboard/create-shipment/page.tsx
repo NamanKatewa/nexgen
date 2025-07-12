@@ -250,7 +250,16 @@ export default function CreateShipmentPage() {
 					state: destinationAddress.state,
 					type: ADDRESS_TYPE.User,
 				});
-				finalDestinationAddressId = newAddress.address_id;
+
+				if ("address_id" in newAddress) {
+					finalDestinationAddressId = newAddress.address_id;
+				} else {
+					// This case should ideally not be reached if type is ADDRESS_TYPE.User
+					// but added for type safety and robustness.
+					toast.error("Failed to retrieve address ID for new address.");
+					setIsLoading(false);
+					return;
+				}
 			} catch (error) {
 				let message = "Failed to add new destination address.";
 				if (error instanceof Error) {

@@ -44,7 +44,11 @@ export function AddAddressModal({
 	const createAddressMutation = api.address.createAddress.useMutation({
 		onSuccess: () => {
 			setIsLoading(false);
-			toast.success("Address added successfully!");
+			if (addressType === "Warehouse") {
+				toast.success("Address added successfully! Wait for admin Approval");
+			} else {
+				toast.success("Address added successfully!");
+			}
 			onAddressAdded();
 			reset();
 			onClose();
@@ -102,8 +106,8 @@ export function AddAddressModal({
 						<FieldError message={errors.zipCode?.message} />
 					</div>
 					<DialogFooter>
-						<Button type="submit" disabled={isLoading}>
-							{isLoading ? "Adding..." : "Add Address"}
+						<Button type="submit" disabled={createAddressMutation.isPending}>
+							{createAddressMutation.isPending ? "Adding..." : "Add Address"}
 						</Button>
 					</DialogFooter>
 				</form>

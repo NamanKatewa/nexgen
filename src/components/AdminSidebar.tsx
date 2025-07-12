@@ -26,6 +26,11 @@ const sidebarLinks = [
 		icon: PackageCheck,
 		label: "Approve Orders",
 	},
+	{
+		href: "/admin/pending-addresses",
+		icon: PackageCheck,
+		label: "Approve Addresses",
+	},
 	{ href: "/admin/orders", icon: Package, label: "Orders" },
 	{ href: "/admin/all-orders", icon: LayoutDashboard, label: "All Orders" },
 	{
