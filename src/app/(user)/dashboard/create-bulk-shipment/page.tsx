@@ -1,16 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ADDRESS_TYPE } from "@prisma/client";
-import { PlusCircle } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import type { Path } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { FieldError } from "~/components/FieldError";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
@@ -20,19 +18,32 @@ import {
 	type TExcelOrderSchema,
 	type TExcelShipmentSchema,
 	excelOrderSchema,
-	submitShipmentSchema,
 } from "~/schemas/order";
 import { api } from "~/trpc/react";
+
+type ShipmentWithStatus = TExcelShipmentSchema & {
+	status?: "success" | "pending" | "error";
+	message?: string;
+};
+
+type ShipmentResult = {
+	recipientName: string;
+	status: "success" | "pending" | "error";
+	message: string;
+	shipmentId?: string;
+};
 
 export default function CreateBulkShipmentPage() {
 	const router = useRouter();
 
 	const [isLoading, setIsLoading] = useState(false);
-	const [shipments, setShipments] = useState<TExcelShipmentSchema[]>([]);
+	const [shipments, setShipments] = useState<ShipmentWithStatus[]>([]);
+	const [shipmentResults, setShipmentResults] = useState<ShipmentResult[]>([]);
 	const [calculatedRates, setCalculatedRates] = useState<(number | null)[]>([]);
 	const [totalCalculatedRate, setTotalCalculatedRate] = useState<number | null>(
 		null,
 	);
+	const [isSubmitted, setIsSubmitted] = useState(false);
 
 	const {
 		data: bulkRatesData,
@@ -55,9 +66,7 @@ export default function CreateBulkShipmentPage() {
 		handleSubmit,
 		formState: { errors },
 		setValue,
-		getValues,
 		trigger,
-		setError,
 		clearErrors,
 	} = useForm<TExcelOrderSchema>({
 		resolver: zodResolver(excelOrderSchema),
@@ -65,9 +74,6 @@ export default function CreateBulkShipmentPage() {
 			shipments: [],
 		},
 	});
-
-	const createManyOrGetExistingAddressesMutation =
-		api.address.createManyOrGetExisting.useMutation();
 
 	useEffect(() => {
 		if (bulkRatesData) {
@@ -94,19 +100,14 @@ export default function CreateBulkShipmentPage() {
 
 	const handleCalculateRates = useCallback(async () => {
 		clearErrors();
-
-		// Validate all shipments before calculating rates
 		const isValid = await trigger("shipments");
 		if (!isValid) {
 			toast.error("Please correct the errors in the shipment details.");
 			return;
 		}
-
-		// Check if all required fields for rate calculation are present
 		const canCalculate = shipments.every(
 			(s) => s.originZipCode && s.destinationZipCode && s.packageWeight > 0,
 		);
-
 		if (!canCalculate) {
 			toast.error(
 				"Please ensure all shipments have valid origin/destination zip codes and package weights.",
@@ -130,19 +131,18 @@ export default function CreateBulkShipmentPage() {
 				const workbook = XLSX.read(data, { type: "array" });
 				if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
 					toast.error("The uploaded Excel file does not contain any sheets.");
-					setIsLoading(false);
 					return;
 				}
 				const sheetName = workbook.SheetNames[0];
 				if (!sheetName) {
-					toast.error("Could not find the specified sheet in the Excel file.");
-					setIsLoading(false);
+					toast.error(
+						"The first sheet name could not be read from the Excel file.",
+					);
 					return;
 				}
 				const worksheet = workbook.Sheets[sheetName];
 				if (!worksheet) {
 					toast.error("Could not find the specified sheet in the Excel file.");
-					setIsLoading(false);
 					return;
 				}
 				const json = XLSX.utils.sheet_to_json(worksheet) as Record<
@@ -150,7 +150,7 @@ export default function CreateBulkShipmentPage() {
 					unknown
 				>[];
 
-				const parsedShipments: TExcelShipmentSchema[] = json
+				const parsedShipments: ShipmentWithStatus[] = json
 					.filter(
 						(r): r is Record<string, unknown> => r !== undefined && r !== null,
 					)
@@ -171,20 +171,17 @@ export default function CreateBulkShipmentPage() {
 						destinationCity: String(row["Destination City"]) || "",
 						destinationState: String(row["Destination State"]) || "",
 						packageImage: { data: "", name: "", type: "", size: 0 },
+						status: undefined,
+						message: undefined,
 					}));
+
 				setShipments(parsedShipments);
-				setValue(
-					"shipments",
-					parsedShipments.map((s) => ({
-						...s,
-						originAddressId: "",
-						destinationAddressId: "",
-						calculatedRate: null, // Reset calculated rate
-					})),
-				);
-				setCalculatedRates([]); // Clear previous calculated rates
-				setTotalCalculatedRate(null); // Clear total calculated rate
-				trigger("shipments"); // Trigger validation for all shipments after parsing
+				setValue("shipments", parsedShipments);
+				setCalculatedRates([]);
+				setTotalCalculatedRate(null);
+				setShipmentResults([]);
+				setIsSubmitted(false); // Reset submission status on new file upload
+				trigger("shipments");
 			};
 			reader.readAsArrayBuffer(file);
 		}
@@ -199,20 +196,15 @@ export default function CreateBulkShipmentPage() {
 			try {
 				const base64Data = await fileToBase64(file);
 				const newShipments = [...shipments];
-				// Update the packageImage for the specific shipment in the local state
 				if (newShipments[index]) {
-					newShipments[index] = {
-						...newShipments[index],
-						packageImage: {
-							data: base64Data,
-							name: file.name,
-							type: file.type,
-							size: file.size,
-						},
+					newShipments[index].packageImage = {
+						data: base64Data,
+						name: file.name,
+						type: file.type,
+						size: file.size,
 					};
 				}
 				setShipments(newShipments);
-				// Also update the form state
 				setValue(`shipments.${index}.packageImage`, {
 					data: base64Data,
 					name: file.name,
@@ -223,53 +215,36 @@ export default function CreateBulkShipmentPage() {
 			} catch (error) {
 				console.error("Error converting file to Base64:", error);
 				toast.error(`Failed to process image file for shipment ${index + 1}`);
-				const newShipments = [...shipments];
-				if (newShipments[index]) {
-					newShipments[index] = {
-						...newShipments[index],
-						packageImage: { data: "", name: "", type: "", size: 0 },
-					};
-				}
-				setShipments(newShipments);
-				setValue(`shipments.${index}.packageImage`, {
-					data: "",
-					name: "",
-					type: "",
-					size: 0,
-				});
 			}
-		} else {
-			const newShipments = [...shipments];
-			if (newShipments[index]) {
-				newShipments[index] = {
-					...newShipments[index],
-					packageImage: { data: "", name: "", type: "", size: 0 },
-				};
-			}
-			setShipments(newShipments);
-			setValue(`shipments.${index}.packageImage`, {
-				data: "",
-				name: "",
-				type: "",
-				size: 0,
-			});
-			trigger(`shipments.${index}.packageImage`);
 		}
 	};
 
 	const createBulkShipmentMutation = api.order.createBulkShipments.useMutation({
 		onSuccess: (data) => {
 			setIsLoading(false);
-			toast.success("Bulk shipments created successfully! Redirecting...");
-			setTimeout(() => {
-				router.push("/dashboard");
-				router.refresh();
-			}, 2000);
-			if (!data.success) {
-				toast.error(
-					data.message ?? "An error occurred while creating bulk shipments.",
-				);
-			}
+			setShipmentResults(data);
+			setIsSubmitted(true); // Set isSubmitted to true on success
+
+			const updatedShipments = shipments.map((s) => {
+				const result = data.find((r) => r.recipientName === s.recipientName);
+				return result ? { ...s, ...result } : s;
+			});
+			setShipments(updatedShipments);
+
+			const successCount = data.filter((r) => r.status === "success").length;
+			const pendingCount = data.filter((r) => r.status === "pending").length;
+			const errorCount = data.filter((r) => r.status === "error").length;
+
+			toast.info(
+				`Processing complete: ${successCount} created, ${pendingCount} pending, ${errorCount} failed.`,
+			);
+
+			// if (successCount > 0) {
+			// 	toast.success("Redirecting to dashboard in 3 seconds...");
+			// 	setTimeout(() => {
+			// 		router.push("/dashboard");
+			// 		router.refresh();
+			// 	}, 3000);
 		},
 		onError: (err) => {
 			toast.error(err.message);
@@ -279,130 +254,19 @@ export default function CreateBulkShipmentPage() {
 
 	const onSubmit = async (data: TExcelOrderSchema) => {
 		setIsLoading(true);
+		clearErrors();
+		setShipmentResults([]);
 
-		clearErrors(); // Clear all previous errors
-
-		const originAddressesToCreate = data.shipments.map((shipment) => ({
-			name: `Origin for ${shipment.recipientName}`,
-			addressLine: shipment.originAddressLine ?? "",
-			zipCode: Number(shipment.originZipCode ?? 0),
-			city: shipment.originCity ?? "",
-			state: shipment.originState ?? "",
-			type: ADDRESS_TYPE.Warehouse,
-		}));
-
-		const destinationAddressesToCreate = data.shipments.map((shipment) => ({
-			name: shipment.recipientName,
-			addressLine: shipment.destinationAddressLine ?? "",
-			zipCode: Number(shipment.destinationZipCode ?? 0),
-			city: shipment.destinationCity ?? "",
-			state: shipment.destinationState ?? "",
-			type: ADDRESS_TYPE.User,
-		}));
-
-		const allAddressesToProcess = [
-			...originAddressesToCreate,
-			...destinationAddressesToCreate,
-		];
-
-		let originAddressIds: string[] = [];
-		let destinationAddressIds: string[] = [];
-
-		try {
-			const allAddressIds =
-				await createManyOrGetExistingAddressesMutation.mutateAsync(
-					allAddressesToProcess,
-				);
-
-			originAddressIds = allAddressIds.slice(0, data.shipments.length);
-			destinationAddressIds = allAddressIds.slice(data.shipments.length);
-		} catch (error) {
+		const isValid = await trigger("shipments");
+		if (!isValid) {
 			toast.error(
-				`Failed to process addresses: ${
-					error instanceof Error ? error.message : "Unknown error"
-				}`,
+				"Please correct the errors in the shipment details before submitting.",
 			);
 			setIsLoading(false);
 			return;
 		}
 
-		const processedShipments = data.shipments.map((shipment, index) => ({
-			...shipment,
-			originAddressId: originAddressIds[index] ?? "",
-			destinationAddressId: destinationAddressIds[index] ?? "",
-		}));
-
-		// Client-side validation for each shipment with updated IDs
-		const validationResults = await Promise.all(
-			processedShipments.map((shipment) =>
-				submitShipmentSchema.safeParseAsync(shipment),
-			),
-		);
-
-		const hasErrors = validationResults.some((result) => !result.success);
-
-		if (hasErrors) {
-			for (const [index, result] of validationResults.entries()) {
-				if (!result.success) {
-					for (const err of result.error.errors) {
-						// Map Zod error path to react-hook-form path
-						const path = `shipments.${index}.${err.path[0]}`;
-						// If the error is on originAddressId or destinationAddressId, apply it to all related fields
-						if (err.path[0] === "originAddressId") {
-							setError(
-								`shipments.${index}.originAddressLine` as Path<TExcelOrderSchema>,
-								{ type: "manual", message: err.message },
-							);
-							setError(
-								`shipments.${index}.originZipCode` as Path<TExcelOrderSchema>,
-								{ type: "manual", message: err.message },
-							);
-							setError(
-								`shipments.${index}.originCity` as Path<TExcelOrderSchema>,
-								{ type: "manual", message: err.message },
-							);
-							setError(
-								`shipments.${index}.originState` as Path<TExcelOrderSchema>,
-								{ type: "manual", message: err.message },
-							);
-						} else if (err.path[0] === "destinationAddressId") {
-							setError(
-								`shipments.${index}.destinationAddressLine` as Path<TExcelOrderSchema>,
-								{ type: "manual", message: err.message },
-							);
-							setError(
-								`shipments.${index}.destinationZipCode` as Path<TExcelOrderSchema>,
-								{ type: "manual", message: err.message },
-							);
-							setError(
-								`shipments.${index}.destinationCity` as Path<TExcelOrderSchema>,
-								{ type: "manual", message: err.message },
-							);
-							setError(
-								`shipments.${index}.destinationState` as Path<TExcelOrderSchema>,
-								{ type: "manual", message: err.message },
-							);
-						} else {
-							setError(path as Path<TExcelOrderSchema>, {
-								type: "manual",
-								message: err.message,
-							});
-						}
-					}
-				}
-			}
-			toast.error(
-				"Some shipments have validation errors after address processing. Please correct them.",
-			);
-			console.error(
-				"Validation errors:",
-				validationResults.filter((res) => !res.success),
-			);
-			setIsLoading(false);
-			return;
-		}
-
-		createBulkShipmentMutation.mutate({ shipments: processedShipments });
+		createBulkShipmentMutation.mutate({ shipments: data.shipments });
 	};
 
 	return (
@@ -500,49 +364,13 @@ export default function CreateBulkShipmentPage() {
 													className="px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
 													style={{ width: "250px" }}
 												>
-													Origin Address Line
-												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "120px" }}
-												>
-													Origin Zip Code
-												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "120px" }}
-												>
-													Origin City
-												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "120px" }}
-												>
-													Origin State
+													Origin Address
 												</th>
 												<th
 													className="px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
 													style={{ width: "250px" }}
 												>
-													Destination Address Line
-												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "130px" }}
-												>
-													Destination Zip Code
-												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "130px" }}
-												>
-													Destination City
-												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "130px" }}
-												>
-													Destination State
+													Destination Address
 												</th>
 												<th
 													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
@@ -550,12 +378,21 @@ export default function CreateBulkShipmentPage() {
 												>
 													Package Image
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "120px" }}
-												>
-													Calculated Rate
-												</th>
+												{isSubmitted ? (
+													<th
+														className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+														style={{ minWidth: "150px" }}
+													>
+														Status
+													</th>
+												) : (
+													<th
+														className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+														style={{ minWidth: "120px" }}
+													>
+														Calculated Rate
+													</th>
+												)}
 											</tr>
 										</thead>
 										<tbody className="divide-y divide-gray-200 bg-white">
@@ -583,12 +420,10 @@ export default function CreateBulkShipmentPage() {
 																	newShipments[index].recipientName = newValue;
 																	setShipments(newShipments);
 																	setValue(
-																		`shipments.${index}.recipientName` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.recipientName`,
 																		newValue,
 																	);
-																	trigger(
-																		`shipments.${index}.recipientName` as Path<TExcelOrderSchema>,
-																	);
+																	trigger(`shipments.${index}.recipientName`);
 																}
 															}}
 															className={`w-full ${
@@ -619,12 +454,10 @@ export default function CreateBulkShipmentPage() {
 																		newValue;
 																	setShipments(newShipments);
 																	setValue(
-																		`shipments.${index}.recipientMobile` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.recipientMobile`,
 																		newValue,
 																	);
-																	trigger(
-																		`shipments.${index}.recipientMobile` as Path<TExcelOrderSchema>,
-																	);
+																	trigger(`shipments.${index}.recipientMobile`);
 																}
 															}}
 															className={`w-full ${
@@ -656,12 +489,10 @@ export default function CreateBulkShipmentPage() {
 																	newShipments[index].packageWeight = newValue;
 																	setShipments(newShipments);
 																	setValue(
-																		`shipments.${index}.packageWeight` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.packageWeight`,
 																		newValue,
 																	);
-																	trigger(
-																		`shipments.${index}.packageWeight` as Path<TExcelOrderSchema>,
-																	);
+																	trigger(`shipments.${index}.packageWeight`);
 																}
 															}}
 															className={`w-full ${
@@ -693,12 +524,10 @@ export default function CreateBulkShipmentPage() {
 																	newShipments[index].packageHeight = newValue;
 																	setShipments(newShipments);
 																	setValue(
-																		`shipments.${index}.packageHeight` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.packageHeight`,
 																		newValue,
 																	);
-																	trigger(
-																		`shipments.${index}.packageHeight` as Path<TExcelOrderSchema>,
-																	);
+																	trigger(`shipments.${index}.packageHeight`);
 																}
 															}}
 															className={`w-full ${
@@ -730,12 +559,10 @@ export default function CreateBulkShipmentPage() {
 																	newShipments[index].packageLength = newValue;
 																	setShipments(newShipments);
 																	setValue(
-																		`shipments.${index}.packageLength` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.packageLength`,
 																		newValue,
 																	);
-																	trigger(
-																		`shipments.${index}.packageLength` as Path<TExcelOrderSchema>,
-																	);
+																	trigger(`shipments.${index}.packageLength`);
 																}
 															}}
 															className={`w-full ${
@@ -767,12 +594,10 @@ export default function CreateBulkShipmentPage() {
 																	newShipments[index].packageBreadth = newValue;
 																	setShipments(newShipments);
 																	setValue(
-																		`shipments.${index}.packageBreadth` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.packageBreadth`,
 																		newValue,
 																	);
-																	trigger(
-																		`shipments.${index}.packageBreadth` as Path<TExcelOrderSchema>,
-																	);
+																	trigger(`shipments.${index}.packageBreadth`);
 																}
 															}}
 															className={`w-full ${
@@ -804,142 +629,25 @@ export default function CreateBulkShipmentPage() {
 																		newValue;
 																	setShipments(newShipments);
 																	setValue(
-																		`shipments.${index}.originAddressLine` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.originAddressLine`,
 																		newValue,
 																	);
 																	trigger(
-																		`shipments.${index}.originAddressLine` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.originAddressLine`,
 																	);
 																}
 															}}
 															className={`w-full resize-none rounded border px-2 py-1 text-sm ${
-																errors.shipments?.[index]?.originAddressLine ||
-																errors.shipments?.[index]?.originZipCode ||
-																errors.shipments?.[index]?.originCity ||
-																errors.shipments?.[index]?.originState
+																errors.shipments?.[index]?.originAddressLine
 																	? "border-red-500"
 																	: "border-gray-300"
 															}`}
-															rows={2}
+															rows={3}
 														/>
 														<FieldError
 															message={
 																errors.shipments?.[index]?.originAddressLine
-																	?.message ||
-																errors.shipments?.[index]?.originZipCode
-																	?.message ||
-																errors.shipments?.[index]?.originCity
-																	?.message ||
-																errors.shipments?.[index]?.originState?.message
-															}
-														/>
-													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "120px" }}
-													>
-														<Input
-															value={shipment.originZipCode}
-															onChange={(e) => {
-																const newValue = e.target.value;
-																const newShipments = [...shipments];
-																if (newShipments[index]) {
-																	newShipments[index].originZipCode = newValue;
-																	setShipments(newShipments);
-																	setValue(
-																		`shipments.${index}.originZipCode` as Path<TExcelOrderSchema>,
-																		newValue,
-																	);
-																	trigger(
-																		`shipments.${index}.originZipCode` as Path<TExcelOrderSchema>,
-																	);
-																}
-															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.originZipCode ||
-																errors.shipments?.[index]?.originCity ||
-																errors.shipments?.[index]?.originState
-																	? "border-red-500"
-																	: ""
-															}`}
-														/>
-														<FieldError
-															message={
-																errors.shipments?.[index]?.originZipCode
-																	?.message ||
-																errors.shipments?.[index]?.originCity
-																	?.message ||
-																errors.shipments?.[index]?.originState?.message
-															}
-														/>
-													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "120px" }}
-													>
-														<Input
-															value={shipment.originCity}
-															onChange={(e) => {
-																const newValue = e.target.value;
-																const newShipments = [...shipments];
-																if (newShipments[index]) {
-																	newShipments[index].originCity = newValue;
-																	setShipments(newShipments);
-																	setValue(
-																		`shipments.${index}.originCity` as Path<TExcelOrderSchema>,
-																		newValue,
-																	);
-																	trigger(
-																		`shipments.${index}.originCity` as Path<TExcelOrderSchema>,
-																	);
-																}
-															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.originCity
-																	?.message ||
-																errors.shipments?.[index]?.originState?.message
-																	? "border-red-500"
-																	: ""
-															}`}
-														/>
-														<FieldError
-															message={
-																errors.shipments?.[index]?.originCity
-																	?.message ||
-																errors.shipments?.[index]?.originState?.message
-															}
-														/>
-													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "120px" }}
-													>
-														<Input
-															value={shipment.originState}
-															onChange={(e) => {
-																const newValue = e.target.value;
-																const newShipments = [...shipments];
-																if (newShipments[index]) {
-																	newShipments[index].originState = newValue;
-																	setShipments(newShipments);
-																	setValue(
-																		`shipments.${index}.originState` as Path<TExcelOrderSchema>,
-																		newValue,
-																	);
-																	trigger(
-																		`shipments.${index}.originState` as Path<TExcelOrderSchema>,
-																	);
-																}
-															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.originState?.message
-																	? "border-red-500"
-																	: ""
-															}`}
-														/>
-														<FieldError
-															message={
-																errors.shipments?.[index]?.originState?.message
+																	?.message
 															}
 														/>
 													</td>
@@ -958,152 +666,26 @@ export default function CreateBulkShipmentPage() {
 																		newValue;
 																	setShipments(newShipments);
 																	setValue(
-																		`shipments.${index}.destinationAddressLine` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.destinationAddressLine`,
 																		newValue,
 																	);
 																	trigger(
-																		`shipments.${index}.destinationAddressLine` as Path<TExcelOrderSchema>,
+																		`shipments.${index}.destinationAddressLine`,
 																	);
 																}
 															}}
 															className={`w-full resize-none rounded border px-2 py-1 text-sm ${
 																errors.shipments?.[index]
-																	?.destinationAddressLine ||
-																errors.shipments?.[index]?.destinationZipCode ||
-																errors.shipments?.[index]?.destinationCity ||
-																errors.shipments?.[index]?.destinationState
+																	?.destinationAddressLine
 																	? "border-red-500"
 																	: "border-gray-300"
 															}`}
-															rows={2}
+															rows={3}
 														/>
 														<FieldError
 															message={
 																errors.shipments?.[index]
-																	?.destinationAddressLine?.message ||
-																errors.shipments?.[index]?.destinationZipCode
-																	?.message ||
-																errors.shipments?.[index]?.destinationCity
-																	?.message ||
-																errors.shipments?.[index]?.destinationState
-																	?.message
-															}
-														/>
-													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "130px" }}
-													>
-														<Input
-															value={shipment.destinationZipCode}
-															onChange={(e) => {
-																const newValue = e.target.value;
-																const newShipments = [...shipments];
-																if (newShipments[index]) {
-																	newShipments[index].destinationZipCode =
-																		newValue;
-																	setShipments(newShipments);
-																	setValue(
-																		`shipments.${index}.destinationZipCode` as Path<TExcelOrderSchema>,
-																		newValue,
-																	);
-																	trigger(
-																		`shipments.${index}.destinationZipCode` as Path<TExcelOrderSchema>,
-																	);
-																}
-															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.destinationZipCode ||
-																errors.shipments?.[index]?.destinationCity ||
-																errors.shipments?.[index]?.destinationState
-																	? "border-red-500"
-																	: ""
-															}`}
-														/>
-														<FieldError
-															message={
-																errors.shipments?.[index]?.destinationZipCode
-																	?.message ||
-																errors.shipments?.[index]?.destinationCity
-																	?.message ||
-																errors.shipments?.[index]?.destinationState
-																	?.message
-															}
-														/>
-													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "130px" }}
-													>
-														<Input
-															value={shipment.destinationCity}
-															onChange={(e) => {
-																const newValue = e.target.value;
-																const newShipments = [...shipments];
-																if (newShipments[index]) {
-																	newShipments[index].destinationCity =
-																		newValue;
-																	setShipments(newShipments);
-																	setValue(
-																		`shipments.${index}.destinationCity` as Path<TExcelOrderSchema>,
-																		newValue,
-																	);
-																	trigger(
-																		`shipments.${index}.destinationCity` as Path<TExcelOrderSchema>,
-																	);
-																}
-															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.destinationCity
-																	?.message ||
-																errors.shipments?.[index]?.destinationState
-																	?.message
-																	? "border-red-500"
-																	: ""
-															}`}
-														/>
-														<FieldError
-															message={
-																errors.shipments?.[index]?.destinationCity
-																	?.message ||
-																errors.shipments?.[index]?.destinationState
-																	?.message
-															}
-														/>
-													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "130px" }}
-													>
-														<Input
-															value={shipment.destinationState}
-															onChange={(e) => {
-																const newValue = e.target.value;
-																const newShipments = [...shipments];
-																if (newShipments[index]) {
-																	newShipments[index].destinationState =
-																		newValue;
-																	setShipments(newShipments);
-																	setValue(
-																		`shipments.${index}.destinationState` as Path<TExcelOrderSchema>,
-																		newValue,
-																	);
-																	trigger(
-																		`shipments.${index}.destinationState` as Path<TExcelOrderSchema>,
-																	);
-																}
-															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.destinationState
-																	?.message
-																	? "border-red-500"
-																	: ""
-															}`}
-														/>
-														<FieldError
-															message={
-																errors.shipments?.[index]?.destinationState
-																	?.message
+																	?.destinationAddressLine?.message
 															}
 														/>
 													</td>
@@ -1118,15 +700,19 @@ export default function CreateBulkShipmentPage() {
 															onChange={(e) => handleImageFileChange(e, index)}
 															className="mb-2 w-full"
 														/>
-														{shipment.packageImage?.data && (
-															<Image
-																src={shipment.packageImage.data}
-																alt="Package Preview"
-																className="h-16 w-16 rounded border object-cover"
-																width={64}
-																height={64}
-															/>
-														)}
+														<div className="relative h-16 w-16 rounded border flex items-center justify-center bg-gray-100">
+															{shipment.packageImage?.data ? (
+																<Image
+																	src={shipment.packageImage.data}
+																	alt="Package Preview"
+																	className="h-full w-full object-cover"
+																	width={64}
+																	height={64}
+																/>
+															) : (
+																<span className="text-gray-400 text-xs text-center">No Image</span>
+															)}
+														</div>
 														<FieldError
 															message={
 																errors.shipments?.[index]?.packageImage
@@ -1138,10 +724,32 @@ export default function CreateBulkShipmentPage() {
 														className="px-3 py-2 align-top text-gray-500 text-sm"
 														style={{ minWidth: "120px" }}
 													>
-														{shipment.calculatedRate !== null &&
-														shipment.calculatedRate !== undefined
-															? `₹${shipment.calculatedRate.toFixed(2)}`
-															: "N/A"}
+														{isSubmitted ? (
+															shipment.status && (
+																<div className="flex flex-col gap-1 max-w-[150px] whitespace-normal">
+																	<Badge
+																		variant={
+																			shipment.status === "success"
+																				? "default"
+																				: shipment.status === "pending"
+																					? "secondary"
+																					: "destructive"
+																		}
+																		className="capitalize"
+																	>
+																		{shipment.status}
+																	</Badge>
+																	<p className="text-gray-500 text-xs">
+																		{shipment.message}
+																	</p>
+																</div>
+															)
+														) : (
+															shipment.calculatedRate !== null &&
+																shipment.calculatedRate !== undefined
+																? `₹${shipment.calculatedRate.toFixed(2)}`
+																: "N/A"
+														)}
 													</td>
 												</tr>
 											))}
@@ -1150,7 +758,7 @@ export default function CreateBulkShipmentPage() {
 								</div>
 							</div>
 						)}
-						{shipments.length > 0 && (
+						{shipments.length > 0 && !shipmentResults.length && (
 							<Button
 								type="button"
 								onClick={handleCalculateRates}
@@ -1161,7 +769,7 @@ export default function CreateBulkShipmentPage() {
 							</Button>
 						)}
 
-						{totalCalculatedRate !== null && (
+						{totalCalculatedRate !== null && !shipmentResults.length && (
 							<div className="mt-4 text-right font-semibold text-xl">
 								Total Estimated Rate: ₹{totalCalculatedRate.toFixed(2)}
 							</div>
@@ -1174,10 +782,11 @@ export default function CreateBulkShipmentPage() {
 								isLoading ||
 								shipments.length === 0 ||
 								createBulkShipmentMutation.isPending ||
-								totalCalculatedRate === null
+								totalCalculatedRate === null ||
+								shipmentResults.length > 0
 							}
 						>
-							{isLoading ? "Creating..." : "Create Bulk Shipments"}
+							{isLoading ? "Processing..." : "Create Bulk Shipments"}
 						</Button>
 					</form>
 				</CardContent>
