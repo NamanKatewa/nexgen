@@ -26,31 +26,30 @@ const PassbookPage = () => {
 
 	const [filterStatus, setFilterStatus] = useState("ALL");
 	const [filterTxnType, setFilterTxnType] = useState("ALL");
-	const [emailFilter, setEmailFilter] = useState("");
-	const [nameFilter, setNameFilter] = useState("");
+	const [searchFilter, setSearchFilter] = useState("");
 
 	const handleClearFilters = () => {
 		setFilterStatus("ALL");
 		setFilterTxnType("ALL");
-		setEmailFilter("");
-		setNameFilter("");
+		setSearchFilter("");
 	};
 
 	const filteredData = React.useMemo(() => {
 		return transactions.filter((item) => {
+			const searchLower = searchFilter.toLowerCase();
 			const statusMatch =
 				filterStatus === "ALL" || item.payment_status === filterStatus;
 			const typeMatch =
 				filterTxnType === "ALL" || item.transaction_type === filterTxnType;
-			const emailMatch = item.user.email
-				.toLowerCase()
-				.includes(emailFilter.toLowerCase());
-			const nameMatch = item.user.name
-				.toLowerCase()
-				.includes(nameFilter.toLowerCase());
-			return statusMatch && typeMatch && emailMatch && nameMatch;
+			const searchMatch =
+				item.user.email.toLowerCase().includes(searchLower) ||
+				item.user.name.toLowerCase().includes(searchLower) ||
+				(item.description ?? "").toLowerCase().includes(searchLower) ||
+				item.amount.toString().includes(searchLower);
+
+			return statusMatch && typeMatch && searchMatch;
 		});
-	}, [transactions, filterStatus, filterTxnType, emailFilter, nameFilter]);
+	}, [transactions, filterStatus, filterTxnType, searchFilter]);
 
 	const columns = [
 		{
@@ -122,18 +121,11 @@ const PassbookPage = () => {
 
 	const filters = [
 		{
-			id: "email-filter",
-			label: "Email",
+			id: "search",
+			label: "Search",
 			type: "text" as const,
-			value: emailFilter,
-			onChange: setEmailFilter,
-		},
-		{
-			id: "name-filter",
-			label: "Name",
-			type: "text" as const,
-			value: nameFilter,
-			onChange: setNameFilter,
+			value: searchFilter,
+			onChange: setSearchFilter,
 		},
 		{
 			id: "payment-status-filter",

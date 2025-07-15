@@ -26,30 +26,33 @@ const VerifyKycPage = () => {
 
 	const [filterGST, setFilterGST] = useState("ALL");
 	const [filterType, setFilterType] = useState("ALL");
-	const [emailFilter, setEmailFilter] = useState("");
-	const [nameFilter, setNameFilter] = useState("");
+	const [searchFilter, setSearchFilter] = useState("");
 	const [showKycDetailsModal, setShowKycDetailsModal] = useState(false);
 	const [selectedKycItem, setSelectedKycItem] = useState<KycItem | null>(null);
 
 	const handleClearFilters = () => {
 		setFilterGST("ALL");
 		setFilterType("ALL");
-		setEmailFilter("");
-		setNameFilter("");
+		setSearchFilter("");
 	};
 
 	const filteredData = React.useMemo(() => {
 		return (kycList ?? []).filter((item) => {
+			const searchLower = searchFilter.toLowerCase();
+			const matchesSearch =
+				(item.entity_name ?? "").toLowerCase().includes(searchLower) ||
+				item.user.email.toLowerCase().includes(searchLower) ||
+				(item.user.name ?? "").toLowerCase().includes(searchLower) ||
+				(item.entity_type ?? "").toLowerCase().includes(searchLower) ||
+				(item.gst ? "yes" : "no").includes(searchLower);
+
 			return (
 				(filterGST === "ALL" || (filterGST === "YES" ? item.gst : !item.gst)) &&
 				(filterType === "ALL" || item.entity_type === filterType) &&
-				item.user.email.toLowerCase().includes(emailFilter.toLowerCase()) &&
-				(item.entity_name ?? "")
-					.toLowerCase()
-					.includes(nameFilter.toLowerCase())
+				matchesSearch
 			);
 		});
-	}, [kycList, filterGST, filterType, nameFilter, emailFilter]);
+	}, [kycList, filterGST, filterType, searchFilter]);
 
 	const columns = [
 		{
@@ -86,18 +89,11 @@ const VerifyKycPage = () => {
 
 	const filters = [
 		{
-			id: "email-filter",
-			label: "Email",
+			id: "search",
+			label: "Search",
 			type: "text" as const,
-			value: emailFilter,
-			onChange: setEmailFilter,
-		},
-		{
-			id: "name-filter",
-			label: "Name",
-			type: "text" as const,
-			value: nameFilter,
-			onChange: setNameFilter,
+			value: searchFilter,
+			onChange: setSearchFilter,
 		},
 		{
 			id: "gst-filter",

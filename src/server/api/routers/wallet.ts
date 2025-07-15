@@ -167,6 +167,7 @@ export const walletRouter = createTRPCRouter({
 					amount: true,
 					transaction_type: true,
 					payment_status: true,
+					description: true,
 				},
 			});
 

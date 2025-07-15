@@ -26,28 +26,25 @@ const WalletTopupPage = () => {
 	type Transaction = Transactions extends Array<infer T> ? T : never;
 
 	const [filterType, setFilterType] = useState("ALL");
-	const [emailFilter, setEmailFilter] = useState("");
-	const [nameFilter, setNameFilter] = useState("");
+	const [searchFilter, setSearchFilter] = useState("");
 
 	const handleClearFilters = () => {
 		setFilterType("ALL");
-		setEmailFilter("");
-		setNameFilter("");
+		setSearchFilter("");
 	};
 
 	const filteredData = React.useMemo(() => {
 		return (transactions ?? []).filter((item) => {
+			const searchLower = searchFilter.toLowerCase();
 			const paymentMatch =
 				filterType === "ALL" || item.payment_status === filterType;
-			const emailMatch = item.user.email
-				.toLowerCase()
-				.includes(emailFilter.toLowerCase());
-			const nameMatch = item.user.name
-				.toLowerCase()
-				.includes(nameFilter.toLowerCase());
-			return paymentMatch && emailMatch && nameMatch;
+			const searchMatch =
+				item.user.email.toLowerCase().includes(searchLower) ||
+				item.user.name.toLowerCase().includes(searchLower) ||
+				item.transaction_id.toLowerCase().includes(searchLower);
+			return paymentMatch && searchMatch;
 		});
-	}, [transactions, filterType, emailFilter, nameFilter]);
+	}, [transactions, filterType, searchFilter]);
 
 	const columns = [
 		{
@@ -97,18 +94,11 @@ const WalletTopupPage = () => {
 
 	const filters = [
 		{
-			id: "email-filter",
-			label: "Email",
+			id: "search",
+			label: "Search",
 			type: "text" as const,
-			value: emailFilter,
-			onChange: setEmailFilter,
-		},
-		{
-			id: "name-filter",
-			label: "Name",
-			type: "text" as const,
-			value: nameFilter,
-			onChange: setNameFilter,
+			value: searchFilter,
+			onChange: setSearchFilter,
 		},
 		{
 			id: "payment-status-filter",

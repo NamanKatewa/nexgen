@@ -21,17 +21,22 @@ const ApproveOrderPage = () => {
 	const [selectedOrderItem, setSelectedOrderItem] =
 		useState<OrderListItem | null>(null);
 
-	const [emailFilter, setEmailFilter] = useState("");
+	const [searchFilter, setSearchFilter] = useState("");
 
 	const handleClearFilters = () => {
-		setEmailFilter("");
+		setSearchFilter("");
 	};
 
 	const filteredData = React.useMemo(() => {
 		return ((orderList as OrderListItem[]) ?? []).filter((item) => {
-			return item.user.email.toLowerCase().includes(emailFilter.toLowerCase());
+			const searchLower = searchFilter.toLowerCase();
+			return (
+				item.user.email.toLowerCase().includes(searchLower) ||
+				item.user.name.toLowerCase().includes(searchLower) ||
+				item.order_id.toLowerCase().includes(searchLower)
+			);
 		});
-	}, [orderList, emailFilter]);
+	}, [orderList, searchFilter]);
 
 	const columns = [
 		{
@@ -91,11 +96,11 @@ const ApproveOrderPage = () => {
 
 	const filters = [
 		{
-			id: "email-filter",
-			label: "Email",
+			id: "search",
+			label: "Search",
 			type: "text" as const,
-			value: emailFilter,
-			onChange: setEmailFilter,
+			value: searchFilter,
+			onChange: setSearchFilter,
 		},
 	];
 

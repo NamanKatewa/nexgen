@@ -23,21 +23,27 @@ const PassbookPage = () => {
 
 	const [filterStatus, setFilterStatus] = useState("ALL");
 	const [filterTxnType, setFilterTxnType] = useState("ALL");
+	const [searchFilter, setSearchFilter] = useState("");
 
 	const handleClearFilters = () => {
 		setFilterStatus("ALL");
 		setFilterTxnType("ALL");
+		setSearchFilter("");
 	};
 
 	const filteredData = React.useMemo(() => {
 		return transactions.filter((item) => {
+			const searchLower = searchFilter.toLowerCase();
 			const statusMatch =
 				filterStatus === "ALL" || item.payment_status === filterStatus;
 			const typeMatch =
 				filterTxnType === "ALL" || item.transaction_type === filterTxnType;
-			return statusMatch && typeMatch;
+			const searchMatch =
+				(item.description ?? "").toLowerCase().includes(searchLower) ||
+				item.amount.toString().includes(searchLower);
+			return statusMatch && typeMatch && searchMatch;
 		});
-	}, [transactions, filterStatus, filterTxnType]);
+	}, [transactions, filterStatus, filterTxnType, searchFilter]);
 
 	const columns = [
 		{
@@ -89,6 +95,13 @@ const PassbookPage = () => {
 	];
 
 	const filters = [
+		{
+			id: "search",
+			label: "Search",
+			type: "text" as const,
+			value: searchFilter,
+			onChange: setSearchFilter,
+		},
 		{
 			id: "payment-status-filter",
 			label: "Payment Status",
