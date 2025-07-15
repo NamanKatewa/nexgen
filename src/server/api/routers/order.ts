@@ -461,11 +461,14 @@ export const orderRouter = createTRPCRouter({
 						`${s.destinationAddressLine}-${s.destinationCity}-${s.destinationState}-${s.destinationZipCode}`.toLowerCase();
 					const destAddress = approvedMap.get(destKey);
 					if (!destAddress) {
-						logger.error("Could not find destination address for final shipment", {
-							...logData,
-							recipientName: s.recipientName,
-							destKey,
-						});
+						logger.error(
+							"Could not find destination address for final shipment",
+							{
+								...logData,
+								recipientName: s.recipientName,
+								destKey,
+							},
+						);
 						throw new TRPCError({
 							code: "INTERNAL_SERVER_ERROR",
 							message: `Could not find destination address for ${s.recipientName}`,
@@ -487,11 +490,14 @@ export const orderRouter = createTRPCRouter({
 										message: `Origin address not found for ${s.recipientName}`,
 									});
 								}
-								logger.error("Origin address not found during rate calculation", {
-									...logData,
-									recipientName: s.recipientName,
-									originAddressLine: s.originAddressLine,
-								});
+								logger.error(
+									"Origin address not found during rate calculation",
+									{
+										...logData,
+										recipientName: s.recipientName,
+										originAddressLine: s.originAddressLine,
+									},
+								);
 								const dest = approvedMap.get(
 									`${s.destinationAddressLine}-${s.destinationCity}-${s.destinationState}-${s.destinationZipCode}`.toLowerCase(),
 								);
@@ -501,11 +507,14 @@ export const orderRouter = createTRPCRouter({
 										message: `Destination address not found for ${s.recipientName}`,
 									});
 								}
-								logger.error("Destination address not found during rate calculation", {
-									...logData,
-									recipientName: s.recipientName,
-									destinationAddressLine: s.destinationAddressLine,
-								});
+								logger.error(
+									"Destination address not found during rate calculation",
+									{
+										...logData,
+										recipientName: s.recipientName,
+										destinationAddressLine: s.destinationAddressLine,
+									},
+								);
 								const originDetails = await getPincodeDetails(
 									String(origin.zip_code),
 								);
@@ -517,12 +526,15 @@ export const orderRouter = createTRPCRouter({
 										code: "BAD_REQUEST",
 										message: `Invalid pincode for shipment to ${s.recipientName}`,
 									});
-								logger.warn("Invalid pincode for shipment during rate calculation", {
-									...logData,
-									recipientName: s.recipientName,
-									originZipCode: origin.zip_code,
-									destZipCode: dest.zip_code,
-								});
+								logger.warn(
+									"Invalid pincode for shipment during rate calculation",
+									{
+										...logData,
+										recipientName: s.recipientName,
+										originZipCode: origin.zip_code,
+										destZipCode: dest.zip_code,
+									},
+								);
 								const { zone } = getZone(originDetails, destDetails);
 								const weightSlab = Math.ceil(s.packageWeight * 2) / 2;
 								return {
@@ -556,11 +568,11 @@ export const orderRouter = createTRPCRouter({
 									code: "NOT_FOUND",
 									message: `Rate not found for shipment to ${currentShipment.recipientName}`,
 								});
-								logger.error("Rate not found for individual bulk shipment", {
-									...logData,
-									recipientName: currentShipment.recipientName,
-									rateDetails: rateDetails[i],
-								});
+							logger.error("Rate not found for individual bulk shipment", {
+								...logData,
+								recipientName: currentShipment.recipientName,
+								rateDetails: rateDetails[i],
+							});
 							totalAmount = totalAmount.add(new Decimal(rate));
 							shipmentsWithRates.push({
 								...currentShipment,
@@ -572,7 +584,10 @@ export const orderRouter = createTRPCRouter({
 							where: { user_id: user.user_id as string },
 						});
 						if (!wallet) {
-							logger.error("User wallet not found during bulk shipment creation", { ...logData });
+							logger.error(
+								"User wallet not found during bulk shipment creation",
+								{ ...logData },
+							);
 							throw new TRPCError({
 								code: "BAD_REQUEST",
 								message: "Insufficient wallet balance.",

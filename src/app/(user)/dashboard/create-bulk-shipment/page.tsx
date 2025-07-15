@@ -700,7 +700,7 @@ export default function CreateBulkShipmentPage() {
 															onChange={(e) => handleImageFileChange(e, index)}
 															className="mb-2 w-full"
 														/>
-														<div className="relative h-16 w-16 rounded border flex items-center justify-center bg-gray-100">
+														<div className="relative flex h-16 w-16 items-center justify-center rounded border bg-gray-100">
 															{shipment.packageImage?.data ? (
 																<Image
 																	src={shipment.packageImage.data}
@@ -710,7 +710,9 @@ export default function CreateBulkShipmentPage() {
 																	height={64}
 																/>
 															) : (
-																<span className="text-gray-400 text-xs text-center">No Image</span>
+																<span className="text-center text-gray-400 text-xs">
+																	No Image
+																</span>
 															)}
 														</div>
 														<FieldError
@@ -724,32 +726,30 @@ export default function CreateBulkShipmentPage() {
 														className="px-3 py-2 align-top text-gray-500 text-sm"
 														style={{ minWidth: "120px" }}
 													>
-														{isSubmitted ? (
-															shipment.status && (
-																<div className="flex flex-col gap-1 max-w-[150px] whitespace-normal">
-																	<Badge
-																		variant={
-																			shipment.status === "success"
-																				? "default"
-																				: shipment.status === "pending"
-																					? "secondary"
-																					: "destructive"
-																		}
-																		className="capitalize"
-																	>
-																		{shipment.status}
-																	</Badge>
-																	<p className="text-gray-500 text-xs">
-																		{shipment.message}
-																	</p>
-																</div>
-															)
-														) : (
-															shipment.calculatedRate !== null &&
-																shipment.calculatedRate !== undefined
+														{isSubmitted
+															? shipment.status && (
+																	<div className="flex max-w-[150px] flex-col gap-1 whitespace-normal">
+																		<Badge
+																			variant={
+																				shipment.status === "success"
+																					? "default"
+																					: shipment.status === "pending"
+																						? "secondary"
+																						: "destructive"
+																			}
+																			className="capitalize"
+																		>
+																			{shipment.status}
+																		</Badge>
+																		<p className="text-gray-500 text-xs">
+																			{shipment.message}
+																		</p>
+																	</div>
+																)
+															: shipment.calculatedRate !== null &&
+																	shipment.calculatedRate !== undefined
 																? `₹${shipment.calculatedRate.toFixed(2)}`
-																: "N/A"
-														)}
+																: "N/A"}
 													</td>
 												</tr>
 											))}
