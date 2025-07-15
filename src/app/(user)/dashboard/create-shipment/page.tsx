@@ -118,7 +118,7 @@ export default function CreateShipmentPage() {
 	useEffect(() => {
 		if (userAddresses && recipientName) {
 			const potentialAddresses = userAddresses.filter(
-				(address) => address.name === recipientName,
+				(address) => address.name.toLowerCase() === recipientName.toLowerCase(),
 			);
 
 			if (potentialAddresses.length === 1) {
