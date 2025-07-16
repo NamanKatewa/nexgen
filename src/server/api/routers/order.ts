@@ -47,10 +47,10 @@ interface NewPendingAddress {
 interface NewDestinationAddress {
 	user_id: string;
 	name: string;
-	addressLine: string;
+	address_line: string;
 	city: string;
 	state: string;
-	zipCode: number;
+	zip_code: number;
 	type: ADDRESS_TYPE;
 }
 
@@ -376,7 +376,6 @@ export const orderRouter = createTRPCRouter({
 				} else {
 					const isValid = await validateAddressForPickup(
 						shipment.originZipCode,
-						shipment.originState,
 					);
 					if (isValid) {
 						newPendingToCreate.push({
@@ -430,10 +429,10 @@ export const orderRouter = createTRPCRouter({
 					newDestinationsToCreate.push({
 						user_id: user.user_id as string,
 						name: shipment.recipientName,
-						addressLine: shipment.destinationAddressLine,
+						address_line: shipment.destinationAddressLine,
 						city: shipment.destinationCity,
 						state: shipment.destinationState,
-						zipCode: Number(shipment.destinationZipCode),
+						zip_code: Number(shipment.destinationZipCode),
 						type: ADDRESS_TYPE.User,
 					});
 				}
@@ -451,8 +450,6 @@ export const orderRouter = createTRPCRouter({
 				await db.address.createMany({
 					data: newDestinationsToCreate.map((a) => ({
 						...a,
-						address_line: a.addressLine,
-						zip_code: a.zipCode,
 					})),
 				});
 				logger.info("Successfully created new destination addresses", {
@@ -679,7 +676,19 @@ export const orderRouter = createTRPCRouter({
 									message: "Shipment item not found during processing.",
 								});
 							}
-							const packageImageUrl = packageImageUrls[i]!;
+							const packageImageUrl = packageImageUrls[i];
+							if (!packageImageUrl) {
+								logger.error("Missing package image URL for shipment", {
+									...logData,
+									shipmentIndex: i,
+								});
+								results.push({
+									recipientName: s.recipientName,
+									status: "error",
+									message: "Missing package image URL",
+								});
+								continue;
+							}
 							const human_readable_shipment_id = generateShipmentId(
 								user.user_id,
 							);

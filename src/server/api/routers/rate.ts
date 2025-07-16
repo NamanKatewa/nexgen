@@ -122,6 +122,8 @@ export const rateRouter = createTRPCRouter({
 					originZipCode: z.string(),
 					destinationZipCode: z.string(),
 					packageWeight: z.number(),
+					declaredValue: z.number().optional(),
+					isInsuranceSelected: z.boolean().optional(),
 				}),
 			),
 		)
@@ -172,11 +174,26 @@ export const rateRouter = createTRPCRouter({
 					isUserRate: !!user?.user_id,
 				});
 
+				const results = rates.map((rate, index) => {
+					if (rate === null) {
+						return { rate: null, insurancePremium: 0 };
+					}
+
+					const shipment = input[index];
+					const { insurancePremium } = calculateInsurancePremium(
+						rate,
+						shipment?.declaredValue,
+						shipment?.isInsuranceSelected,
+					);
+
+					return { rate: rate + insurancePremium, insurancePremium };
+				});
+
 				logger.info("Successfully calculated bulk rates", {
 					...logData,
-					rateCount: rates.length,
+					rateCount: results.length,
 				});
-				return rates;
+				return results;
 			} catch (error) {
 				logger.error("Failed to calculate bulk rates", { ...logData, error });
 				throw error;

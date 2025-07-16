@@ -35,7 +35,10 @@ export const createTRPCContext = async (opts: {
 				});
 				kycStatus = kyc?.kyc_status;
 			} catch (kycError) {
-				logger.error("Failed to fetch KYC status for user", { userId: baseUser?.user_id, kycError });
+				logger.error("Failed to fetch KYC status for user", {
+					userId: baseUser?.user_id,
+					kycError,
+				});
 			}
 
 			user = { ...baseUser, kyc_status: kycStatus };

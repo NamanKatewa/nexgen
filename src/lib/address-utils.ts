@@ -14,39 +14,26 @@ export function isAllowedState(state: string): boolean {
 }
 
 export async function validateAddressForPickup(
-	pincode: string,
-	state: string,
+	zipCode: string,
 ): Promise<boolean> {
-	const details = await getPincodeDetails(pincode);
+	const logData = { zipCode };
+	logger.info("Validating address for pickup", logData);
 
-	if (!details) {
-		logger.warn("Pincode not found during address validation", {
-			pincode,
-			state,
-		});
-		return false; // Pincode not found
+	const pincodeDetails = await getPincodeDetails(zipCode);
+
+	if (!pincodeDetails) {
+		logger.warn("Pincode details not found for validation", logData);
+		return false; // Pincode not found, so not serviceable
 	}
 
-	// Check if the state from the pincode matches the provided state and is in the allowed list
-	const normalizedDetailsState = details.state.toUpperCase();
-	const normalizedInputState = state.toUpperCase();
+	const isAllowed = isAllowedState(pincodeDetails.state);
 
-	const isStateMatch = normalizedDetailsState === normalizedInputState;
-	const isAllowed = isAllowedState(state);
-
-	const isValid = isStateMatch && isAllowed;
-
-	if (!isValid) {
-		logger.warn("Address validation failed for pickup", {
-			pincode,
-			inputState: state,
-			foundState: details.state,
-			normalizedInputState,
-			normalizedFoundState: normalizedDetailsState,
-			isStateMatch,
-			isAllowed,
+	if (!isAllowed) {
+		logger.warn("Pickup from state not allowed", {
+			...logData,
+			canonicalState: pincodeDetails.state,
 		});
 	}
 
-	return isValid;
+	return isAllowed;
 }

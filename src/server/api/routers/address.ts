@@ -44,7 +44,6 @@ export const addressRouter = createTRPCRouter({
 				if (input.type === ADDRESS_TYPE.Warehouse) {
 					const isValidState = await validateAddressForPickup(
 						input.zipCode.toString(),
-						input.state,
 					);
 
 					if (!isValidState) {

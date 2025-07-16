@@ -39,10 +39,15 @@ export default function CreateBulkShipmentPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [shipments, setShipments] = useState<ShipmentWithStatus[]>([]);
 	const [shipmentResults, setShipmentResults] = useState<ShipmentResult[]>([]);
-	const [calculatedRates, setCalculatedRates] = useState<(number | null)[]>([]);
+	const [calculatedRates, setCalculatedRates] = useState<
+		({ rate: number | null; insurancePremium: number } | null)[]
+	>([]);
 	const [totalCalculatedRate, setTotalCalculatedRate] = useState<number | null>(
 		null,
 	);
+	const [totalInsurancePremium, setTotalInsurancePremium] = useState<
+		number | null
+	>(null);
 	const [isSubmitted, setIsSubmitted] = useState(false);
 
 	const {
@@ -55,6 +60,8 @@ export default function CreateBulkShipmentPage() {
 			originZipCode: s.originZipCode,
 			destinationZipCode: s.destinationZipCode,
 			packageWeight: s.packageWeight,
+			declaredValue: s.declaredValue,
+			isInsuranceSelected: s.isInsuranceSelected,
 		})),
 		{
 			enabled: false, // Only fetch on demand
@@ -80,12 +87,21 @@ export default function CreateBulkShipmentPage() {
 			setShipments((prevShipments) => {
 				return prevShipments.map((shipment, index) => ({
 					...shipment,
-					calculatedRate: bulkRatesData[index] ?? null,
+					calculatedRate: bulkRatesData[index]?.rate ?? null,
 				}));
 			});
 			setCalculatedRates(bulkRatesData);
 			setTotalCalculatedRate(
-				bulkRatesData.reduce((sum: number, rate) => sum + (rate ?? 0), 0),
+				bulkRatesData.reduce(
+					(sum: number, result) => sum + (result?.rate ?? 0),
+					0,
+				),
+			);
+			setTotalInsurancePremium(
+				bulkRatesData.reduce(
+					(sum: number, result) => sum + (result?.insurancePremium ?? 0),
+					0,
+				),
 			);
 		}
 	}, [bulkRatesData]);
@@ -171,6 +187,11 @@ export default function CreateBulkShipmentPage() {
 						destinationCity: String(row["Destination City"]) || "",
 						destinationState: String(row["Destination State"]) || "",
 						packageImage: { data: "", name: "", type: "", size: 0 },
+						declaredValue: Number(row["Declared Value"]) || 0,
+						isInsuranceSelected:
+							String(row.Insurance ?? "")
+								.trim()
+								.toLowerCase() === "yes",
 						status: undefined,
 						message: undefined,
 					}));
@@ -374,6 +395,18 @@ export default function CreateBulkShipmentPage() {
 												</th>
 												<th
 													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+													style={{ minWidth: "100px" }}
+												>
+													Declared Value
+												</th>
+												<th
+													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+													style={{ minWidth: "100px" }}
+												>
+													Insurance
+												</th>
+												<th
+													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
 													style={{ minWidth: "180px" }}
 												>
 													Package Image
@@ -386,12 +419,20 @@ export default function CreateBulkShipmentPage() {
 														Status
 													</th>
 												) : (
-													<th
-														className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-														style={{ minWidth: "120px" }}
-													>
-														Calculated Rate
-													</th>
+													<>
+														<th
+															className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+															style={{ minWidth: "120px" }}
+														>
+															Calculated Rate
+														</th>
+														<th
+															className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+															style={{ minWidth: "120px" }}
+														>
+															Insurance Premium
+														</th>
+													</>
 												)}
 											</tr>
 										</thead>
@@ -619,7 +660,7 @@ export default function CreateBulkShipmentPage() {
 														className="px-3 py-2 align-top text-gray-500 text-sm"
 														style={{ width: "250px" }}
 													>
-														<textarea
+														<Input
 															value={shipment.originAddressLine}
 															onChange={(e) => {
 																const newValue = e.target.value;
@@ -637,12 +678,76 @@ export default function CreateBulkShipmentPage() {
 																	);
 																}
 															}}
-															className={`w-full resize-none rounded border px-2 py-1 text-sm ${
+															className={`w-full ${
 																errors.shipments?.[index]?.originAddressLine
+																	?.message
 																	? "border-red-500"
-																	: "border-gray-300"
+																	: ""
 															}`}
-															rows={3}
+														/>
+														<Input
+															value={shipment.originCity}
+															onChange={(e) => {
+																const newValue = e.target.value;
+																const newShipments = [...shipments];
+																if (newShipments[index]) {
+																	newShipments[index].originCity = newValue;
+																	setShipments(newShipments);
+																	setValue(
+																		`shipments.${index}.originCity`,
+																		newValue,
+																	);
+																	trigger(`shipments.${index}.originCity`);
+																}
+															}}
+															className={`w-full ${
+																errors.shipments?.[index]?.originCity?.message
+																	? "border-red-500"
+																	: ""
+															}`}
+														/>
+														<Input
+															value={shipment.originState}
+															onChange={(e) => {
+																const newValue = e.target.value;
+																const newShipments = [...shipments];
+																if (newShipments[index]) {
+																	newShipments[index].originState = newValue;
+																	setShipments(newShipments);
+																	setValue(
+																		`shipments.${index}.originState`,
+																		newValue,
+																	);
+																	trigger(`shipments.${index}.originState`);
+																}
+															}}
+															className={`w-full ${
+																errors.shipments?.[index]?.originState?.message
+																	? "border-red-500"
+																	: ""
+															}`}
+														/>
+														<Input
+															value={shipment.originZipCode}
+															onChange={(e) => {
+																const newValue = e.target.value;
+																const newShipments = [...shipments];
+																if (newShipments[index]) {
+																	newShipments[index].originZipCode = newValue;
+																	setShipments(newShipments);
+																	setValue(
+																		`shipments.${index}.originZipCode`,
+																		newValue,
+																	);
+																	trigger(`shipments.${index}.originZipCode`);
+																}
+															}}
+															className={`w-full ${
+																errors.shipments?.[index]?.originZipCode
+																	?.message
+																	? "border-red-500"
+																	: ""
+															}`}
 														/>
 														<FieldError
 															message={
@@ -656,7 +761,7 @@ export default function CreateBulkShipmentPage() {
 														className="px-3 py-2 align-top text-gray-500 text-sm"
 														style={{ width: "250px" }}
 													>
-														<textarea
+														<Input
 															value={shipment.destinationAddressLine}
 															onChange={(e) => {
 																const newValue = e.target.value;
@@ -674,18 +779,162 @@ export default function CreateBulkShipmentPage() {
 																	);
 																}
 															}}
-															className={`w-full resize-none rounded border px-2 py-1 text-sm ${
+															className={`w-full ${
 																errors.shipments?.[index]
-																	?.destinationAddressLine
+																	?.destinationAddressLine?.message
 																	? "border-red-500"
-																	: "border-gray-300"
+																	: ""
 															}`}
-															rows={3}
+														/>
+														<Input
+															value={shipment.destinationCity}
+															onChange={(e) => {
+																const newValue = e.target.value;
+																const newShipments = [...shipments];
+																if (newShipments[index]) {
+																	newShipments[index].destinationCity =
+																		newValue;
+																	setShipments(newShipments);
+																	setValue(
+																		`shipments.${index}.destinationCity`,
+																		newValue,
+																	);
+																	trigger(`shipments.${index}.destinationCity`);
+																}
+															}}
+															className={`w-full ${
+																errors.shipments?.[index]?.destinationCity
+																	?.message
+																	? "border-red-500"
+																	: ""
+															}`}
+														/>
+														<Input
+															value={shipment.destinationState}
+															onChange={(e) => {
+																const newValue = e.target.value;
+																const newShipments = [...shipments];
+																if (newShipments[index]) {
+																	newShipments[index].destinationState =
+																		newValue;
+																	setShipments(newShipments);
+																	setValue(
+																		`shipments.${index}.destinationState`,
+																		newValue,
+																	);
+																	trigger(
+																		`shipments.${index}.destinationState`,
+																	);
+																}
+															}}
+															className={`w-full ${
+																errors.shipments?.[index]?.destinationState
+																	?.message
+																	? "border-red-500"
+																	: ""
+															}`}
+														/>
+														<Input
+															value={shipment.destinationZipCode}
+															onChange={(e) => {
+																const newValue = e.target.value;
+																const newShipments = [...shipments];
+																if (newShipments[index]) {
+																	newShipments[index].destinationZipCode =
+																		newValue;
+																	setShipments(newShipments);
+																	setValue(
+																		`shipments.${index}.destinationZipCode`,
+																		newValue,
+																	);
+																	trigger(
+																		`shipments.${index}.destinationZipCode`,
+																	);
+																}
+															}}
+															className={`w-full ${
+																errors.shipments?.[index]?.destinationZipCode
+																	?.message
+																	? "border-red-500"
+																	: ""
+															}`}
 														/>
 														<FieldError
 															message={
 																errors.shipments?.[index]
 																	?.destinationAddressLine?.message
+															}
+														/>
+													</td>
+													<td
+														className="px-3 py-2 align-top text-gray-500 text-sm"
+														style={{ minWidth: "100px" }}
+													>
+														<Input
+															type="number"
+															step="any"
+															value={shipment.declaredValue}
+															onChange={(e) => {
+																const newValue = Number(e.target.value);
+																const newShipments = [...shipments];
+																if (newShipments[index]) {
+																	newShipments[index].declaredValue = newValue;
+																	setShipments(newShipments);
+																	setValue(
+																		`shipments.${index}.declaredValue`,
+																		newValue,
+																	);
+																	trigger(`shipments.${index}.declaredValue`);
+																}
+															}}
+															className={`w-full ${
+																errors.shipments?.[index]?.declaredValue
+																	?.message
+																	? "border-red-500"
+																	: ""
+															}`}
+														/>
+														<FieldError
+															message={
+																errors.shipments?.[index]?.declaredValue
+																	?.message
+															}
+														/>
+													</td>
+													<td
+														className="px-3 py-2 align-top text-gray-500 text-sm"
+														style={{ minWidth: "100px" }}
+													>
+														<Input
+															type="checkbox"
+															checked={shipment.isInsuranceSelected}
+															onChange={(e) => {
+																const newValue = e.target.checked;
+																const newShipments = [...shipments];
+																if (newShipments[index]) {
+																	newShipments[index].isInsuranceSelected =
+																		newValue;
+																	setShipments(newShipments);
+																	setValue(
+																		`shipments.${index}.isInsuranceSelected`,
+																		newValue,
+																	);
+																	trigger(
+																		`shipments.${index}.isInsuranceSelected`,
+																	);
+																}
+															}}
+															className={`w-full ${
+																errors.shipments?.[index]?.isInsuranceSelected
+																	?.message
+																	? "border-red-500"
+																	: ""
+															}`}
+														/>
+														<FieldError
+															message={
+																errors.shipments?.[index]?.isInsuranceSelected
+																	?.message
 															}
 														/>
 													</td>
@@ -746,9 +995,18 @@ export default function CreateBulkShipmentPage() {
 																		</p>
 																	</div>
 																)
-															: shipment.calculatedRate !== null &&
-																	shipment.calculatedRate !== undefined
-																? `₹${shipment.calculatedRate.toFixed(2)}`
+															: calculatedRates[index]
+																? `₹${calculatedRates[index]?.rate?.toFixed(2)}`
+																: "N/A"}
+													</td>
+													<td
+														className="px-3 py-2 align-top text-gray-500 text-sm"
+														style={{ minWidth: "120px" }}
+													>
+														{isSubmitted
+															? null
+															: calculatedRates[index]
+																? `₹${calculatedRates[index]?.insurancePremium?.toFixed(2)}`
 																: "N/A"}
 													</td>
 												</tr>
@@ -771,7 +1029,11 @@ export default function CreateBulkShipmentPage() {
 
 						{totalCalculatedRate !== null && !shipmentResults.length && (
 							<div className="mt-4 text-right font-semibold text-xl">
-								Total Estimated Rate: ₹{totalCalculatedRate.toFixed(2)}
+								Total Estimated Rate: ₹{totalCalculatedRate.toFixed(2)} + ₹
+								{totalInsurancePremium?.toFixed(2)} (Insurance) = ₹
+								{(totalCalculatedRate + (totalInsurancePremium ?? 0)).toFixed(
+									2,
+								)}
 							</div>
 						)}
 
