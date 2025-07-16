@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type React from "react";
 import { Button } from "~/components/ui/button";
 import {
@@ -56,6 +57,18 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 							</p>
 						)}
 						<p>Package Dimensions: {shipment.package_dimensions}</p>
+						{shipment.invoiceUrl && (
+							<p>
+								Invoice:{" "}
+								<Link
+									href={shipment.invoiceUrl}
+									target="_blank"
+									className="text-blue-500 hover:underline"
+								>
+									View Invoice
+								</Link>
+							</p>
+						)}
 						<b>
 							<p>From:</p>
 						</b>

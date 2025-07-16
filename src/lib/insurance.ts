@@ -2,7 +2,6 @@ import { TRPCError } from "@trpc/server";
 
 export function calculateInsurancePremium(
 	actualRate: number,
-	declaredValue?: number,
 	isInsuranceSelected?: boolean,
 ): { insurancePremium: number; compensationAmount: number } {
 	let insurancePremium = 0;
@@ -17,11 +16,11 @@ export function calculateInsurancePremium(
 	}
 
 	// Mandatory Insurance Check for actualRate > 5000
-	if (actualRate > 5000 && !isInsuranceSelected) {
+	if (actualRate > 25000 && !isInsuranceSelected) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message:
-				"Insurance is mandatory for shipments with actual rate above ₹5,000.",
+				"Insurance is mandatory for shipments with actual rate above ₹25,000.",
 		});
 	}
 

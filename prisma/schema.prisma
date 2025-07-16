@@ -248,6 +248,7 @@ model Shipment {
   is_insurance_selected Boolean  @default(false)
   insurance_premium     Decimal? @db.Decimal(10, 2)
   compensation_amount   Decimal? @db.Decimal(10, 2)
+  invoiceUrl            String?
   created_at             DateTime        @default(now())
   updated_at             DateTime        @updatedAt
 

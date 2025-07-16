@@ -9,6 +9,7 @@ import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { uploadFileToS3 } from "~/lib/s3";
 import { generateShipmentId } from "~/lib/utils";
+import type { TFileSchema } from "~/schemas/file";
 import type { TImageSchema } from "~/schemas/image";
 import {
 	type TBulkShipmentItemSchema,
@@ -31,9 +32,9 @@ interface ShipmentResult {
 	shipmentId?: string;
 }
 
-interface ShipmentReady extends TBulkShipmentItemSchema {
+type ShipmentReady = TBulkShipmentItemSchema & {
 	originAddressId: string;
-}
+};
 
 interface NewPendingAddress {
 	user_id: string;
@@ -58,9 +59,9 @@ interface ShipmentWithRate extends TBulkShipmentItemSchema {
 	rate: number;
 }
 
-interface FinalShipmentItem extends ShipmentReady {
+type FinalShipmentItem = ShipmentReady & {
 	destinationAddressId: string;
-}
+};
 
 interface ShipmentWithRateGuaranteed extends FinalShipmentItem {
 	rate: number;
@@ -195,11 +196,7 @@ export const orderRouter = createTRPCRouter({
 				}
 
 				const { insurancePremium, compensationAmount } =
-					calculateInsurancePremium(
-						rate,
-						input.declaredValue,
-						input.isInsuranceSelected,
-					);
+					calculateInsurancePremium(rate, input.isInsuranceSelected);
 
 				const finalShippingCost = rate + insurancePremium;
 
@@ -264,6 +261,11 @@ export const orderRouter = createTRPCRouter({
 						"order/",
 					);
 
+					let invoiceUrl: string | undefined;
+					if (input.invoice) {
+						invoiceUrl = await uploadFileToS3(input.invoice, "invoices/");
+					}
+
 					await tx.shipment.create({
 						data: {
 							human_readable_shipment_id,
@@ -281,6 +283,7 @@ export const orderRouter = createTRPCRouter({
 							is_insurance_selected: input.isInsuranceSelected,
 							insurance_premium: insurancePremium,
 							compensation_amount: compensationAmount,
+							invoiceUrl: invoiceUrl,
 						},
 					});
 				});
@@ -590,7 +593,6 @@ export const orderRouter = createTRPCRouter({
 							const { insurancePremium, compensationAmount } =
 								calculateInsurancePremium(
 									rate,
-									currentShipment.declaredValue,
 									currentShipment.isInsuranceSelected,
 								);
 
@@ -662,10 +664,21 @@ export const orderRouter = createTRPCRouter({
 									message: `Package image is missing for shipment to ${s.recipientName}`,
 								});
 							}
-							return uploadFileToS3(s.packageImage, "order/");
+							const packageImageUrl = await uploadFileToS3(
+								s.packageImage,
+								"order/",
+							);
+							let invoiceUrl: string | undefined;
+							if (s.isInsuranceSelected && s.invoice) {
+								invoiceUrl = await uploadFileToS3(s.invoice, "invoices/");
+							}
+							return { packageImageUrl, invoiceUrl };
 						});
 
-						const packageImageUrls = await Promise.all(uploadPromises);
+						const uploadedFiles: {
+							packageImageUrl: string;
+							invoiceUrl: string | undefined;
+						}[] = await Promise.all(uploadPromises);
 						const createdShipmentRecords = [];
 
 						for (let i = 0; i < shipmentsWithRates.length; i++) {
@@ -676,7 +689,14 @@ export const orderRouter = createTRPCRouter({
 									message: "Shipment item not found during processing.",
 								});
 							}
-							const packageImageUrl = packageImageUrls[i];
+							const uploadedFile = uploadedFiles[i];
+							if (!uploadedFile) {
+								throw new TRPCError({
+									code: "INTERNAL_SERVER_ERROR",
+									message: "Uploaded file data not found for shipment.",
+								});
+							}
+							const { packageImageUrl, invoiceUrl } = uploadedFile;
 							if (!packageImageUrl) {
 								logger.error("Missing package image URL for shipment", {
 									...logData,
@@ -709,6 +729,7 @@ export const orderRouter = createTRPCRouter({
 									is_insurance_selected: s.isInsuranceSelected,
 									insurance_premium: s.insurancePremium,
 									compensation_amount: s.compensationAmount,
+									invoiceUrl: invoiceUrl,
 								},
 							});
 							createdShipmentRecords.push({

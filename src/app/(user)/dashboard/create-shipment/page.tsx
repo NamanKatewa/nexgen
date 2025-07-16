@@ -26,6 +26,7 @@ import {
 } from "~/components/ui/input-otp";
 import { Label } from "~/components/ui/label";
 import { fileToBase64 } from "~/lib/file-utils";
+import type { TFileSchema } from "~/schemas/file";
 import { type TShipmentSchema, submitShipmentSchema } from "~/schemas/order";
 import { api } from "~/trpc/react";
 
@@ -45,6 +46,7 @@ export default function CreateShipmentPage() {
 	const [packageImagePreview, setPackageImagePreview] = useState<string | null>(
 		null,
 	);
+	const [invoicePreview, setInvoicePreview] = useState<string | null>(null);
 	const [calculatedRate, setCalculatedRate] = useState<{
 		rate: number;
 		insurancePremium: number;
@@ -66,7 +68,7 @@ export default function CreateShipmentPage() {
 
 	const handleFileChange = async (
 		event: React.ChangeEvent<HTMLInputElement>,
-		fieldName: "packageImage",
+		fieldName: "packageImage" | "invoice",
 		setPreview: React.Dispatch<React.SetStateAction<string | null>>,
 	) => {
 		const file = event.target.files?.[0];
@@ -80,15 +82,25 @@ export default function CreateShipmentPage() {
 					name: file.name,
 					type: file.type,
 					size: file.size,
-				});
+				} as TFileSchema);
 			} catch (error) {
 				console.error("Error converting file to Base64:", error);
-				toast.error("Failed to process image file");
-				setValue(fieldName, { data: "", name: "", type: "", size: 0 });
+				toast.error("Failed to process file");
+				setValue(fieldName, {
+					data: "",
+					name: "",
+					type: "",
+					size: 0,
+				} as TFileSchema);
 				setPreview(null);
 			}
 		} else {
-			setValue(fieldName, { data: "", name: "", type: "", size: 0 });
+			setValue(fieldName, {
+				data: "",
+				name: "",
+				type: "",
+				size: 0,
+			} as TFileSchema);
 			setPreview(null);
 		}
 	};
@@ -171,7 +183,6 @@ export default function CreateShipmentPage() {
 		originZipCode: string;
 		destinationZipCode: string;
 		packageWeight: number;
-		declaredValue?: number;
 		isInsuranceSelected?: boolean;
 	} | null>(null);
 
@@ -230,7 +241,6 @@ export default function CreateShipmentPage() {
 			originZipCode: String(originAddress.zip_code),
 			destinationZipCode: destinationAddress.zipCode,
 			packageWeight: data.packageWeight,
-			declaredValue: data.declaredValue,
 			isInsuranceSelected: data.isInsuranceSelected,
 		});
 	};
@@ -536,15 +546,31 @@ export default function CreateShipmentPage() {
 										message={errors.packageImage?.message as string}
 									/>
 								</div>
+								{watch("isInsuranceSelected") && (
+									<div className="space-y-2">
+										<Label>Invoice</Label>
+										<Input
+											type="file"
+											accept="application/pdf,image/*"
+											onChange={(e) => {
+												handleFileChange(e, "invoice", setInvoicePreview);
+											}}
+										/>
+										{invoicePreview && (
+											<p className="text-muted-foreground text-sm">
+												File selected: {invoicePreview.split("/").pop()}
+											</p>
+										)}
+										<FieldError message={errors.invoice?.message as string} />
+									</div>
+								)}
 								<div className="space-y-2">
 									<Label>Declared Value (₹)</Label>
 									<Input
-										placeholder="Declared Value (optional)"
+										placeholder="Declared Value"
 										type="number"
-										step="any"
-										{...register("declaredValue", {
-											valueAsNumber: true,
-										})}
+										step="1"
+										{...register("declaredValue")}
 									/>
 									<FieldError message={errors.declaredValue?.message} />
 								</div>

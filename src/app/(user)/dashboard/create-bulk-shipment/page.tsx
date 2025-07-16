@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { fileToBase64 } from "~/lib/file-utils";
+import type { TFileSchema } from "~/schemas/file";
 import {
 	type TExcelOrderSchema,
 	type TExcelShipmentSchema,
@@ -24,6 +25,7 @@ import { api } from "~/trpc/react";
 type ShipmentWithStatus = TExcelShipmentSchema & {
 	status?: "success" | "pending" | "error";
 	message?: string;
+	invoicePreview?: string | null;
 };
 
 type ShipmentResult = {
@@ -60,7 +62,6 @@ export default function CreateBulkShipmentPage() {
 			originZipCode: s.originZipCode,
 			destinationZipCode: s.destinationZipCode,
 			packageWeight: s.packageWeight,
-			declaredValue: s.declaredValue,
 			isInsuranceSelected: s.isInsuranceSelected,
 		})),
 		{
@@ -240,6 +241,48 @@ export default function CreateBulkShipmentPage() {
 		}
 	};
 
+	const handleInvoiceFileChange = async (
+		event: React.ChangeEvent<HTMLInputElement>,
+		index: number,
+	) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			try {
+				const base64Data = await fileToBase64(file);
+				const newShipments = [...shipments];
+				if (newShipments[index]) {
+					newShipments[index].invoice = {
+						data: base64Data,
+						name: file.name,
+						type: file.type,
+						size: file.size,
+					};
+					newShipments[index].invoicePreview = URL.createObjectURL(file);
+				}
+				setShipments(newShipments);
+				setValue(`shipments.${index}.invoice`, {
+					data: base64Data,
+					name: file.name,
+					type: file.type,
+					size: file.size,
+				});
+				trigger(`shipments.${index}.invoice`);
+			} catch (error) {
+				console.error("Error converting file to Base64:", error);
+				toast.error(`Failed to process invoice file for shipment ${index + 1}`);
+			}
+		} else {
+			const newShipments = [...shipments];
+			if (newShipments[index]) {
+				newShipments[index].invoice = undefined;
+				newShipments[index].invoicePreview = undefined;
+			}
+			setShipments(newShipments);
+			setValue(`shipments.${index}.invoice`, undefined);
+			trigger(`shipments.${index}.invoice`);
+		}
+	};
+
 	const createBulkShipmentMutation = api.order.createBulkShipments.useMutation({
 		onSuccess: (data) => {
 			setIsLoading(false);
@@ -410,6 +453,12 @@ export default function CreateBulkShipmentPage() {
 													style={{ minWidth: "180px" }}
 												>
 													Package Image
+												</th>
+												<th
+													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
+													style={{ minWidth: "180px" }}
+												>
+													Invoice
 												</th>
 												{isSubmitted ? (
 													<th
@@ -970,6 +1019,36 @@ export default function CreateBulkShipmentPage() {
 																	?.message as string
 															}
 														/>
+													</td>
+													{/* invoice */}
+													<td
+														className="px-3 py-2 align-top text-gray-500 text-sm"
+														style={{ minWidth: "180px" }}
+													>
+														{shipment.isInsuranceSelected && (
+															<>
+																<Input
+																	type="file"
+																	accept="application/pdf,image/*"
+																	onChange={(e) =>
+																		handleInvoiceFileChange(e, index)
+																	}
+																	className="mb-2 w-full"
+																/>
+																{shipment.invoicePreview && (
+																	<p className="text-muted-foreground text-sm">
+																		File selected:{" "}
+																		{shipment.invoicePreview.split("/").pop()}
+																	</p>
+																)}
+																<FieldError
+																	message={
+																		errors.shipments?.[index]?.invoice
+																			?.message as string
+																	}
+																/>
+															</>
+														)}
 													</td>
 													<td
 														className="px-3 py-2 align-top text-gray-500 text-sm"
