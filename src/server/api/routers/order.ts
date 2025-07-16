@@ -3,6 +3,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { validateAddressForPickup } from "~/lib/address-utils";
+import { calculateInsurancePremium } from "~/lib/insurance";
 import logger from "~/lib/logger";
 import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
@@ -191,6 +192,15 @@ export const orderRouter = createTRPCRouter({
 					});
 				}
 
+				const { insurancePremium, compensationAmount } =
+					calculateInsurancePremium(
+						rate,
+						input.declaredValue,
+						input.isInsuranceSelected,
+					);
+
+				const finalShippingCost = rate + insurancePremium;
+
 				const human_readable_shipment_id = generateShipmentId(user.user_id);
 
 				await db.$transaction(async (tx) => {
@@ -206,11 +216,11 @@ export const orderRouter = createTRPCRouter({
 						});
 					}
 
-					if (wallet.balance.lessThan(new Decimal(rate))) {
+					if (wallet.balance.lessThan(new Decimal(finalShippingCost))) {
 						logger.warn("Insufficient wallet balance", {
 							...logData,
 							balance: wallet.balance,
-							rate,
+							rate: finalShippingCost,
 						});
 						throw new TRPCError({
 							code: "BAD_GATEWAY",
@@ -220,7 +230,7 @@ export const orderRouter = createTRPCRouter({
 					const order = await tx.order.create({
 						data: {
 							user_id: wallet.user_id,
-							total_amount: rate,
+							total_amount: finalShippingCost,
 							order_status: "PendingApproval",
 							payment_status: "Pending",
 						},
@@ -228,14 +238,14 @@ export const orderRouter = createTRPCRouter({
 
 					await tx.wallet.update({
 						where: { user_id: wallet.user_id },
-						data: { balance: { decrement: new Decimal(rate) } },
+						data: { balance: { decrement: new Decimal(finalShippingCost) } },
 					});
 
 					await tx.transaction.create({
 						data: {
 							user_id: wallet.user_id,
 							transaction_type: "Debit",
-							amount: new Decimal(rate),
+							amount: new Decimal(finalShippingCost),
 							payment_status: "Completed",
 							order_id: order.order_id,
 							description: "Single Shipment Created",
@@ -264,7 +274,11 @@ export const orderRouter = createTRPCRouter({
 							package_image_url: packageImageUrl,
 							package_weight: input.packageWeight,
 							package_dimensions: `${input.packageBreadth} X ${input.packageHeight} X ${input.packageLength}`,
-							shipping_cost: rate,
+							shipping_cost: finalShippingCost,
+							declared_value: input.declaredValue,
+							is_insurance_selected: input.isInsuranceSelected,
+							insurance_premium: insurancePremium,
+							compensation_amount: compensationAmount,
 						},
 					});
 				});
@@ -573,10 +587,22 @@ export const orderRouter = createTRPCRouter({
 								recipientName: currentShipment.recipientName,
 								rateDetails: rateDetails[i],
 							});
-							totalAmount = totalAmount.add(new Decimal(rate));
+
+							const { insurancePremium, compensationAmount } =
+								calculateInsurancePremium(
+									rate,
+									currentShipment.declaredValue,
+									currentShipment.isInsuranceSelected,
+								);
+
+							const finalShippingCost = rate + insurancePremium;
+
+							totalAmount = totalAmount.add(new Decimal(finalShippingCost));
 							shipmentsWithRates.push({
 								...currentShipment,
-								rate,
+								rate: finalShippingCost,
+								insurancePremium,
+								compensationAmount,
 							} as ShipmentWithRateGuaranteed);
 						}
 
@@ -664,6 +690,10 @@ export const orderRouter = createTRPCRouter({
 									package_weight: s.packageWeight,
 									package_dimensions: `${s.packageBreadth} X ${s.packageHeight} X ${s.packageLength}`,
 									shipping_cost: s.rate,
+									declared_value: s.declaredValue,
+									is_insurance_selected: s.isInsuranceSelected,
+									insurance_premium: s.insurancePremium,
+									compensation_amount: s.compensationAmount,
 								},
 							});
 							createdShipmentRecords.push({

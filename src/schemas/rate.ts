@@ -16,6 +16,8 @@ export const rateSchema = z.object({
 		.string()
 		.length(6, "Zip Code must be 6 digits")
 		.refine((val) => !Number.isNaN(Number(val)), "Zip Code must be a number"),
+	declaredValue: z.number().optional(),
+	isInsuranceSelected: z.boolean().optional(),
 });
 
 export type TRateSchema = z.infer<typeof rateSchema>;

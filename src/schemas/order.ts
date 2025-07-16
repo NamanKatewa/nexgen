@@ -41,6 +41,8 @@ export const submitShipmentSchema = z.object({
 	packageImage: base64ImageSchema.refine((data) => data.data.length > 0, {
 		message: "Package image is required",
 	}),
+	declaredValue: z.number().optional(),
+	isInsuranceSelected: z.boolean().optional(),
 });
 
 export const excelShipmentSchema = z.object({
@@ -90,6 +92,8 @@ export const excelShipmentSchema = z.object({
 		message: "Package image is required",
 	}),
 	calculatedRate: z.number().optional().nullable(),
+	declaredValue: z.number().optional(),
+	isInsuranceSelected: z.boolean().optional(),
 });
 
 export const orderSchema = z.object({
