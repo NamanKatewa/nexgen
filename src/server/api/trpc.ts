@@ -27,12 +27,18 @@ export const createTRPCContext = async (opts: {
 					status: true,
 				},
 			});
-			const kyc = await db.kyc.findUnique({
-				where: { user_id: baseUser?.user_id },
-				select: { kyc_status: true },
-			});
+			let kycStatus = null;
+			try {
+				const kyc = await db.kyc.findUnique({
+					where: { user_id: baseUser?.user_id },
+					select: { kyc_status: true },
+				});
+				kycStatus = kyc?.kyc_status;
+			} catch (kycError) {
+				logger.error("Failed to fetch KYC status for user", { userId: baseUser?.user_id, kycError });
+			}
 
-			user = { ...baseUser, kyc_status: kyc?.kyc_status };
+			user = { ...baseUser, kyc_status: kycStatus };
 		} catch (error) {
 			logger.error("Invalid token", { error });
 		}

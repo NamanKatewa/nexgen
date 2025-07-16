@@ -19,6 +19,8 @@ const headers = [
 	"Destination Zip Code",
 	"Destination City",
 	"Destination State",
+	"Declared Value",
+	"Insurance",
 ];
 
 const generateShipment = () => {
@@ -53,6 +55,12 @@ const generateShipment = () => {
 		"Destination Zip Code": 313001,
 		"Destination City": faker.location.city(),
 		"Destination State": faker.location.state(),
+		"Declared Value": faker.number.float({
+			min: 100,
+			max: 10000,
+			fractionDigits: 2,
+		}),
+		Insurance: faker.datatype.boolean() ? "Yes" : "No",
 	};
 };
 

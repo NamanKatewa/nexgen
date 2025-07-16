@@ -66,21 +66,24 @@ const Footer = () => {
 					<div className="space-y-6">
 						<h3 className="font-bold text-xl tracking-tight">Resources</h3>
 						<nav className="flex flex-col space-y-4">
-							{["Refund Policy", "Privacy Policy", "Terms & Conditions"].map(
-								(item) => (
-									<Link
-										key={item}
-										href={`/${item.toLowerCase().replace(/[\s&]+/g, "-")}`}
-										className="group flex items-center text-base transition-colors hover:text-blue-600"
-										prefetch={false}
-									>
-										<span className="relative">
-											{item}
-											<span className="absolute bottom-0 left-0 h-0.5 w-0 bg-blue-600 transition-all group-hover:w-full dark:bg-blue-400" />
-										</span>
-									</Link>
-								),
-							)}
+							{[
+								"Refund Policy",
+								"Privacy Policy",
+								"Terms & Conditions",
+								"Insurance Rates",
+							].map((item) => (
+								<Link
+									key={item}
+									href={`/${item.toLowerCase().replace(/[\s&]+/g, "-")}`}
+									className="group flex items-center text-base transition-colors hover:text-blue-600"
+									prefetch={false}
+								>
+									<span className="relative">
+										{item}
+										<span className="absolute bottom-0 left-0 h-0.5 w-0 bg-blue-600 transition-all group-hover:w-full dark:bg-blue-400" />
+									</span>
+								</Link>
+							))}
 						</nav>
 					</div>
 

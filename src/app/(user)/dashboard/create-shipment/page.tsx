@@ -45,7 +45,11 @@ export default function CreateShipmentPage() {
 	const [packageImagePreview, setPackageImagePreview] = useState<string | null>(
 		null,
 	);
-	const [calculatedRate, setCalculatedRate] = useState<number | null>(null);
+	const [calculatedRate, setCalculatedRate] = useState<{
+		rate: number;
+		insurancePremium: number;
+		compensationAmount: number;
+	} | null>(null);
 	const [origin, setOrigin] = useState<PincodeDetails | null>(null);
 	const [destination, setDestination] = useState<PincodeDetails | null>(null);
 
@@ -167,6 +171,8 @@ export default function CreateShipmentPage() {
 		originZipCode: string;
 		destinationZipCode: string;
 		packageWeight: number;
+		declaredValue?: number;
+		isInsuranceSelected?: boolean;
 	} | null>(null);
 
 	const {
@@ -181,12 +187,17 @@ export default function CreateShipmentPage() {
 		},
 		{
 			enabled: !!queryInput,
+			staleTime: Number.POSITIVE_INFINITY, // Prevent refetching on focus
 		},
 	);
 
 	useEffect(() => {
 		if (rateData) {
-			setCalculatedRate(rateData.rate);
+			setCalculatedRate({
+				rate: rateData.rate,
+				insurancePremium: rateData.insurancePremium ?? 0,
+				compensationAmount: rateData.compensationAmount ?? 0,
+			});
 			setOrigin(rateData.origin);
 			setDestination(rateData.destination);
 			setQueryInput(null);
@@ -219,6 +230,8 @@ export default function CreateShipmentPage() {
 			originZipCode: String(originAddress.zip_code),
 			destinationZipCode: destinationAddress.zipCode,
 			packageWeight: data.packageWeight,
+			declaredValue: data.declaredValue,
+			isInsuranceSelected: data.isInsuranceSelected,
 		});
 	};
 
@@ -274,6 +287,8 @@ export default function CreateShipmentPage() {
 		createShipmentMutation.mutate({
 			...data,
 			destinationAddressId: finalDestinationAddressId,
+			declaredValue: data.declaredValue,
+			isInsuranceSelected: data.isInsuranceSelected,
 		});
 	};
 
@@ -521,6 +536,34 @@ export default function CreateShipmentPage() {
 										message={errors.packageImage?.message as string}
 									/>
 								</div>
+								<div className="space-y-2">
+									<Label>Declared Value (₹)</Label>
+									<Input
+										placeholder="Declared Value (optional)"
+										type="number"
+										step="any"
+										{...register("declaredValue", {
+											valueAsNumber: true,
+										})}
+									/>
+									<FieldError message={errors.declaredValue?.message} />
+								</div>
+								<div className="col-span-2 flex items-center space-x-2">
+									<Input
+										id="isInsuranceSelected"
+										type="checkbox"
+										{...register("isInsuranceSelected")}
+										className="h-4 w-4"
+									/>
+									<Label htmlFor="isInsuranceSelected">Opt for Insurance</Label>
+									<Link
+										href="/insurance-rates"
+										className="text-blue-500 text-sm hover:underline"
+										target="_blank"
+									>
+										(View Rates)
+									</Link>
+								</div>
 							</div>
 						</div>
 						<Button
@@ -532,7 +575,18 @@ export default function CreateShipmentPage() {
 						</Button>
 						{calculatedRate && (
 							<div className="font-semibold text-lg">
-								Calculated Rate: ₹{calculatedRate.toFixed(2)}
+								Calculated Rate: ₹{calculatedRate.rate.toFixed(2)}
+								{calculatedRate.insurancePremium > 0 && (
+									<p className="font-normal text-green-600 text-sm">
+										(Includes Insurance Premium: ₹
+										{calculatedRate.insurancePremium.toFixed(2)}
+										{calculatedRate.compensationAmount > 0 &&
+											`, Compensation: ₹${calculatedRate.compensationAmount.toFixed(
+												2,
+											)}`}
+										)
+									</p>
+								)}
 								{origin && destination && (
 									<div className="font-normal text-sm">
 										From: {origin.city}, {origin.state}

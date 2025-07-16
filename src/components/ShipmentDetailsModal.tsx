@@ -40,6 +40,21 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 						<p>Recipient Mobile: {shipment.recipient_mobile}</p>
 						<p>Package Weight: {shipment.package_weight.toString()}</p>
 						<p>Shipping Cost: ₹{shipment.shipping_cost.toString()}</p>
+						{shipment.declared_value && (
+							<p>Declared Value: ₹{shipment.declared_value.toString()}</p>
+						)}
+						<p>
+							Insurance Selected:{" "}
+							{shipment.is_insurance_selected ? "Yes" : "No"}
+						</p>
+						{shipment.insurance_premium && (
+							<p>Insurance Premium: ₹{shipment.insurance_premium.toString()}</p>
+						)}
+						{shipment.compensation_amount && (
+							<p>
+								Compensation Amount: ₹{shipment.compensation_amount.toString()}
+							</p>
+						)}
 						<p>Package Dimensions: {shipment.package_dimensions}</p>
 						<b>
 							<p>From:</p>

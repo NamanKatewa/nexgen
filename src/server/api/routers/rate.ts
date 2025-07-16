@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { calculateInsurancePremium } from "~/lib/insurance";
 import logger from "~/lib/logger";
 import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
@@ -47,10 +48,24 @@ export const rateRouter = createTRPCRouter({
 							rate: userRate,
 							source: "user",
 						});
+						const { insurancePremium, compensationAmount } =
+							calculateInsurancePremium(
+								userRate,
+								input.declaredValue,
+								input.isInsuranceSelected,
+							);
+						const finalRate = userRate + insurancePremium;
+						logger.info("Found user-specific rate", {
+							...logData,
+							rate: finalRate,
+							source: "user",
+						});
 						return {
-							rate: userRate,
+							rate: finalRate,
 							origin: originDetails,
 							destination: destinationDetails,
+							insurancePremium,
+							compensationAmount,
 						};
 					}
 					logger.info(
@@ -68,15 +83,24 @@ export const rateRouter = createTRPCRouter({
 					isUserRate: false,
 				});
 				if (defaultRate !== null) {
+					const { insurancePremium, compensationAmount } =
+						calculateInsurancePremium(
+							defaultRate,
+							input.declaredValue,
+							input.isInsuranceSelected,
+						);
+					const finalRate = defaultRate + insurancePremium;
 					logger.info("Found default rate", {
 						...logData,
-						rate: defaultRate,
+						rate: finalRate,
 						source: "default",
 					});
 					return {
-						rate: defaultRate,
+						rate: finalRate,
 						origin: originDetails,
 						destination: destinationDetails,
+						insurancePremium,
+						compensationAmount,
 					};
 				}
 

@@ -64,6 +64,8 @@ interface FinalShipmentItem extends ShipmentReady {
 
 interface ShipmentWithRateGuaranteed extends FinalShipmentItem {
 	rate: number;
+	insurancePremium: number;
+	compensationAmount: number;
 }
 
 export const orderRouter = createTRPCRouter({
