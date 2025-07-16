@@ -658,24 +658,28 @@ export const orderRouter = createTRPCRouter({
 							},
 						});
 
+						const uploadPromises = shipmentsWithRates.map(async (s) => {
+							if (!s.packageImage) {
+								throw new TRPCError({
+									code: "BAD_REQUEST",
+									message: `Package image is missing for shipment to ${s.recipientName}`,
+								});
+							}
+							return uploadFileToS3(s.packageImage, "order/");
+						});
+
+						const packageImageUrls = await Promise.all(uploadPromises);
 						const createdShipmentRecords = [];
-						for (const s of shipmentsWithRates) {
-							if (!s.packageImage) {
+
+						for (let i = 0; i < shipmentsWithRates.length; i++) {
+							const s = shipmentsWithRates[i];
+							if (!s) {
 								throw new TRPCError({
-									code: "BAD_REQUEST",
-									message: `Package image is missing for shipment to ${s.recipientName}`,
+									code: "INTERNAL_SERVER_ERROR",
+									message: "Shipment item not found during processing.",
 								});
 							}
-							if (!s.packageImage) {
-								throw new TRPCError({
-									code: "BAD_REQUEST",
-									message: `Package image is missing for shipment to ${s.recipientName}`,
-								});
-							}
-							const packageImageUrl = await uploadFileToS3(
-								s.packageImage,
-								"order/",
-							);
+							const packageImageUrl = packageImageUrls[i]!;
 							const human_readable_shipment_id = generateShipmentId(
 								user.user_id,
 							);
