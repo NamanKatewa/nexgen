@@ -177,7 +177,7 @@ export async function findRate({
 			return calculated;
 		}
 
-		logger.warn("Rate not found", logData);
+		logger.warn("Rate not found for the given parameters", logData);
 		return null;
 	} catch (error) {
 		logger.error("Error finding rate", { ...logData, error });
