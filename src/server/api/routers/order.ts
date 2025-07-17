@@ -900,6 +900,11 @@ export const orderRouter = createTRPCRouter({
 							name: true,
 							email: true,
 							user_id: true,
+							kyc: {
+								select: {
+									entity_name: true,
+								},
+							},
 						},
 					},
 					shipments: {

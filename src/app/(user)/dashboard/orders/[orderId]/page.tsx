@@ -1,8 +1,10 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 import ShipmentDetailsModal from "~/components/ShipmentDetailsModal";
+
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 
@@ -30,6 +32,29 @@ export default function UserOrderDetailPage() {
 	const handleViewShipment = (shipment: ShipmentItemType) => {
 		setSelectedShipment(shipment);
 		setShowShipmentModal(true);
+	};
+
+	const generateLabelMutation = api.label.generateLabel.useMutation();
+
+	const handleDownloadLabel = async (shipmentId: string) => {
+		try {
+			const result = await generateLabelMutation.mutateAsync({ shipmentId });
+			const byteCharacters = atob(result.pdf);
+			const byteNumbers = new Array(byteCharacters.length);
+			for (let i = 0; i < byteCharacters.length; i++) {
+				byteNumbers[i] = byteCharacters.charCodeAt(i);
+			}
+			const byteArray = new Uint8Array(byteNumbers);
+			const blob = new Blob([byteArray], { type: "application/pdf" });
+			const link = document.createElement("a");
+			link.href = URL.createObjectURL(blob);
+			link.download = `shipment-label-${shipmentId}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		} catch (error) {
+			toast.error("Failed to generate label");
+		}
 	};
 
 	if (isLoading) {
@@ -85,33 +110,50 @@ export default function UserOrderDetailPage() {
 						<p>No shipments for this order.</p>
 					) : (
 						<div className="space-y-4">
-							{order.shipments.map((shipment) => (
-								<div
-									key={shipment.shipment_id}
-									className="rounded-md border p-4"
-								>
-									<p>
-										<strong>Shipment ID:</strong>{" "}
-										{shipment.human_readable_shipment_id}
-									</p>
-									<p>
-										<strong>Recipient:</strong> {shipment.recipient_name}
-									</p>
-									<p>
-										<strong>AWB Number:</strong> {shipment.awb_number || "N/A"}
-									</p>
-									<p>
-										<strong>Status:</strong> {shipment.current_status}
-									</p>
-									<Button
-										variant="link"
-										onClick={() => handleViewShipment(shipment)}
-										className="p-0"
+							{order.shipments.map((shipment) => {
+								const companyName =
+									order.user.kyc?.entity_name || "NEX GEN COURIER SERVICE";
+								return (
+									<div
+										key={shipment.shipment_id}
+										className="rounded-md border p-4"
 									>
-										View Details
-									</Button>
-								</div>
-							))}
+										<p>
+											<strong>Shipment ID:</strong>{" "}
+											{shipment.human_readable_shipment_id}
+										</p>
+										<p>
+											<strong>Recipient:</strong> {shipment.recipient_name}
+										</p>
+										<p>
+											<strong>AWB Number:</strong>{" "}
+											{shipment.awb_number || "N/A"}
+										</p>
+										<p>
+											<strong>Status:</strong> {shipment.current_status}
+										</p>
+										<Button
+											variant="link"
+											onClick={() => handleViewShipment(shipment)}
+											className="p-0"
+										>
+											View Details
+										</Button>
+										{shipment.awb_number &&
+											order.order_status === "Approved" && (
+												<Button
+													variant="outline"
+													onClick={() =>
+														handleDownloadLabel(shipment.shipment_id)
+													}
+													className="ml-2"
+												>
+													Download Label
+												</Button>
+											)}
+									</div>
+								);
+							})}
 						</div>
 					)}
 				</CardContent>

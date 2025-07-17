@@ -157,7 +157,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 	return (
 		<>
 			<Dialog open={isOpen} onOpenChange={onClose}>
-				<DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
+				<DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[800px]">
 					<DialogHeader>
 						<DialogTitle>Order Details</DialogTitle>
 						<DialogDescription>
@@ -165,7 +165,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 						</DialogDescription>
 					</DialogHeader>
 					{orderItem && (
-						<div className="grid gap-4 py-4 overflow-y-auto">
+						<div className="grid gap-4 overflow-y-auto py-4">
 							<p>
 								<strong>User:</strong> {orderItem.user.name}
 							</p>
@@ -185,43 +185,43 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 											className="flex flex-col items-start justify-between py-2"
 										>
 											<p>
-                                                <strong>Recipient:</strong> {shipment.recipient_name}
-                                            </p>
-                                            <p>
-                                                <strong>Shipment ID:</strong>{" "}
-                                                {shipment.human_readable_shipment_id}
-                                            </p>
-                                            <Button
-                                                variant="link"
-                                                onClick={() => handleViewShipment(shipment)}
-                                                className="p-0"
-                                            >
-                                                View Shipment
-                                            </Button>
-                                            {orderItem.order_status === "PendingApproval" ? (
-                                                <div className="mt-2 w-full">
-                                                    <Label htmlFor={`awbNumber-${shipment.shipment_id}`}>
-                                                        AWB Number
-                                                    </Label>
-                                                    <Input
-                                                        id={`awbNumber-${shipment.shipment_id}`}
-                                                        {...register(`shipments.${index}.awbNumber`)}
-                                                        placeholder="Enter AWB Number"
-                                                    />
+												<strong>Recipient:</strong> {shipment.recipient_name}
+											</p>
+											<p>
+												<strong>Shipment ID:</strong>{" "}
+												{shipment.human_readable_shipment_id}
+											</p>
+											<Button
+												variant="link"
+												onClick={() => handleViewShipment(shipment)}
+												className="p-0"
+											>
+												View Shipment
+											</Button>
+											{orderItem.order_status === "PendingApproval" ? (
+												<div className="mt-2 w-full">
+													<Label htmlFor={`awbNumber-${shipment.shipment_id}`}>
+														AWB Number
+													</Label>
+													<Input
+														id={`awbNumber-${shipment.shipment_id}`}
+														{...register(`shipments.${index}.awbNumber`)}
+														placeholder="Enter AWB Number"
+													/>
 													{errors.shipments?.[index]?.awbNumber && (
-                                                        <FieldError
-                                                            message={
-                                                                errors.shipments[index]?.awbNumber?.message
-                                                            }
-                                                        />
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <p>
-                                                    <strong>AWB Number:</strong>{" "}
-                                                    {shipment.awb_number || "N/A"}
-                                                </p>
-                                            )}
+														<FieldError
+															message={
+																errors.shipments[index]?.awbNumber?.message
+															}
+														/>
+													)}
+												</div>
+											) : (
+												<p>
+													<strong>AWB Number:</strong>{" "}
+													{shipment.awb_number || "N/A"}
+												</p>
+											)}
 										</li>
 									))}
 								</ul>
