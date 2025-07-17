@@ -6,6 +6,7 @@ import {
 	ChevronRight,
 	FileUser,
 	LayoutDashboard,
+	MapPinCheck,
 	NotebookText,
 	Package,
 	PackageCheck,
@@ -27,11 +28,15 @@ const sidebarLinks = [
 		label: "Approve Orders",
 	},
 	{
+		href: "/admin/orders",
+		icon: Package,
+		label: "Orders",
+	},
+	{
 		href: "/admin/pending-addresses",
-		icon: PackageCheck,
+		icon: MapPinCheck,
 		label: "Approve Addresses",
 	},
-	{ href: "/admin/orders", icon: Package, label: "Orders" },
 	{ href: "/admin/all-orders", icon: LayoutDashboard, label: "All Orders" },
 	{
 		href: "/admin/tracking/dashboard",

@@ -775,4 +775,157 @@ export const orderRouter = createTRPCRouter({
 			});
 			return results;
 		}),
+
+	getAllOrders: protectedProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+				userId: z.string().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { user } = ctx;
+			const { page, pageSize, status, userId } = input;
+			const skip = (page - 1) * pageSize;
+
+			if (user.role !== "Admin") {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Only admins can view all orders.",
+				});
+			}
+
+			const whereClause = {
+				...(status && { order_status: status }),
+				...(userId && { user_id: userId }),
+			};
+
+			const [orders, totalOrders] = await db.$transaction([
+				db.order.findMany({
+					where: whereClause,
+					include: {
+						user: {
+							select: {
+								name: true,
+								email: true,
+							},
+						},
+						shipments: {
+							select: {
+								human_readable_shipment_id: true,
+								recipient_name: true,
+								current_status: true,
+							},
+						},
+					},
+					skip,
+					take: pageSize,
+					orderBy: {
+						created_at: "desc",
+					},
+				}),
+				db.order.count({ where: whereClause }),
+			]);
+
+			return {
+				orders,
+				totalOrders,
+				page,
+				pageSize,
+				totalPages: Math.ceil(totalOrders / pageSize),
+			};
+		}),
+
+	getUserOrders: protectedProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { user } = ctx;
+			const { page, pageSize, status } = input;
+			const skip = (page - 1) * pageSize;
+
+			const whereClause = {
+				user_id: user.user_id,
+				...(status && { order_status: status }),
+			};
+
+			const [orders, totalOrders] = await db.$transaction([
+				db.order.findMany({
+					where: whereClause,
+					include: {
+						shipments: {
+							select: {
+								human_readable_shipment_id: true,
+								recipient_name: true,
+								current_status: true,
+							},
+						},
+					},
+					skip,
+					take: pageSize,
+					orderBy: {
+						created_at: "desc",
+					},
+				}),
+				db.order.count({ where: whereClause }),
+			]);
+
+			return {
+				orders,
+				totalOrders,
+				page,
+				pageSize,
+				totalPages: Math.ceil(totalOrders / pageSize),
+			};
+		}),
+
+	getOrderById: protectedProcedure
+		.input(z.object({ orderId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const { user } = ctx;
+			const { orderId } = input;
+
+			const order = await db.order.findUnique({
+				where: { order_id: orderId },
+				include: {
+					user: {
+						select: {
+							name: true,
+							email: true,
+							user_id: true,
+						},
+					},
+					shipments: {
+						include: {
+							origin_address: true,
+							destination_address: true,
+						},
+					},
+				},
+			});
+
+			if (!order) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Order not found.",
+				});
+			}
+
+			// Ensure user can only view their own orders unless they are an admin
+			if (user.role !== "Admin" && order.user_id !== user.user_id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to view this order.",
+				});
+			}
+
+			return order;
+		}),
 });

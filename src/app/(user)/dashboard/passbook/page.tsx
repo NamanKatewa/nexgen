@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { DataTable } from "~/components/DataTable";
 import { Badge } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
+import { formatDateToSeconds } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 import { api } from "~/trpc/react";
 
@@ -58,7 +59,7 @@ const PassbookPage = () => {
 			className: "w-30 px-4 text-center text-blue-950",
 			render: (item: Transaction) =>
 				item.created_at
-					? format(new Date(item.created_at), "dd/MM/yyyy")
+					? formatDateToSeconds(new Date(item.created_at))
 					: "N/A",
 		},
 		{

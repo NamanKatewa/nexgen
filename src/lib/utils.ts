@@ -25,3 +25,22 @@ export function generateShipmentId(userId: string | undefined): string {
 	logger.info("Generated shipment ID", { userId, shipmentId });
 	return shipmentId;
 }
+
+export function formatDateToSeconds(date: Date): string {
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  };
+  const datePart = new Intl.DateTimeFormat('en-US', options).format(date);
+
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
+  const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+
+  const timePart = `${formattedHours}:${formattedMinutes} ${ampm}`;
+
+  return `${datePart} ${timePart}`;
+}

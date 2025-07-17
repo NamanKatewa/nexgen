@@ -5,6 +5,7 @@ import { DataTable } from "~/components/DataTable";
 import OrderDetailsModal from "~/components/OrderDetailsModal";
 import { Button } from "~/components/ui/button";
 import { type RouterOutputs, api } from "~/trpc/react";
+import { formatDateToSeconds } from "~/lib/utils";
 
 type OrderListItem = RouterOutputs["admin"]["pendingOrders"][number];
 
@@ -62,16 +63,7 @@ const ApproveOrderPage = () => {
 			header: "Created On",
 			className: "w-50 px-4",
 			render: (item: OrderListItem) =>
-				item.created_at
-					? new Date(item.created_at).toLocaleString(undefined, {
-							year: "numeric",
-							month: "2-digit",
-							day: "2-digit",
-							hour: "2-digit",
-							minute: "2-digit",
-							hour12: true,
-						})
-					: "-",
+				item.created_at ? formatDateToSeconds(item.created_at) : "-",
 		},
 		{
 			key: "actions",

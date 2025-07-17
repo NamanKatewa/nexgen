@@ -6,6 +6,7 @@ import { Badge } from "~/components/ui/badge";
 
 import { DataTable } from "~/components/DataTable";
 import { cn } from "~/lib/utils";
+import { formatDateToSeconds } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 import { paymentStatusTypes } from "~/constants";
@@ -71,7 +72,7 @@ const WalletTopupPage = () => {
 			className: "w-30 px-4 text-center text-blue-950",
 			render: (item: Transaction) =>
 				item.created_at
-					? format(new Date(item.created_at), "dd/MM/yyyy")
+					? formatDateToSeconds(new Date(item.created_at))
 					: "N/A",
 		},
 		{

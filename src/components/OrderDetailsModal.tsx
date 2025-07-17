@@ -14,6 +14,7 @@ import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { rejectOrderSchema } from "~/schemas/order";
 import { type RouterOutputs, api } from "~/trpc/react";
+import { formatDateToSeconds } from "~/lib/utils";
 import { FieldError } from "./FieldError";
 import ShipmentDetailsModal from "./ShipmentDetailsModal";
 
@@ -94,6 +95,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 						<div className="grid gap-4 py-4">
 							<p>{orderItem.user.name}</p>
 							<p>{orderItem.user.email}</p>
+							<p>Created At: {formatDateToSeconds(orderItem.created_at)}</p>
 							<div className="mt-4">
 								<h3 className="font-medium text-lg">Shipments</h3>
 								<ul className="mt-2 divide-y divide-gray-200">

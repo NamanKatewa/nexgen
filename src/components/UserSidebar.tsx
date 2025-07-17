@@ -26,6 +26,11 @@ const sidebarLinks = [
 		icon: PackagePlus,
 		label: "Create Bulk Shipment",
 	},
+	{
+		href: "/dashboard/orders",
+		icon: PackagePlus,
+		label: "My Orders",
+	},
 ];
 
 const UserSidebar = () => {
