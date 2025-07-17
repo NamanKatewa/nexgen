@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { DataTable } from "~/components/DataTable";
 import { Button } from "~/components/ui/button";
-import { type RouterOutputs, api } from "~/trpc/react";
 import { formatDateToSeconds } from "~/lib/utils";
+import { type RouterOutputs, api } from "~/trpc/react";
 
 type Order = RouterOutputs["order"]["getAllOrders"]["orders"][number];
 

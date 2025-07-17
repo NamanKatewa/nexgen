@@ -43,6 +43,13 @@ const Navbar = () => {
 	const addFunds = api.wallet.addFunds.useMutation();
 	const logoutMutation = api.auth.logout.useMutation();
 	const router = useRouter();
+	const [pathname, setPathname] = useState("/");
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			setPathname(window.location.pathname);
+		}
+	}, []);
 
 	const [isAuthenticatedOptimistic, setIsAuthenticatedOptimistic] =
 		useState(false);
@@ -130,30 +137,33 @@ const Navbar = () => {
 					</div>
 
 					<div className="hidden w-full lg:order-2 lg:flex lg:w-auto">
-						<ul className="flex justify-between font-medium text-slate-500">
-							{NavItems.map((item) => (
-								<motion.li
-									key={item}
-									className="lg:px-4 lg:py-2"
-									whileHover={{ scale: 1.05, color: "#3B82F6" }}
-									whileTap={{ scale: 0.95 }}
-								>
-									<Link
-										href={
-											item === "Home"
-												? "/"
-												: `/${item
-														.toLowerCase()
-														.replace(/ & /g, "-")
-														.replace(/ /g, "-")}`
-										}
-										className="transition-colors duration-200 ease-in-out hover:text-blue-400"
-									>
-										{item}
-									</Link>
-								</motion.li>
-							))}
-						</ul>
+						{!pathname.startsWith("/admin") &&
+							!pathname.startsWith("/dashboard") && (
+								<ul className="flex justify-between font-medium text-slate-500">
+									{NavItems.map((item) => (
+										<motion.li
+											key={item}
+											className="lg:px-4 lg:py-2"
+											whileHover={{ scale: 1.05, color: "#3B82F6" }}
+											whileTap={{ scale: 0.95 }}
+										>
+											<Link
+												href={
+													item === "Home"
+														? "/"
+														: `/${item
+																.toLowerCase()
+																.replace(/ & /g, "-")
+																.replace(/ /g, "-")}`
+												}
+												className="transition-colors duration-200 ease-in-out hover:text-blue-400"
+											>
+												{item}
+											</Link>
+										</motion.li>
+									))}
+								</ul>
+							)}
 					</div>
 
 					<div className="hidden items-center gap-5 lg:order-3 lg:flex">
@@ -290,30 +300,33 @@ const Navbar = () => {
 						transition={{ duration: 0.3 }}
 					>
 						<ul className="flex flex-col items-center py-4 font-medium text-slate-500">
-							{NavItems.map((item, index) => (
-								<motion.li
-									key={item}
-									className="w-full py-2 text-center"
-									initial={{ opacity: 0, y: -10 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ duration: 0.2, delay: index * 0.05 }}
-								>
-									<Link
-										href={
-											item === "Home"
-												? "/"
-												: `/${item
-														.toLowerCase()
-														.replace(/ & /g, "-")
-														.replace(/ /g, "-")}`
-										}
-										className="block w-full transition-colors duration-200 ease-in-out hover:text-blue-400"
-										onClick={() => setIsMobileMenuOpen(false)}
+							{!pathname.startsWith("/admin") &&
+								!pathname.startsWith("/dashboard") &&
+								NavItems.map((item, index) => (
+									<motion.li
+										key={item}
+										className="w-full py-2 text-center"
+										initial={{ opacity: 0, y: -10 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -10 }}
+										transition={{ duration: 0.2, delay: index * 0.05 }}
 									>
-										{item}
-									</Link>
-								</motion.li>
-							))}
+										<Link
+											href={
+												item === "Home"
+													? "/"
+													: `/${item
+															.toLowerCase()
+															.replace(/ & /g, "-")
+															.replace(/ /g, "-")}`
+											}
+											className="block w-full transition-colors duration-200 ease-in-out hover:text-blue-400"
+											onClick={() => setIsMobileMenuOpen(false)}
+										>
+											{item}
+										</Link>
+									</motion.li>
+								))}
 						</ul>
 
 						<div className="flex flex-col items-center gap-2 pb-4">

@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { DataTable } from "~/components/DataTable";
 import OrderDetailsModal from "~/components/OrderDetailsModal";
 import { Button } from "~/components/ui/button";
-import { type RouterOutputs, api } from "~/trpc/react";
 import { formatDateToSeconds } from "~/lib/utils";
+import { type RouterOutputs, api } from "~/trpc/react";
 
 type OrderListItem = RouterOutputs["admin"]["pendingOrders"][number];
 
