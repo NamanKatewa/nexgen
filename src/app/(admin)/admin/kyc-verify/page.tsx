@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { Button } from "~/components/ui/button";
 
-import { DataTable } from "~/components/DataTable";
 import CopyableId from "~/components/CopyableId";
+import { DataTable } from "~/components/DataTable";
 import KycDetailsModal from "~/components/KycDetailsModal";
 import { api } from "~/trpc/react";
 

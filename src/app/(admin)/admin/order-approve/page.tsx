@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { DataTable } from "~/components/DataTable";
 import CopyableId from "~/components/CopyableId";
+import { DataTable } from "~/components/DataTable";
 import OrderDetailsModal from "~/components/OrderDetailsModal";
 import { Button } from "~/components/ui/button";
 import { formatDateToSeconds } from "~/lib/utils";

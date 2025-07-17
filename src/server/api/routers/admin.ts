@@ -241,11 +241,23 @@ export const adminRouter = createTRPCRouter({
 			}
 
 			try {
-				await db.order.update({
-					where: { order_id: order.order_id },
-					data: {
-						order_status: "Approved",
-					},
+				await db.$transaction(async (prisma) => {
+					await prisma.order.update({
+						where: { order_id: order.order_id },
+						data: {
+							order_status: "Approved",
+						},
+					});
+
+					// Update AWB numbers for each shipment
+					for (const shipmentInput of input.shipments) {
+						await prisma.shipment.update({
+							where: { shipment_id: shipmentInput.shipmentId },
+							data: {
+								awb_number: shipmentInput.awbNumber, // Update this field
+							},
+						});
+					}
 				});
 				logger.info("Successfully approved order", logData);
 				return true;

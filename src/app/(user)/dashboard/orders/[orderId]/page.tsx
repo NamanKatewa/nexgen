@@ -98,6 +98,9 @@ export default function UserOrderDetailPage() {
 										<strong>Recipient:</strong> {shipment.recipient_name}
 									</p>
 									<p>
+										<strong>AWB Number:</strong> {shipment.awb_number || "N/A"}
+									</p>
+									<p>
 										<strong>Status:</strong> {shipment.current_status}
 									</p>
 									<Button

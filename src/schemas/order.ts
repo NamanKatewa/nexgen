@@ -211,8 +211,14 @@ export type TExcelShipmentSchema = z.infer<typeof excelShipmentSchema>;
 export type TBulkShipmentItemSchema = z.infer<typeof bulkShipmentItemSchema>;
 export type TBulkShipmentsSchema = z.infer<typeof bulkShipmentsSchema>;
 
+export const approveShipmentSchema = z.object({
+	shipmentId: z.string(),
+	awbNumber: z.string().min(1, "AWB Number is required"),
+});
+
 export const approveOrderSchema = z.object({
 	orderId: z.string(),
+	shipments: z.array(approveShipmentSchema),
 });
 
 export const rejectOrderSchema = z.object({

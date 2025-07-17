@@ -51,8 +51,15 @@ export default function AdminOrderDetailPage() {
 	});
 
 	const handleApprove = () => {
+		// Assuming all shipments need an AWB number for approval
+		const shipmentsWithAwbs =
+			order?.shipments.map((s) => ({
+				shipmentId: s.shipment_id,
+				awbNumber: s.awb_number || "", // Use existing AWB or empty string
+			})) || [];
+
 		approveMutation.mutate(
-			{ orderId: orderId },
+			{ orderId: orderId, shipments: shipmentsWithAwbs },
 			{
 				onSuccess: () => {
 					utils.order.getOrderById.invalidate({ orderId });
@@ -148,6 +155,9 @@ export default function AdminOrderDetailPage() {
 										<strong>Recipient:</strong> {shipment.recipient_name}
 									</p>
 									<p>
+										<strong>AWB Number:</strong> {shipment.awb_number || "N/A"}
+									</p>
+									<p>
 										<strong>Status:</strong> {shipment.current_status}
 									</p>
 									<Button
@@ -164,48 +174,7 @@ export default function AdminOrderDetailPage() {
 				</CardContent>
 			</Card>
 
-			{order.order_status === "PendingApproval" && (
-				<Card>
-					<CardHeader>
-						<CardTitle>Actions</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="mb-4 grid gap-2">
-							<Label htmlFor="rejectionReason">Rejection Reason</Label>
-							<Textarea
-								id="rejectionReason"
-								{...register("reason")}
-								placeholder="Enter rejection reason (required for rejection)"
-								onChange={(e) => setValue("reason", e.target.value)}
-							/>
-							{errors.reason && <FieldError message={errors.reason.message} />}
-						</div>
-						<div className="flex space-x-2">
-							<Button
-								onClick={handleApprove}
-								disabled={
-									approveMutation.isPending ||
-									rejectMutation.isPending ||
-									isSubmitting
-								}
-							>
-								{approveMutation.isPending ? "Approving..." : "Approve Order"}
-							</Button>
-							<Button
-								variant="destructive"
-								onClick={handleReject}
-								disabled={
-									approveMutation.isPending ||
-									rejectMutation.isPending ||
-									isSubmitting
-								}
-							>
-								{rejectMutation.isPending ? "Rejecting..." : "Reject Order"}
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
-			)}
+			
 
 			<ShipmentDetailsModal
 				isOpen={showShipmentModal}

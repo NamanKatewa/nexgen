@@ -4,8 +4,8 @@ import { format } from "date-fns";
 import React, { useState } from "react";
 import { Badge } from "~/components/ui/badge";
 
-import { DataTable } from "~/components/DataTable";
 import CopyableId from "~/components/CopyableId";
+import { DataTable } from "~/components/DataTable";
 import { cn } from "~/lib/utils";
 import { formatDateToSeconds } from "~/lib/utils";
 import { api } from "~/trpc/react";

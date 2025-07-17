@@ -233,7 +233,7 @@ model Shipment {
   human_readable_shipment_id String          @unique
   order_id               String
   carrier_id             String?
-  awb_lr_no              String?          @unique
+  awb_number             String?          @unique
   current_status         SHIPMENT_STATUS
   origin_address_id      String
   destination_address_id String

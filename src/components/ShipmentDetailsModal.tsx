@@ -38,6 +38,7 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 				{shipment && (
 					<div className="grid gap-4 py-4">
 						<p>ID: {shipment.human_readable_shipment_id}</p>
+						<p>AWB Number: {shipment.awb_number || "N/A"}</p>
 						<p>Recipient Name: {shipment.recipient_name}</p>
 						<p>Recipient Mobile: {shipment.recipient_mobile}</p>
 						<p>Package Weight: {shipment.package_weight.toString()}</p>
