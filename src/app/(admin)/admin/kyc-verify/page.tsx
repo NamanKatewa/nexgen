@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Button } from "~/components/ui/button";
 
 import { DataTable } from "~/components/DataTable";
+import CopyableId from "~/components/CopyableId";
 import KycDetailsModal from "~/components/KycDetailsModal";
 import { api } from "~/trpc/react";
 
@@ -55,6 +56,12 @@ const VerifyKycPage = () => {
 	}, [kycList, filterGST, filterType, searchFilter]);
 
 	const columns = [
+		{
+			key: "kyc_id",
+			header: "KYC ID",
+			className: "w-50 px-4 text-blue-950",
+			render: (item: KycItem) => <CopyableId id={item.kyc_id} />,
+		},
 		{
 			key: "entity_name",
 			header: "Entity",

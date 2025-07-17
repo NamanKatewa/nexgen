@@ -5,6 +5,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { format } from "date-fns";
 import React, { useState } from "react";
 import { DataTable } from "~/components/DataTable";
+import CopyableId from "~/components/CopyableId";
 import { Badge } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
 import { formatDateToSeconds } from "~/lib/utils";
@@ -53,6 +54,12 @@ const PassbookPage = () => {
 	}, [transactions, filterStatus, filterTxnType, searchFilter]);
 
 	const columns = [
+		{
+			key: "transaction_id",
+			header: "Transaction ID",
+			className: "w-50 px-4",
+			render: (item: Transaction) => <CopyableId id={item.transaction_id} />,
+		},
 		{
 			key: "user.name",
 			header: "Name",

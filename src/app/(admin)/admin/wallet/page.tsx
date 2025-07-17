@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { Badge } from "~/components/ui/badge";
 
 import { DataTable } from "~/components/DataTable";
+import CopyableId from "~/components/CopyableId";
 import { cn } from "~/lib/utils";
 import { formatDateToSeconds } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -48,6 +49,12 @@ const WalletTopupPage = () => {
 	}, [transactions, filterType, searchFilter]);
 
 	const columns = [
+		{
+			key: "transaction_id",
+			header: "Transaction ID",
+			className: "w-50 px-4 text-blue-950",
+			render: (item: Transaction) => <CopyableId id={item.transaction_id} />,
+		},
 		{
 			key: "user.name",
 			header: "Name",

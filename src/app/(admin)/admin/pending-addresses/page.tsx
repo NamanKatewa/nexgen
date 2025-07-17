@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { DataTable } from "~/components/DataTable";
+import CopyableId from "~/components/CopyableId";
 import { Button } from "~/components/ui/button";
 import { type RouterOutputs, api } from "~/trpc/react";
 
@@ -51,6 +52,11 @@ export default function PendingAddressesPage() {
 	});
 
 	const columns = [
+		{
+			key: "pending_address_id",
+			header: "Address ID",
+			render: (row: PendingAddress) => <CopyableId id={row.pending_address_id} />,
+		},
 		{
 			key: "user_name",
 			header: "User Name",

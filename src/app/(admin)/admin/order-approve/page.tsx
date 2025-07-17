@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { DataTable } from "~/components/DataTable";
+import CopyableId from "~/components/CopyableId";
 import OrderDetailsModal from "~/components/OrderDetailsModal";
 import { Button } from "~/components/ui/button";
 import { formatDateToSeconds } from "~/lib/utils";
@@ -40,6 +41,12 @@ const ApproveOrderPage = () => {
 	}, [orderList, searchFilter]);
 
 	const columns = [
+		{
+			key: "order_id",
+			header: "Order ID",
+			className: "w-50 px-4",
+			render: (item: OrderListItem) => <CopyableId id={item.order_id} />,
+		},
 		{
 			key: "user_name",
 			header: "Name",
