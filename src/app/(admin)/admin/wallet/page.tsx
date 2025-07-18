@@ -14,21 +14,23 @@ import { paymentStatusTypes } from "~/constants";
 
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "~/server/api/root";
+type Transactions = inferRouterOutputs<AppRouter>["admin"]["getTransactions"];
+type Transaction = Transactions extends Array<infer T> ? T : never;
 
 const WalletTopupPage = () => {
+	const [filterType, setFilterType] = useState("ALL");
+	const [searchFilter, setSearchFilter] = useState("");
+
 	const { data: transactions, isLoading } = api.admin.getTransactions.useQuery(
-		undefined,
+		{
+			filterType: filterType === "ALL" ? undefined : filterType,
+			searchFilter: searchFilter === "" ? undefined : searchFilter,
+		},
 		{
 			retry: 3,
 			refetchOnWindowFocus: false,
 		},
 	);
-
-	type Transactions = inferRouterOutputs<AppRouter>["admin"]["getTransactions"];
-	type Transaction = Transactions extends Array<infer T> ? T : never;
-
-	const [filterType, setFilterType] = useState("ALL");
-	const [searchFilter, setSearchFilter] = useState("");
 
 	const handleClearFilters = () => {
 		setFilterType("ALL");
@@ -123,7 +125,7 @@ const WalletTopupPage = () => {
 	return (
 		<DataTable
 			title="Wallet Recharges"
-			data={filteredData}
+			data={transactions || []}
 			columns={columns}
 			filters={filters}
 			onClearFilters={handleClearFilters}

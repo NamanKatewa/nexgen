@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { env } from "~/env";
@@ -226,19 +227,44 @@ export const walletRouter = createTRPCRouter({
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
+				filterStatus: z.string().optional(),
+				filterTxnType: z.string().optional(),
+				searchFilter: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const { user } = ctx;
-			const { page, pageSize } = input;
+			const { page, pageSize, filterStatus, filterTxnType, searchFilter } =
+				input;
 			const skip = (page - 1) * pageSize;
 			const logData = { userId: user.user_id, page, pageSize };
 			logger.info("Fetching user passbook", logData);
 
+			const whereClause: Prisma.TransactionWhereInput = {
+				user_id: user.user_id,
+			};
+
+			if (filterStatus && filterStatus !== "ALL") {
+				whereClause.payment_status =
+					filterStatus as Prisma.TransactionWhereInput["payment_status"];
+			}
+
+			if (filterTxnType && filterTxnType !== "ALL") {
+				whereClause.transaction_type =
+					filterTxnType as Prisma.TransactionWhereInput["transaction_type"];
+			}
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{ description: { contains: searchFilter, mode: "insensitive" } },
+					{ amount: Number.parseFloat(searchFilter) || undefined },
+				];
+			}
+
 			try {
 				const [transactions, totalTransactions] = await db.$transaction([
 					db.transaction.findMany({
-						where: { user_id: user.user_id },
+						where: whereClause,
 						select: {
 							transaction_id: true,
 							created_at: true,
@@ -254,7 +280,7 @@ export const walletRouter = createTRPCRouter({
 						take: pageSize,
 					}),
 					db.transaction.count({
-						where: { user_id: user.user_id },
+						where: whereClause,
 					}),
 				]);
 

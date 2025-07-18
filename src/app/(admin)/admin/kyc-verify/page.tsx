@@ -132,7 +132,7 @@ const VerifyKycPage = () => {
 		<div className="p-8">
 			<DataTable
 				title="KYC Verification"
-				data={filteredData}
+				data={data?.kycList || []}
 				columns={columns}
 				filters={filters}
 				onClearFilters={handleClearFilters}

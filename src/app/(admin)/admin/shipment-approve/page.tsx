@@ -113,7 +113,7 @@ const ApproveOrderPage = () => {
 		<div className="p-8">
 			<DataTable
 				title="Shipment Approval"
-				data={filteredData}
+				data={data?.shipments || []}
 				columns={columns}
 				filters={filters}
 				onClearFilters={handleClearFilters}

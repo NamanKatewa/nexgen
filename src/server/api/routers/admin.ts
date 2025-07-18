@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { sendEmail } from "~/lib/email";
@@ -20,18 +21,41 @@ export const adminRouter = createTRPCRouter({
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
+				filterGST: z.string().optional(),
+				filterType: z.string().optional(),
+				searchFilter: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize } = input;
+			const { page, pageSize, filterGST, filterType, searchFilter } = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching pending KYC submissions", { page, pageSize });
+
+			const whereClause: Prisma.KycWhereInput = {
+				kyc_status: "Submitted",
+			};
+
+			if (filterGST && filterGST !== "ALL") {
+				whereClause.gst = filterGST === "YES";
+			}
+
+			if (filterType && filterType !== "ALL") {
+				whereClause.entity_type =
+					filterType as Prisma.KycWhereInput["entity_type"];
+			}
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{ entity_name: { contains: searchFilter, mode: "insensitive" } },
+					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
+					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
+				];
+			}
+
 			try {
 				const [kycList, totalKyc] = await db.$transaction([
 					db.kyc.findMany({
-						where: {
-							kyc_status: "Submitted",
-						},
+						where: whereClause,
 						include: {
 							address: true,
 							user: { select: { email: true, name: true } },
@@ -41,7 +65,7 @@ export const adminRouter = createTRPCRouter({
 						take: pageSize,
 					}),
 					db.kyc.count({
-						where: { kyc_status: "Submitted" },
+						where: whereClause,
 					}),
 				]);
 
@@ -157,55 +181,106 @@ export const adminRouter = createTRPCRouter({
 			}
 		}),
 
-	getTransactions: adminProcedure.query(async ({ ctx }) => {
-		logger.info("Fetching all credit transactions");
-		try {
-			const transactions = await db.transaction.findMany({
-				where: {
-					transaction_type: "Credit",
-					description: "Funds added to wallet",
-				},
-				select: {
-					transaction_id: true,
-					user: {
-						select: {
-							name: true,
-							email: true,
+	getTransactions: adminProcedure
+		.input(
+			z.object({
+				filterType: z.string().optional(),
+				searchFilter: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { filterType, searchFilter } = input;
+			logger.info("Fetching all credit transactions");
+
+			const whereClause: Prisma.TransactionWhereInput = {
+				transaction_type: "Credit",
+				description: "Funds added to wallet",
+			};
+
+			if (filterType && filterType !== "ALL") {
+				whereClause.payment_status =
+					filterType as Prisma.TransactionWhereInput["payment_status"];
+			}
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
+					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
+					{ transaction_id: { contains: searchFilter, mode: "insensitive" } },
+				];
+			}
+
+			try {
+				const transactions = await db.transaction.findMany({
+					where: whereClause,
+					select: {
+						transaction_id: true,
+						user: {
+							select: {
+								name: true,
+								email: true,
+							},
 						},
+						payment_status: true,
+						transaction_type: true,
+						amount: true,
+						created_at: true,
 					},
-					payment_status: true,
-					transaction_type: true,
-					amount: true,
-					created_at: true,
-				},
-				orderBy: { created_at: "desc" },
-			});
-			logger.info("Successfully fetched all credit transactions", {
-				count: transactions.length,
-			});
-			return transactions;
-		} catch (error) {
-			logger.error("Failed to fetch credit transactions", { error });
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Something went wrong",
-			});
-		}
-	}),
+					orderBy: { created_at: "desc" },
+				});
+				logger.info("Successfully fetched all credit transactions", {
+					count: transactions.length,
+				});
+				return transactions;
+			} catch (error) {
+				logger.error("Failed to fetch credit transactions", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
 	getPassbook: adminProcedure
 		.input(
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
+				filterStatus: z.string().optional(),
+				filterTxnType: z.string().optional(),
+				searchFilter: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize } = input;
+			const { page, pageSize, filterStatus, filterTxnType, searchFilter } =
+				input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching admin passbook", { page, pageSize });
+
+			const whereClause: Prisma.TransactionWhereInput = {};
+
+			if (filterStatus && filterStatus !== "ALL") {
+				whereClause.payment_status =
+					filterStatus as Prisma.TransactionWhereInput["payment_status"];
+			}
+
+			if (filterTxnType && filterTxnType !== "ALL") {
+				whereClause.transaction_type =
+					filterTxnType as Prisma.TransactionWhereInput["transaction_type"];
+			}
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
+					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
+					{ description: { contains: searchFilter, mode: "insensitive" } },
+					{ amount: Number.parseFloat(searchFilter) || undefined },
+				];
+			}
+
 			try {
 				const [transactions, totalTransactions] = await db.$transaction([
 					db.transaction.findMany({
+						where: whereClause,
 						select: {
 							transaction_id: true,
 							created_at: true,
@@ -226,7 +301,9 @@ export const adminRouter = createTRPCRouter({
 						skip,
 						take: pageSize,
 					}),
-					db.transaction.count(),
+					db.transaction.count({
+						where: whereClause,
+					}),
 				]);
 				logger.info("Successfully fetched admin passbook", {
 					count: transactions.length,
@@ -254,16 +331,35 @@ export const adminRouter = createTRPCRouter({
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
+				searchFilter: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize } = input;
+			const { page, pageSize, searchFilter } = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching pending shipments", { page, pageSize });
+
+			const whereClause: Prisma.ShipmentWhereInput = {
+				shipment_status: "PendingApproval",
+			};
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
+					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
+					{
+						human_readable_shipment_id: {
+							contains: searchFilter,
+							mode: "insensitive",
+						},
+					},
+				];
+			}
+
 			try {
 				const [shipments, totalShipments] = await db.$transaction([
 					db.shipment.findMany({
-						where: { shipment_status: "PendingApproval" },
+						where: whereClause,
 						include: {
 							origin_address: true,
 							destination_address: true,
@@ -274,7 +370,7 @@ export const adminRouter = createTRPCRouter({
 						take: pageSize,
 					}),
 					db.shipment.count({
-						where: { shipment_status: "PendingApproval" },
+						where: whereClause,
 					}),
 				]);
 				logger.info("Successfully fetched pending shipments", {
@@ -411,22 +507,41 @@ export const adminRouter = createTRPCRouter({
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
+				searchFilter: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize } = input;
+			const { page, pageSize, searchFilter } = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching pending addresses", { page, pageSize });
+
+			const whereClause: Prisma.PendingAddressWhereInput = {};
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
+					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
+					{ name: { contains: searchFilter, mode: "insensitive" } },
+					{ address_line: { contains: searchFilter, mode: "insensitive" } },
+					{ city: { contains: searchFilter, mode: "insensitive" } },
+					{ state: { contains: searchFilter, mode: "insensitive" } },
+					{ zip_code: Number.parseInt(searchFilter) || undefined },
+				];
+			}
+
 			try {
 				const [pendingAddresses, totalPendingAddresses] = await db.$transaction(
 					[
 						db.pendingAddress.findMany({
+							where: whereClause,
 							include: { user: true },
 							orderBy: { created_at: "desc" },
 							skip,
 							take: pageSize,
 						}),
-						db.pendingAddress.count(),
+						db.pendingAddress.count({
+							where: whereClause,
+						}),
 					],
 				);
 				logger.info("Successfully fetched pending addresses", {

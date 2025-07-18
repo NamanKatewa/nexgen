@@ -131,7 +131,7 @@ export default function PendingAddressesPage() {
 		<div className="p-8">
 			<DataTable
 				title="Pending Pickup Addresses"
-				data={filteredAddresses || []}
+				data={data?.pendingAddresses || []}
 				columns={columns}
 				isLoading={isLoading}
 				noResultsMessage="No pending addresses found."

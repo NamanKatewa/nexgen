@@ -143,7 +143,7 @@ const PassbookPage = () => {
 		<div className="p-8">
 			<DataTable
 				title="Transactions"
-				data={filteredData}
+				data={data?.transactions || []}
 				columns={columns}
 				filters={filters}
 				onClearFilters={handleClearFilters}
