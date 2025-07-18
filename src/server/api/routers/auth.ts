@@ -138,7 +138,7 @@ export const authRouter = createTRPCRouter({
 			}
 		}),
 
-	login: publicProcedure.input(loginSchema).mutation(async ({ input, ctx }) => {
+	login: publicProcedure.input(loginSchema).mutation(async ({ input }) => {
 		const logData = { email: input.email };
 		logger.info("User login attempt", logData);
 
@@ -151,7 +151,7 @@ export const authRouter = createTRPCRouter({
 			);
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
-				message: "Invalid credentials",
+				message: "Invalid email",
 			});
 		}
 
@@ -160,7 +160,7 @@ export const authRouter = createTRPCRouter({
 			logger.warn("Invalid credentials - password mismatch", logData);
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
-				message: "Invalid credentials",
+				message: "Invalid password",
 			});
 		}
 
@@ -220,16 +220,14 @@ export const authRouter = createTRPCRouter({
 		}
 	}),
 
-	logout: protectedProcedure.mutation(async ({ ctx }) => {
-		const { logger, user } = ctx;
-		const logData = { userId: user.user_id };
-		logger.info("User logout", logData);
+	logout: publicProcedure.mutation(async () => {
+		logger.info("User logout");
 		try {
 			(await cookies()).set({ name: "token", value: "", maxAge: 0, path: "/" });
-			logger.info("User logged out successfully", logData);
+			logger.info("User logged out successfully");
 			return true;
 		} catch (error) {
-			logger.error("User logout failed", { ...logData, error });
+			logger.error("User logout failed", error);
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Something went wrong",
@@ -239,7 +237,7 @@ export const authRouter = createTRPCRouter({
 
 	forgotPassword: publicProcedure
 		.input(forgotPasswordSchema)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({ input }) => {
 			const logData = { email: input.email };
 			logger.info("Forgot password request", logData);
 
@@ -284,7 +282,7 @@ export const authRouter = createTRPCRouter({
 
 	resetPasswordWithOtp: publicProcedure
 		.input(resetPasswordWithOtpSchema)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({ input }) => {
 			const logData = { email: input.email };
 			logger.info("Reset password with OTP attempt", logData);
 

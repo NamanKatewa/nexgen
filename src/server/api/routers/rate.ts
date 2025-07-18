@@ -5,7 +5,11 @@ import logger from "~/lib/logger";
 import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { rateSchema } from "~/schemas/rate";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "~/server/api/trpc";
 
 export const rateRouter = createTRPCRouter({
 	calculateRate: publicProcedure
@@ -107,7 +111,7 @@ export const rateRouter = createTRPCRouter({
 			}
 		}),
 
-	calculateBulkRates: publicProcedure
+	calculateBulkRates: protectedProcedure
 		.input(
 			z.array(
 				z.object({
@@ -153,7 +157,7 @@ export const rateRouter = createTRPCRouter({
 					const weightSlab = Math.ceil(shipment.packageWeight * 2) / 2;
 
 					shipmentDetailsForRateCalculation.push({
-						zoneFrom: "z", // Assuming 'z' is a placeholder or default for origin zone
+						zoneFrom: "z",
 						zoneTo: zone,
 						weightSlab,
 						packageWeight: shipment.packageWeight,

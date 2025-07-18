@@ -17,7 +17,11 @@ import {
 	bulkShipmentsSchema,
 	submitShipmentSchema,
 } from "~/schemas/shipment";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "~/server/api/trpc";
 import { db } from "~/server/db";
 
 interface ShipmentDetail extends TShipmentSchema {
@@ -95,9 +99,8 @@ export const shipmentRouter = createTRPCRouter({
 					(address) => address.address_id === input.destinationAddressId,
 				);
 				if (!originAddress) {
-					// Check if the address is pending
 					const pending = await db.pendingAddress.findFirst({
-						where: { pending_address_id: input.originAddressId }, // Corrected field name
+						where: { pending_address_id: input.originAddressId },
 					});
 					if (pending) {
 						throw new TRPCError({
@@ -258,7 +261,6 @@ export const shipmentRouter = createTRPCRouter({
 							message: "Insufficient wallet balance. Recharge your wallet.",
 						});
 					}
-					// No order creation, directly create shipment
 
 					await tx.wallet.update({
 						where: { user_id: wallet.user_id },
@@ -307,20 +309,14 @@ export const shipmentRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const { user } = ctx;
 			const userId = user.user_id;
-			if (!userId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "User ID not found.",
-				});
-			}
+
 			const logData = {
 				userId,
 				shipmentCount: input.shipments.length,
 			};
 			logger.info("Starting performant bulk shipment creation v3", logData);
 
-			// --- Step 1: Data Aggregation & Pre-computation ---
-			await getPincodeDetails("0"); // Pre-load map
+			await getPincodeDetails("0");
 
 			const originAddressKeys = new Map<string, TBulkShipmentItemSchema>();
 			const destAddressKeys = new Map<string, TBulkShipmentItemSchema>();
@@ -334,11 +330,10 @@ export const shipmentRouter = createTRPCRouter({
 				if (!destAddressKeys.has(destKey)) destAddressKeys.set(destKey, s);
 			}
 
-			// --- Step 2: Bulk Data Fetching ---
 			const [existingApproved, existingPending] = await Promise.all([
 				db.address.findMany({ where: { user_id: user.user_id as string } }),
 				db.pendingAddress.findMany({
-					where: { user_id: user.user_id as string },
+					where: { user_id: user.user_id },
 				}),
 			]);
 
@@ -355,7 +350,6 @@ export const shipmentRouter = createTRPCRouter({
 				]),
 			);
 
-			// --- Step 3: In-Memory Categorization ---
 			const results: ShipmentResult[] = [];
 			const shipmentsReady: ShipmentReady[] = [];
 			const newPendingToCreate: NewPendingAddress[] = [];
@@ -447,7 +441,6 @@ export const shipmentRouter = createTRPCRouter({
 				}
 			}
 
-			// --- Step 4: Bulk Database Creation ---
 			if (newPendingToCreate.length > 0) {
 				await db.pendingAddress.createMany({ data: newPendingToCreate });
 				logger.info("Successfully created new pending addresses", {
@@ -476,7 +469,6 @@ export const shipmentRouter = createTRPCRouter({
 				}
 			}
 
-			// --- Step 5: Final Transaction ---
 			if (shipmentsReady.length > 0) {
 				const finalShipments: FinalShipmentItem[] = shipmentsReady.map((s) => {
 					const destKey =
@@ -643,8 +635,6 @@ export const shipmentRouter = createTRPCRouter({
 							data: { balance: { decrement: totalAmount } },
 						});
 
-						// No order creation, directly create shipments
-
 						await tx.transaction.create({
 							data: {
 								user_id: user.user_id as string,
@@ -776,7 +766,7 @@ export const shipmentRouter = createTRPCRouter({
 			return results;
 		}),
 
-	getAllShipments: protectedProcedure
+	getAllShipments: adminProcedure
 		.input(
 			z.object({
 				page: z.number().min(1).default(1),
@@ -786,25 +776,12 @@ export const shipmentRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const { user } = ctx;
 			const { page, pageSize, status, userId } = input;
 			const skip = (page - 1) * pageSize;
 
-			if (user.role !== "Admin") {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "Only admins can view all shipments.",
-				});
-			}
-
-			const whereClause = {
-				...(status && { shipment_status: status }),
-				...(userId && { user_id: userId }),
-			};
-
 			const [shipments, totalShipments] = await db.$transaction([
 				db.shipment.findMany({
-					where: whereClause,
+					where: { shipment_status: status, user_id: userId },
 					include: {
 						user: {
 							select: {
@@ -819,7 +796,9 @@ export const shipmentRouter = createTRPCRouter({
 						created_at: "desc",
 					},
 				}),
-				db.shipment.count({ where: whereClause }),
+				db.shipment.count({
+					where: { shipment_status: status, user_id: userId },
+				}),
 			]);
 
 			return {
@@ -844,14 +823,9 @@ export const shipmentRouter = createTRPCRouter({
 			const { page, pageSize, status } = input;
 			const skip = (page - 1) * pageSize;
 
-			const whereClause = {
-				user_id: user.user_id,
-				...(status && { shipment_status: status }),
-			};
-
 			const [shipments, totalShipments] = await db.$transaction([
 				db.shipment.findMany({
-					where: whereClause,
+					where: { user_id: user.user_id, shipment_status: status },
 					include: {
 						user: {
 							select: {
@@ -868,7 +842,9 @@ export const shipmentRouter = createTRPCRouter({
 						created_at: "desc",
 					},
 				}),
-				db.shipment.count({ where: whereClause }),
+				db.shipment.count({
+					where: { user_id: user.user_id, shipment_status: status },
+				}),
 			]);
 
 			return {
@@ -913,7 +889,6 @@ export const shipmentRouter = createTRPCRouter({
 				});
 			}
 
-			// Ensure user can only view their own shipments unless they are an admin
 			if (user.role !== "Admin" && shipment.user_id !== user.user_id) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",

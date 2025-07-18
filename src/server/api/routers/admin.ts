@@ -153,6 +153,7 @@ export const adminRouter = createTRPCRouter({
 					amount: true,
 					created_at: true,
 				},
+				orderBy: { created_at: "desc" },
 			});
 			logger.info("Successfully fetched all credit transactions", {
 				count: transactions.length,
@@ -170,9 +171,6 @@ export const adminRouter = createTRPCRouter({
 		logger.info("Fetching admin passbook");
 		try {
 			const transactions = await db.transaction.findMany({
-				orderBy: {
-					created_at: "desc",
-				},
 				select: {
 					transaction_id: true,
 					created_at: true,
@@ -186,6 +184,9 @@ export const adminRouter = createTRPCRouter({
 							email: true,
 						},
 					},
+				},
+				orderBy: {
+					created_at: "desc",
 				},
 			});
 			logger.info("Successfully fetched admin passbook", {
@@ -210,6 +211,7 @@ export const adminRouter = createTRPCRouter({
 					destination_address: true,
 					user: { select: { email: true, name: true } },
 				},
+				orderBy: { created_at: "desc" },
 			});
 			logger.info("Successfully fetched pending shipments", {
 				count: shipments.length,
@@ -381,7 +383,7 @@ export const adminRouter = createTRPCRouter({
 							state: pendingAddress.state,
 							address_line: pendingAddress.address_line,
 							name: pendingAddress.name,
-							type: "Warehouse", // Assuming all pending addresses are for warehouses
+							type: "Warehouse",
 							user_id: pendingAddress.user_id,
 						},
 					});

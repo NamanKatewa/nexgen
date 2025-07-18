@@ -210,7 +210,6 @@ export const walletRouter = createTRPCRouter({
 						transactionId: transaction.transaction_id,
 						error: imbError,
 					});
-					// Optionally, mark as failed if IMB check consistently fails after retries
 				}
 			}
 			logger.info("Finished checking pending IMB transactions.");
@@ -230,9 +229,6 @@ export const walletRouter = createTRPCRouter({
 		try {
 			const transactions = await db.transaction.findMany({
 				where: { user_id: user.user_id },
-				orderBy: {
-					created_at: "desc",
-				},
 				select: {
 					transaction_id: true,
 					created_at: true,
@@ -240,6 +236,9 @@ export const walletRouter = createTRPCRouter({
 					transaction_type: true,
 					payment_status: true,
 					description: true,
+				},
+				orderBy: {
+					created_at: "desc",
 				},
 			});
 
