@@ -11,17 +11,24 @@ import { formatDateToSeconds } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 import { api } from "~/trpc/react";
 
-type Transactions = inferRouterOutputs<AppRouter>["wallet"]["getPassbook"];
-type Transaction = Transactions extends Array<infer T> ? T : never;
+type PassbookOutput = inferRouterOutputs<AppRouter>["wallet"]["getPassbook"];
+type Transaction = PassbookOutput["transactions"][number];
 
 import { paymentStatusTypes, transactionTypes } from "~/constants";
 
+import { Button } from "~/components/ui/button";
+
 const PassbookPage = () => {
-	const { data: transactions = [], isLoading } =
-		api.wallet.getPassbook.useQuery(undefined, {
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
+
+	const { data, isLoading } = api.wallet.getPassbook.useQuery(
+		{ page, pageSize },
+		{
 			retry: 3,
 			refetchOnWindowFocus: false,
-		});
+		},
+	);
 
 	const [filterStatus, setFilterStatus] = useState("ALL");
 	const [filterTxnType, setFilterTxnType] = useState("ALL");
@@ -34,7 +41,7 @@ const PassbookPage = () => {
 	};
 
 	const filteredData = React.useMemo(() => {
-		return transactions.filter((item) => {
+		return (data?.transactions ?? []).filter((item: Transaction) => {
 			const searchLower = searchFilter.toLowerCase();
 			const statusMatch =
 				filterStatus === "ALL" || item.payment_status === filterStatus;
@@ -45,7 +52,7 @@ const PassbookPage = () => {
 				item.amount.toString().includes(searchLower);
 			return statusMatch && typeMatch && searchMatch;
 		});
-	}, [transactions, filterStatus, filterTxnType, searchFilter]);
+	}, [data?.transactions, filterStatus, filterTxnType, searchFilter]);
 
 	const columns = [
 		{
@@ -133,14 +140,39 @@ const PassbookPage = () => {
 	];
 
 	return (
-		<DataTable
-			title="Transactions"
-			data={filteredData}
-			columns={columns}
-			filters={filters}
-			onClearFilters={handleClearFilters}
-			isLoading={isLoading}
-		/>
+		<div className="p-8">
+			<DataTable
+				title="Transactions"
+				data={filteredData}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+			/>
+			<div className="mt-4 flex justify-between">
+				<Button
+					type="button"
+					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+					disabled={page === 1}
+					variant="outline"
+					className="px-4 py-2"
+				>
+					Previous
+				</Button>
+				<span>
+					Page {page} of {data?.totalPages || 1}
+				</span>
+				<Button
+					type="button"
+					onClick={() => setPage((prev) => prev + 1)}
+					disabled={page === (data?.totalPages || 1)}
+					variant="outline"
+					className="px-4 py-2"
+				>
+					Next
+				</Button>
+			</div>
+		</div>
 	);
 };
 

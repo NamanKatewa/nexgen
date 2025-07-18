@@ -12,14 +12,19 @@ import { formatDateToSeconds } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 import { api } from "~/trpc/react";
 
-type Passbook = inferRouterOutputs<AppRouter>["admin"]["getPassbook"];
-type Transaction = Passbook extends Array<infer T> ? T : never;
+type PassbookOutput = inferRouterOutputs<AppRouter>["admin"]["getPassbook"];
+type Transaction = PassbookOutput["transactions"][number];
 
 import { paymentStatusTypes, transactionTypes } from "~/constants";
 
+import { Button } from "~/components/ui/button";
+
 const PassbookPage = () => {
-	const { data: transactions = [], isLoading } = api.admin.getPassbook.useQuery(
-		undefined,
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
+
+	const { data, isLoading } = api.admin.getPassbook.useQuery(
+		{ page, pageSize },
 		{
 			retry: 3,
 			refetchOnWindowFocus: false,
@@ -37,7 +42,7 @@ const PassbookPage = () => {
 	};
 
 	const filteredData = React.useMemo(() => {
-		return transactions.filter((item) => {
+		return (data?.transactions ?? []).filter((item) => {
 			const searchLower = searchFilter.toLowerCase();
 			const statusMatch =
 				filterStatus === "ALL" || item.payment_status === filterStatus;
@@ -51,7 +56,7 @@ const PassbookPage = () => {
 
 			return statusMatch && typeMatch && searchMatch;
 		});
-	}, [transactions, filterStatus, filterTxnType, searchFilter]);
+	}, [data?.transactions, filterStatus, filterTxnType, searchFilter]);
 
 	const columns = [
 		{
@@ -158,15 +163,40 @@ const PassbookPage = () => {
 	];
 
 	return (
-		<DataTable
-			title="Transactions"
-			data={filteredData}
-			columns={columns}
-			filters={filters}
-			onClearFilters={handleClearFilters}
-			isLoading={isLoading}
-			idKey="transaction_id"
-		/>
+		<div className="p-8">
+			<DataTable
+				title="Transactions"
+				data={filteredData}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="transaction_id"
+			/>
+			<div className="mt-4 flex justify-between">
+				<Button
+					type="button"
+					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+					disabled={page === 1}
+					variant="outline"
+					className="px-4 py-2"
+				>
+					Previous
+				</Button>
+				<span>
+					Page {page} of {data?.totalPages || 1}
+				</span>
+				<Button
+					type="button"
+					onClick={() => setPage((prev) => prev + 1)}
+					disabled={page === (data?.totalPages || 1)}
+					variant="outline"
+					className="px-4 py-2"
+				>
+					Next
+				</Button>
+			</div>
+		</div>
 	);
 };
 

@@ -21,8 +21,8 @@ import Image from "next/image";
 import { useState } from "react";
 import type { AppRouter } from "~/server/api/root";
 
-type KycListType = inferRouterOutputs<AppRouter>["admin"]["pendingKyc"];
-type KycItemType = KycListType extends Array<infer T> ? T : never;
+type KycListOutput = inferRouterOutputs<AppRouter>["admin"]["pendingKyc"];
+type KycItemType = KycListOutput["kycList"][number];
 
 type BillingAddress = {
 	address_line: string;

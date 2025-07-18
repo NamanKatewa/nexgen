@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { nanoid } from "nanoid";
+import { z } from "zod";
 import { env } from "~/env";
 import { checkIMBOrderStatus, createIMBPaymentOrder } from "~/lib/imb";
 import logger from "~/lib/logger";
@@ -221,38 +221,61 @@ export const walletRouter = createTRPCRouter({
 			});
 		}
 	}),
-	getPassbook: protectedProcedure.query(async ({ ctx }) => {
-		const { user } = ctx;
-		const logData = { userId: user.user_id };
-		logger.info("Fetching user passbook", logData);
+	getPassbook: protectedProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { user } = ctx;
+			const { page, pageSize } = input;
+			const skip = (page - 1) * pageSize;
+			const logData = { userId: user.user_id, page, pageSize };
+			logger.info("Fetching user passbook", logData);
 
-		try {
-			const transactions = await db.transaction.findMany({
-				where: { user_id: user.user_id },
-				select: {
-					transaction_id: true,
-					created_at: true,
-					amount: true,
-					transaction_type: true,
-					payment_status: true,
-					description: true,
-				},
-				orderBy: {
-					created_at: "desc",
-				},
-			});
+			try {
+				const [transactions, totalTransactions] = await db.$transaction([
+					db.transaction.findMany({
+						where: { user_id: user.user_id },
+						select: {
+							transaction_id: true,
+							created_at: true,
+							amount: true,
+							transaction_type: true,
+							payment_status: true,
+							description: true,
+						},
+						orderBy: {
+							created_at: "desc",
+						},
+						skip,
+						take: pageSize,
+					}),
+					db.transaction.count({
+						where: { user_id: user.user_id },
+					}),
+				]);
 
-			logger.info("Successfully fetched user passbook", {
-				...logData,
-				count: transactions.length,
-			});
-			return transactions;
-		} catch (error) {
-			logger.error("Failed to fetch user passbook", { ...logData, error });
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Something went wrong",
-			});
-		}
-	}),
+				logger.info("Successfully fetched user passbook", {
+					...logData,
+					count: transactions.length,
+					totalTransactions,
+				});
+				return {
+					transactions,
+					totalTransactions,
+					page,
+					pageSize,
+					totalPages: Math.ceil(totalTransactions / pageSize),
+				};
+			} catch (error) {
+				logger.error("Failed to fetch user passbook", { ...logData, error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
 });

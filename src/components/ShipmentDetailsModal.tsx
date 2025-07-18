@@ -23,7 +23,8 @@ import {
 import { type RouterOutputs, api } from "~/trpc/react";
 import { FieldError } from "./FieldError";
 
-type ShipmentItemType = RouterOutputs["admin"]["pendingShipments"][number];
+type ShipmentItemType =
+	RouterOutputs["admin"]["pendingShipments"]["shipments"][number];
 type ShipmentDetailType = ShipmentItemType;
 
 // Define a combined schema for form data

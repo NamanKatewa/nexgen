@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { sendEmail } from "~/lib/email";
 import logger from "~/lib/logger";
 import {
@@ -14,33 +15,57 @@ import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
 export const adminRouter = createTRPCRouter({
-	pendingKyc: adminProcedure.query(async ({ ctx }) => {
-		logger.info("Fetching pending KYC submissions");
-		try {
-			const pending = await db.kyc.findMany({
-				where: {
-					kyc_status: "Submitted",
-				},
-				include: {
-					address: true,
-					user: { select: { email: true, name: true } },
-				},
-				orderBy: { submission_date: "desc" },
-			});
+	pendingKyc: adminProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { page, pageSize } = input;
+			const skip = (page - 1) * pageSize;
+			logger.info("Fetching pending KYC submissions", { page, pageSize });
+			try {
+				const [kycList, totalKyc] = await db.$transaction([
+					db.kyc.findMany({
+						where: {
+							kyc_status: "Submitted",
+						},
+						include: {
+							address: true,
+							user: { select: { email: true, name: true } },
+						},
+						orderBy: { submission_date: "desc" },
+						skip,
+						take: pageSize,
+					}),
+					db.kyc.count({
+						where: { kyc_status: "Submitted" },
+					}),
+				]);
 
-			logger.info("Successfully fetched pending KYC submissions", {
-				count: pending.length,
-			});
-			if (!pending) return [];
-			return pending;
-		} catch (error) {
-			logger.error("Failed to fetch pending KYC submissions", { error });
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Something went wrong",
-			});
-		}
-	}),
+				logger.info("Successfully fetched pending KYC submissions", {
+					count: kycList.length,
+					totalKyc,
+					page,
+					pageSize,
+				});
+				return {
+					kycList,
+					totalKyc,
+					page,
+					pageSize,
+					totalPages: Math.ceil(totalKyc / pageSize),
+				};
+			} catch (error) {
+				logger.error("Failed to fetch pending KYC submissions", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
 	verifyKyc: adminProcedure
 		.input(verifyKycSchema)
 		.mutation(async ({ input, ctx }) => {
@@ -167,64 +192,112 @@ export const adminRouter = createTRPCRouter({
 			});
 		}
 	}),
-	getPassbook: adminProcedure.query(async ({ ctx }) => {
-		logger.info("Fetching admin passbook");
-		try {
-			const transactions = await db.transaction.findMany({
-				select: {
-					transaction_id: true,
-					created_at: true,
-					amount: true,
-					transaction_type: true,
-					payment_status: true,
-					description: true,
-					user: {
+	getPassbook: adminProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { page, pageSize } = input;
+			const skip = (page - 1) * pageSize;
+			logger.info("Fetching admin passbook", { page, pageSize });
+			try {
+				const [transactions, totalTransactions] = await db.$transaction([
+					db.transaction.findMany({
 						select: {
-							name: true,
-							email: true,
+							transaction_id: true,
+							created_at: true,
+							amount: true,
+							transaction_type: true,
+							payment_status: true,
+							description: true,
+							user: {
+								select: {
+									name: true,
+									email: true,
+								},
+							},
 						},
-					},
-				},
-				orderBy: {
-					created_at: "desc",
-				},
-			});
-			logger.info("Successfully fetched admin passbook", {
-				count: transactions.length,
-			});
-			return transactions;
-		} catch (error) {
-			logger.error("Failed to fetch admin passbook", { error });
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Something went wrong",
-			});
-		}
-	}),
-	pendingShipments: adminProcedure.query(async ({ ctx }) => {
-		logger.info("Fetching pending shipments");
-		try {
-			const shipments = await db.shipment.findMany({
-				where: { shipment_status: "PendingApproval" },
-				include: {
-					origin_address: true,
-					destination_address: true,
-					user: { select: { email: true, name: true } },
-				},
-				orderBy: { created_at: "desc" },
-			});
-			logger.info("Successfully fetched pending shipments", {
-				count: shipments.length,
-			});
-			return shipments;
-		} catch (error) {
-			logger.error("Failed to fetch pending shipments", { error });
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Something went wrong",
-			});
-		}
-	}),
+						orderBy: {
+							created_at: "desc",
+						},
+						skip,
+						take: pageSize,
+					}),
+					db.transaction.count(),
+				]);
+				logger.info("Successfully fetched admin passbook", {
+					count: transactions.length,
+					totalTransactions,
+					page,
+					pageSize,
+				});
+				return {
+					transactions,
+					totalTransactions,
+					page,
+					pageSize,
+					totalPages: Math.ceil(totalTransactions / pageSize),
+				};
+			} catch (error) {
+				logger.error("Failed to fetch admin passbook", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
+	pendingShipments: adminProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { page, pageSize } = input;
+			const skip = (page - 1) * pageSize;
+			logger.info("Fetching pending shipments", { page, pageSize });
+			try {
+				const [shipments, totalShipments] = await db.$transaction([
+					db.shipment.findMany({
+						where: { shipment_status: "PendingApproval" },
+						include: {
+							origin_address: true,
+							destination_address: true,
+							user: { select: { email: true, name: true } },
+						},
+						orderBy: { created_at: "desc" },
+						skip,
+						take: pageSize,
+					}),
+					db.shipment.count({
+						where: { shipment_status: "PendingApproval" },
+					}),
+				]);
+				logger.info("Successfully fetched pending shipments", {
+					count: shipments.length,
+					totalShipments,
+					page,
+					pageSize,
+				});
+				return {
+					shipments,
+					totalShipments,
+					page,
+					pageSize,
+					totalPages: Math.ceil(totalShipments / pageSize),
+				};
+			} catch (error) {
+				logger.error("Failed to fetch pending shipments", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
 
 	approveShipment: adminProcedure
 		.input(approveShipmentSchema)
@@ -333,25 +406,50 @@ export const adminRouter = createTRPCRouter({
 			}
 		}),
 
-	pendingAddresses: adminProcedure.query(async ({ ctx }) => {
-		logger.info("Fetching pending addresses");
-		try {
-			const pending = await db.pendingAddress.findMany({
-				include: { user: true },
-				orderBy: { created_at: "desc" },
-			});
-			logger.info("Successfully fetched pending addresses", {
-				count: pending.length,
-			});
-			return pending;
-		} catch (error) {
-			logger.error("Failed to fetch pending addresses", { error });
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Something went wrong",
-			});
-		}
-	}),
+	pendingAddresses: adminProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { page, pageSize } = input;
+			const skip = (page - 1) * pageSize;
+			logger.info("Fetching pending addresses", { page, pageSize });
+			try {
+				const [pendingAddresses, totalPendingAddresses] = await db.$transaction(
+					[
+						db.pendingAddress.findMany({
+							include: { user: true },
+							orderBy: { created_at: "desc" },
+							skip,
+							take: pageSize,
+						}),
+						db.pendingAddress.count(),
+					],
+				);
+				logger.info("Successfully fetched pending addresses", {
+					count: pendingAddresses.length,
+					totalPendingAddresses,
+					page,
+					pageSize,
+				});
+				return {
+					pendingAddresses,
+					totalPendingAddresses,
+					page,
+					pageSize,
+					totalPages: Math.ceil(totalPendingAddresses / pageSize),
+				};
+			} catch (error) {
+				logger.error("Failed to fetch pending addresses", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
 
 	approvePendingAddress: adminProcedure
 		.input(approvePendingAddressSchema)

@@ -8,11 +8,15 @@ import { Button } from "~/components/ui/button";
 import { formatDateToSeconds } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 
-type ShipmentListItem = RouterOutputs["admin"]["pendingShipments"][number];
+type ShipmentListOutput = RouterOutputs["admin"]["pendingShipments"];
+type ShipmentListItem = ShipmentListOutput["shipments"][number];
 
 const ApproveOrderPage = () => {
-	const { data: shipmentList, isLoading } = api.admin.pendingShipments.useQuery(
-		undefined,
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
+
+	const { data, isLoading } = api.admin.pendingShipments.useQuery(
+		{ page, pageSize },
 		{
 			retry: 3,
 			refetchOnWindowFocus: false,
@@ -30,7 +34,7 @@ const ApproveOrderPage = () => {
 	};
 
 	const filteredData = React.useMemo(() => {
-		return ((shipmentList as ShipmentListItem[]) ?? []).filter((item) => {
+		return ((data?.shipments as ShipmentListItem[]) ?? []).filter((item) => {
 			const searchLower = searchFilter.toLowerCase();
 			return (
 				item.user.email.toLowerCase().includes(searchLower) ||
@@ -38,7 +42,7 @@ const ApproveOrderPage = () => {
 				item.human_readable_shipment_id.toLowerCase().includes(searchLower)
 			);
 		});
-	}, [shipmentList, searchFilter]);
+	}, [data?.shipments, searchFilter]);
 
 	const columns = [
 		{
@@ -106,7 +110,7 @@ const ApproveOrderPage = () => {
 	];
 
 	return (
-		<>
+		<div className="p-8">
 			<DataTable
 				title="Shipment Approval"
 				data={filteredData}
@@ -120,12 +124,35 @@ const ApproveOrderPage = () => {
 					setShowOrderDetailsModal(true);
 				}}
 			/>
+			<div className="mt-4 flex justify-between">
+				<Button
+					type="button"
+					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+					disabled={page === 1}
+					variant="outline"
+					className="px-4 py-2"
+				>
+					Previous
+				</Button>
+				<span>
+					Page {page} of {data?.totalPages || 1}
+				</span>
+				<Button
+					type="button"
+					onClick={() => setPage((prev) => prev + 1)}
+					disabled={page === (data?.totalPages || 1)}
+					variant="outline"
+					className="px-4 py-2"
+				>
+					Next
+				</Button>
+			</div>
 			<ShipmentDetailsModal
 				isOpen={showOrderDetailsModal}
 				onClose={() => setShowOrderDetailsModal(false)}
 				shipmentItem={selectedShipmentItem}
 			/>
-		</>
+		</div>
 	);
 };
 

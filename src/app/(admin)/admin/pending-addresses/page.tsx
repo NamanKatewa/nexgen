@@ -7,7 +7,8 @@ import { DataTable } from "~/components/DataTable";
 import { Button } from "~/components/ui/button";
 import { type RouterOutputs, api } from "~/trpc/react";
 
-type PendingAddress = RouterOutputs["admin"]["pendingAddresses"][number];
+type PendingAddress =
+	RouterOutputs["admin"]["pendingAddresses"]["pendingAddresses"][number];
 
 export default function PendingAddressesPage() {
 	const [filter, setFilter] = useState("");
@@ -15,11 +16,13 @@ export default function PendingAddressesPage() {
 		null,
 	);
 
-	const {
-		data: pendingAddresses,
-		isLoading,
-		refetch,
-	} = api.admin.pendingAddresses.useQuery();
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
+
+	const { data, isLoading, refetch } = api.admin.pendingAddresses.useQuery({
+		page,
+		pageSize,
+	});
 	const approveMutation = api.admin.approvePendingAddress.useMutation({
 		onMutate: (variables) => {
 			setProcessingAddressId(variables.pendingAddressId);
@@ -113,7 +116,7 @@ export default function PendingAddressesPage() {
 		},
 	];
 
-	const filteredAddresses = pendingAddresses?.filter(
+	const filteredAddresses = data?.pendingAddresses?.filter(
 		(address) =>
 			address.user.name.toLowerCase().includes(filter.toLowerCase()) ||
 			address.user.email.toLowerCase().includes(filter.toLowerCase()) ||
@@ -143,6 +146,29 @@ export default function PendingAddressesPage() {
 				]}
 				onClearFilters={() => setFilter("")}
 			/>
+			<div className="mt-4 flex justify-between">
+				<Button
+					type="button"
+					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+					disabled={page === 1}
+					variant="outline"
+					className="px-4 py-2"
+				>
+					Previous
+				</Button>
+				<span>
+					Page {page} of {data?.totalPages || 1}
+				</span>
+				<Button
+					type="button"
+					onClick={() => setPage((prev) => prev + 1)}
+					disabled={page === (data?.totalPages || 1)}
+					variant="outline"
+					className="px-4 py-2"
+				>
+					Next
+				</Button>
+			</div>
 		</div>
 	);
 }
