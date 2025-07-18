@@ -42,12 +42,12 @@ enum CARRIER_STATUS {
   Inactive
 }
 
-enum ORDER_PAYMENT_STATUS {
+enum SHIPMENT_PAYMENT_STATUS {
   Pending
   Paid
 }
 
-enum ORDER_STATUS {
+enum SHIPMENT_APPROVAL_STATUS {
   PendingApproval
   Approved
   Rejected
@@ -111,7 +111,7 @@ model User {
 
   kyc          Kyc?
   wallet       Wallet?
-  orders       Order[]
+  shipments    Shipment[]
   transactions Transaction[]
   tickets      SupportTicket[]
   employee     Employee?
@@ -205,36 +205,26 @@ model Transaction {
   transaction_type TRANSACTION_TYPE
   amount           Decimal          @db.Decimal(10, 2)
   payment_status   PAYMENT_STATUS
-  order_id         String?          @unique
+  shipment_id         String?          @unique
   description      String?
   created_at       DateTime         @default(now())
 
   user   User   @relation(fields: [user_id], references: [user_id],onDelete: Cascade)
-  order  Order? @relation(fields: [order_id], references: [order_id])
+  shipment  Shipment? @relation(fields: [shipment_id], references: [shipment_id])
 }
 
-model Order {
-  order_id         String               @id @default(uuid())
-  user_id          String
-  total_amount     Decimal              @db.Decimal(10, 2)
-  payment_status   ORDER_PAYMENT_STATUS
-  order_status     ORDER_STATUS
-  rejection_reason String?
-  created_at       DateTime             @default(now())
-  updated_at       DateTime             @updatedAt
 
-  user        User       @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  shipments   Shipment[]
-  transaction Transaction?
-}
 
 model Shipment {
   shipment_id            String          @id @default(uuid())
   human_readable_shipment_id String          @unique
-  order_id               String
+  user_id                String
   carrier_id             String?
   awb_number             String?          @unique
   current_status         SHIPMENT_STATUS
+  payment_status         SHIPMENT_PAYMENT_STATUS
+  shipment_status        SHIPMENT_APPROVAL_STATUS
+  rejection_reason       String?
   origin_address_id      String
   destination_address_id String
   recipient_name         String
@@ -252,10 +242,11 @@ model Shipment {
   created_at             DateTime        @default(now())
   updated_at             DateTime        @updatedAt
 
-  order               Order    @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  user                User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   origin_address      Address  @relation("Origin", fields: [origin_address_id], references: [address_id])
   destination_address Address  @relation("Destination", fields: [destination_address_id], references: [address_id])
   tracking            Tracking[]
+  transactions        Transaction[]
 }
 
 model Tracking {

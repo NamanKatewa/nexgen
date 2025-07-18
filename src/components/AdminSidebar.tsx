@@ -23,14 +23,14 @@ const sidebarLinks = [
 	{ href: "/admin/wallet", icon: Wallet, label: "Wallet Top-Ups" },
 	{ href: "/admin/passbook", icon: NotebookText, label: "Passbook" },
 	{
-		href: "/admin/order-approve",
+		href: "/admin/shipment-approve",
 		icon: PackageCheck,
-		label: "Approve Orders",
+		label: "Approve Shipments",
 	},
 	{
-		href: "/admin/orders",
+		href: "/admin/shipments",
 		icon: Package,
-		label: "Orders",
+		label: "Shipments",
 	},
 	{
 		href: "/admin/pending-addresses",

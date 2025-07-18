@@ -16,7 +16,7 @@ import {
 	type TShipmentSchema,
 	bulkShipmentsSchema,
 	submitShipmentSchema,
-} from "~/schemas/order";
+} from "~/schemas/shipment";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
@@ -69,12 +69,19 @@ interface ShipmentWithRateGuaranteed extends FinalShipmentItem {
 	compensationAmount: number;
 }
 
-export const orderRouter = createTRPCRouter({
+export const shipmentRouter = createTRPCRouter({
 	createShipment: protectedProcedure
 		.input(submitShipmentSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { user } = ctx;
-			const logData = { userId: user.user_id, input };
+			const userId = user.user_id;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User ID not found.",
+				});
+			}
+			const logData = { userId, input };
 			logger.info("Creating single shipment", logData);
 
 			try {
@@ -226,14 +233,7 @@ export const orderRouter = createTRPCRouter({
 							message: "Insufficient wallet balance. Recharge your wallet.",
 						});
 					}
-					const order = await tx.order.create({
-						data: {
-							user_id: wallet.user_id,
-							total_amount: finalShippingCost,
-							order_status: "PendingApproval",
-							payment_status: "Pending",
-						},
-					});
+					// No order creation, directly create shipment
 
 					await tx.wallet.update({
 						where: { user_id: wallet.user_id },
@@ -246,19 +246,14 @@ export const orderRouter = createTRPCRouter({
 							transaction_type: "Debit",
 							amount: new Decimal(finalShippingCost),
 							payment_status: "Completed",
-							order_id: order.order_id,
+							shipment_id: human_readable_shipment_id,
 							description: "Single Shipment Created",
 						},
 					});
 
-					await tx.order.update({
-						where: { order_id: order.order_id },
-						data: { payment_status: "Paid" },
-					});
-
 					const packageImageUrl = await uploadFileToS3(
 						input.packageImage,
-						"order/",
+						"shipment/",
 					);
 
 					let invoiceUrl: string | undefined;
@@ -269,7 +264,9 @@ export const orderRouter = createTRPCRouter({
 					await tx.shipment.create({
 						data: {
 							human_readable_shipment_id,
-							order_id: order.order_id,
+							user_id: userId,
+							payment_status: "Paid",
+							shipment_status: "PendingApproval",
 							current_status: "Booked",
 							origin_address_id: originAddress?.address_id,
 							destination_address_id: destinationAddress?.address_id,
@@ -307,8 +304,15 @@ export const orderRouter = createTRPCRouter({
 		.input(bulkShipmentsSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { user } = ctx;
+			const userId = user.user_id;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User ID not found.",
+				});
+			}
 			const logData = {
-				userId: user.user_id,
+				userId,
 				shipmentCount: input.shipments.length,
 			};
 			logger.info("Starting performant bulk shipment creation v3", logData);
@@ -637,14 +641,7 @@ export const orderRouter = createTRPCRouter({
 							data: { balance: { decrement: totalAmount } },
 						});
 
-						const order = await tx.order.create({
-							data: {
-								user_id: user.user_id as string,
-								total_amount: totalAmount,
-								order_status: "PendingApproval",
-								payment_status: "Paid",
-							},
-						});
+						// No order creation, directly create shipments
 
 						await tx.transaction.create({
 							data: {
@@ -652,7 +649,6 @@ export const orderRouter = createTRPCRouter({
 								transaction_type: "Debit",
 								amount: totalAmount,
 								payment_status: "Completed",
-								order_id: order.order_id,
 								description: "Bulk Shipments Created",
 							},
 						});
@@ -666,7 +662,7 @@ export const orderRouter = createTRPCRouter({
 							}
 							const packageImageUrl = await uploadFileToS3(
 								s.packageImage,
-								"order/",
+								"shipment/",
 							);
 							let invoiceUrl: string | undefined;
 							if (s.isInsuranceSelected && s.invoice) {
@@ -715,8 +711,10 @@ export const orderRouter = createTRPCRouter({
 							await tx.shipment.create({
 								data: {
 									human_readable_shipment_id,
-									order_id: order.order_id,
+									user_id: userId,
 									current_status: "Booked",
+									payment_status: "Paid",
+									shipment_status: "PendingApproval",
 									origin_address_id: s.originAddressId,
 									destination_address_id: s.destinationAddressId,
 									recipient_name: s.recipientName,
@@ -776,7 +774,7 @@ export const orderRouter = createTRPCRouter({
 			return results;
 		}),
 
-	getAllOrders: protectedProcedure
+	getAllShipments: protectedProcedure
 		.input(
 			z.object({
 				page: z.number().min(1).default(1),
@@ -793,30 +791,23 @@ export const orderRouter = createTRPCRouter({
 			if (user.role !== "Admin") {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "Only admins can view all orders.",
+					message: "Only admins can view all shipments.",
 				});
 			}
 
 			const whereClause = {
-				...(status && { order_status: status }),
+				...(status && { shipment_status: status }),
 				...(userId && { user_id: userId }),
 			};
 
-			const [orders, totalOrders] = await db.$transaction([
-				db.order.findMany({
+			const [shipments, totalShipments] = await db.$transaction([
+				db.shipment.findMany({
 					where: whereClause,
 					include: {
 						user: {
 							select: {
 								name: true,
 								email: true,
-							},
-						},
-						shipments: {
-							select: {
-								human_readable_shipment_id: true,
-								recipient_name: true,
-								current_status: true,
 							},
 						},
 					},
@@ -826,19 +817,19 @@ export const orderRouter = createTRPCRouter({
 						created_at: "desc",
 					},
 				}),
-				db.order.count({ where: whereClause }),
+				db.shipment.count({ where: whereClause }),
 			]);
 
 			return {
-				orders,
-				totalOrders,
+				shipments,
+				totalShipments,
 				page,
 				pageSize,
-				totalPages: Math.ceil(totalOrders / pageSize),
+				totalPages: Math.ceil(totalShipments / pageSize),
 			};
 		}),
 
-	getUserOrders: protectedProcedure
+	getUserShipments: protectedProcedure
 		.input(
 			z.object({
 				page: z.number().min(1).default(1),
@@ -853,20 +844,21 @@ export const orderRouter = createTRPCRouter({
 
 			const whereClause = {
 				user_id: user.user_id,
-				...(status && { order_status: status }),
+				...(status && { shipment_status: status }),
 			};
 
-			const [orders, totalOrders] = await db.$transaction([
-				db.order.findMany({
+			const [shipments, totalShipments] = await db.$transaction([
+				db.shipment.findMany({
 					where: whereClause,
 					include: {
-						shipments: {
+						user: {
 							select: {
-								human_readable_shipment_id: true,
-								recipient_name: true,
-								current_status: true,
+								name: true,
+								email: true,
 							},
 						},
+						origin_address: true,
+						destination_address: true,
 					},
 					skip,
 					take: pageSize,
@@ -874,26 +866,26 @@ export const orderRouter = createTRPCRouter({
 						created_at: "desc",
 					},
 				}),
-				db.order.count({ where: whereClause }),
+				db.shipment.count({ where: whereClause }),
 			]);
 
 			return {
-				orders,
-				totalOrders,
+				shipments,
+				totalShipments,
 				page,
 				pageSize,
-				totalPages: Math.ceil(totalOrders / pageSize),
+				totalPages: Math.ceil(totalShipments / pageSize),
 			};
 		}),
 
-	getOrderById: protectedProcedure
-		.input(z.object({ orderId: z.string() }))
+	getShipmentById: protectedProcedure
+		.input(z.object({ shipmentId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const { user } = ctx;
-			const { orderId } = input;
+			const { shipmentId } = input;
 
-			const order = await db.order.findUnique({
-				where: { order_id: orderId },
+			const shipment = await db.shipment.findUnique({
+				where: { shipment_id: shipmentId },
 				include: {
 					user: {
 						select: {
@@ -907,30 +899,26 @@ export const orderRouter = createTRPCRouter({
 							},
 						},
 					},
-					shipments: {
-						include: {
-							origin_address: true,
-							destination_address: true,
-						},
-					},
+					origin_address: true,
+					destination_address: true,
 				},
 			});
 
-			if (!order) {
+			if (!shipment) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "Order not found.",
+					message: "Shipment not found.",
 				});
 			}
 
-			// Ensure user can only view their own orders unless they are an admin
-			if (user.role !== "Admin" && order.user_id !== user.user_id) {
+			// Ensure user can only view their own shipments unless they are an admin
+			if (user.role !== "Admin" && shipment.user_id !== user.user_id) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to view this order.",
+					message: "You are not authorized to view this shipment.",
 				});
 			}
 
-			return order;
+			return shipment;
 		}),
 });

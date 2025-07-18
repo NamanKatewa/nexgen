@@ -144,7 +144,7 @@ export const getLabelHTML = (
           <div class="seller-section">
             <h3 class="mb-1 font-bold">SELLER:</h3>
             <p class="font-bold">${companyName}</p>
-            <p>Order Date: ${createdAt}</p>
+            <p>Shipment Date: ${createdAt}</p>
           </div>
 
           <div class="return-section">

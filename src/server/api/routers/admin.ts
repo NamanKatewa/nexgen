@@ -6,7 +6,10 @@ import {
 	rejectPendingAddressSchema,
 } from "~/schemas/address";
 import { rejectKycSchema, verifyKycSchema } from "~/schemas/kyc";
-import { approveOrderSchema, rejectOrderSchema } from "~/schemas/order";
+import {
+	approveShipmentSchema,
+	rejectShipmentSchema,
+} from "~/schemas/shipment";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
@@ -197,24 +200,23 @@ export const adminRouter = createTRPCRouter({
 			});
 		}
 	}),
-	pendingOrders: adminProcedure.query(async ({ ctx }) => {
-		logger.info("Fetching pending orders");
+	pendingShipments: adminProcedure.query(async ({ ctx }) => {
+		logger.info("Fetching pending shipments");
 		try {
-			const orders = await db.order.findMany({
-				where: { order_status: "PendingApproval" },
+			const shipments = await db.shipment.findMany({
+				where: { shipment_status: "PendingApproval" },
 				include: {
-					shipments: {
-						include: { origin_address: true, destination_address: true },
-					},
+					origin_address: true,
+					destination_address: true,
 					user: { select: { email: true, name: true } },
 				},
 			});
-			logger.info("Successfully fetched pending orders", {
-				count: orders.length,
+			logger.info("Successfully fetched pending shipments", {
+				count: shipments.length,
 			});
-			return orders;
+			return shipments;
 		} catch (error) {
-			logger.error("Failed to fetch pending orders", { error });
+			logger.error("Failed to fetch pending shipments", { error });
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Something went wrong",
@@ -222,47 +224,41 @@ export const adminRouter = createTRPCRouter({
 		}
 	}),
 
-	approveOrder: adminProcedure
-		.input(approveOrderSchema)
+	approveShipment: adminProcedure
+		.input(approveShipmentSchema)
 		.mutation(async ({ input, ctx }) => {
-			const logData = { orderId: input.orderId, adminId: ctx.user.user_id };
-			logger.info("Approving order", logData);
+			const logData = {
+				shipmentId: input.shipmentId,
+				adminId: ctx.user.user_id,
+			};
+			logger.info("Approving shipment", logData);
 
-			const order = await db.order.findUnique({
-				where: { order_id: input.orderId },
+			const shipment = await db.shipment.findUnique({
+				where: { shipment_id: input.shipmentId },
 				include: { user: { select: { email: true } } },
 			});
-			if (!order) {
-				logger.warn("Order not found for approval", logData);
+			if (!shipment) {
+				logger.warn("Shipment not found for approval", logData);
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "Order not found",
+					message: "Shipment not found",
 				});
 			}
 
 			try {
 				await db.$transaction(async (prisma) => {
-					await prisma.order.update({
-						where: { order_id: order.order_id },
+					await prisma.shipment.update({
+						where: { shipment_id: shipment.shipment_id },
 						data: {
-							order_status: "Approved",
+							shipment_status: "Approved",
+							awb_number: input.awbNumber,
 						},
 					});
-
-					// Update AWB numbers for each shipment
-					for (const shipmentInput of input.shipments) {
-						await prisma.shipment.update({
-							where: { shipment_id: shipmentInput.shipmentId },
-							data: {
-								awb_number: shipmentInput.awbNumber, // Update this field
-							},
-						});
-					}
 				});
-				logger.info("Successfully approved order", logData);
+				logger.info("Successfully approved shipment", logData);
 				return true;
 			} catch (error) {
-				logger.error("Failed to approve order", { ...logData, error });
+				logger.error("Failed to approve shipment", { ...logData, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -270,61 +266,64 @@ export const adminRouter = createTRPCRouter({
 			}
 		}),
 
-	rejectOrder: adminProcedure
-		.input(rejectOrderSchema)
+	rejectShipment: adminProcedure
+		.input(rejectShipmentSchema)
 		.mutation(async ({ input, ctx }) => {
 			const logData = {
-				orderId: input.orderId,
+				shipmentId: input.shipmentId,
 				adminId: ctx.user.user_id,
 				reason: input.reason,
 			};
-			logger.info("Rejecting order", logData);
+			logger.info("Rejecting shipment", logData);
 
-			const order = await db.order.findUnique({
-				where: { order_id: input.orderId },
+			const shipment = await db.shipment.findUnique({
+				where: { shipment_id: input.shipmentId },
 				include: { user: { select: { email: true } } },
 			});
-			if (!order) {
-				logger.warn("Order not found for rejection", logData);
+			if (!shipment) {
+				logger.warn("Shipment not found for rejection", logData);
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "Order not found",
+					message: "Shipment not found",
 				});
 			}
 
 			try {
 				await db.$transaction(async (prisma) => {
-					await prisma.order.update({
-						where: { order_id: order.order_id },
+					await prisma.shipment.update({
+						where: { shipment_id: shipment.shipment_id },
 						data: {
-							order_status: "Rejected",
+							shipment_status: "Rejected",
 							rejection_reason: input.reason,
 						},
 					});
 
 					await prisma.transaction.create({
 						data: {
-							user_id: order.user_id,
+							user_id: shipment.user_id,
 							transaction_type: "Credit",
 							payment_status: "Completed",
-							amount: order.total_amount,
-							description: "Refund for rejected order",
+							amount: shipment.shipping_cost,
+							description: "Refund for rejected shipment",
 						},
 					});
 
 					await prisma.wallet.update({
-						where: { user_id: order.user_id },
+						where: { user_id: shipment.user_id },
 						data: {
 							balance: {
-								increment: order.total_amount,
+								increment: shipment.shipping_cost,
 							},
 						},
 					});
 				});
-				logger.info("Successfully rejected order and refunded user", logData);
+				logger.info(
+					"Successfully rejected shipment and refunded user",
+					logData,
+				);
 				return true;
 			} catch (error) {
-				logger.error("Failed to reject order", { ...logData, error });
+				logger.error("Failed to reject shipment", { ...logData, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

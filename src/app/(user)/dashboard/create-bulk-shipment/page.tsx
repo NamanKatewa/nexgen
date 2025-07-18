@@ -16,10 +16,11 @@ import { Label } from "~/components/ui/label";
 import { fileToBase64 } from "~/lib/file-utils";
 import type { TFileSchema } from "~/schemas/file";
 import {
-	type TExcelOrderSchema,
+	type TBulkShipmentsSchema,
 	type TExcelShipmentSchema,
-	excelOrderSchema,
-} from "~/schemas/order";
+	bulkShipmentsSchema,
+	excelShipmentSchema,
+} from "~/schemas/shipment";
 import { api } from "~/trpc/react";
 
 type ShipmentWithStatus = TExcelShipmentSchema & {
@@ -76,8 +77,8 @@ export default function CreateBulkShipmentPage() {
 		setValue,
 		trigger,
 		clearErrors,
-	} = useForm<TExcelOrderSchema>({
-		resolver: zodResolver(excelOrderSchema),
+	} = useForm<TBulkShipmentsSchema>({
+		resolver: zodResolver(bulkShipmentsSchema),
 		defaultValues: {
 			shipments: [],
 		},
@@ -283,40 +284,41 @@ export default function CreateBulkShipmentPage() {
 		}
 	};
 
-	const createBulkShipmentMutation = api.order.createBulkShipments.useMutation({
-		onSuccess: (data) => {
-			setIsLoading(false);
-			setShipmentResults(data);
-			setIsSubmitted(true); // Set isSubmitted to true on success
+	const createBulkShipmentMutation =
+		api.shipment.createBulkShipments.useMutation({
+			onSuccess: (data) => {
+				setIsLoading(false);
+				setShipmentResults(data);
+				setIsSubmitted(true); // Set isSubmitted to true on success
 
-			const updatedShipments = shipments.map((s) => {
-				const result = data.find((r) => r.recipientName === s.recipientName);
-				return result ? { ...s, ...result } : s;
-			});
-			setShipments(updatedShipments);
+				const updatedShipments = shipments.map((s) => {
+					const result = data.find((r) => r.recipientName === s.recipientName);
+					return result ? { ...s, ...result } : s;
+				});
+				setShipments(updatedShipments);
 
-			const successCount = data.filter((r) => r.status === "success").length;
-			const pendingCount = data.filter((r) => r.status === "pending").length;
-			const errorCount = data.filter((r) => r.status === "error").length;
+				const successCount = data.filter((r) => r.status === "success").length;
+				const pendingCount = data.filter((r) => r.status === "pending").length;
+				const errorCount = data.filter((r) => r.status === "error").length;
 
-			toast.info(
-				`Processing complete: ${successCount} created, ${pendingCount} pending, ${errorCount} failed.`,
-			);
+				toast.info(
+					`Processing complete: ${successCount} created, ${pendingCount} pending, ${errorCount} failed.`,
+				);
 
-			// if (successCount > 0) {
-			// 	toast.success("Redirecting to dashboard in 3 seconds...");
-			// 	setTimeout(() => {
-			// 		router.push("/dashboard");
-			// 		router.refresh();
-			// 	}, 3000);
-		},
-		onError: (err) => {
-			toast.error(err.message);
-			setIsLoading(false);
-		},
-	});
+				// if (successCount > 0) {
+				// 	toast.success("Redirecting to dashboard in 3 seconds...");
+				// 	setTimeout(() => {
+				// 		router.push("/dashboard");
+				// 		router.refresh();
+				// 	}, 3000);
+			},
+			onError: (err) => {
+				toast.error(err.message);
+				setIsLoading(false);
+			},
+		});
 
-	const onSubmit = async (data: TExcelOrderSchema) => {
+	const onSubmit = async (data: TBulkShipmentsSchema) => {
 		setIsLoading(true);
 		clearErrors();
 		setShipmentResults([]);

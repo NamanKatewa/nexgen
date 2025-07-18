@@ -1,6 +1,9 @@
-import Image from "next/image";
-import Link from "next/link";
+import { zodResolver } from "@hookform/resolvers/zod";
 import type React from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
@@ -9,96 +12,228 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "~/components/ui/dialog";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Textarea } from "~/components/ui/textarea";
 import { formatDateToSeconds } from "~/lib/utils";
-import type { RouterOutputs } from "~/trpc/react";
+import {
+	type approveShipmentSchema,
+	rejectShipmentSchema,
+} from "~/schemas/shipment";
+import { type RouterOutputs, api } from "~/trpc/react";
+import { FieldError } from "./FieldError";
 
-type ShipmentItemType =
-	RouterOutputs["admin"]["pendingOrders"][number]["shipments"][number];
+type ShipmentItemType = RouterOutputs["admin"]["pendingShipments"][number];
+type ShipmentDetailType = ShipmentItemType;
+
+// Define a combined schema for form data
+const combinedShipmentSchema = z.object({
+	shipmentId: z.string(),
+	awbNumber: z.string().optional(),
+	reason: z.string().optional(),
+});
+
+type CombinedShipmentFormData = z.infer<typeof combinedShipmentSchema>;
 
 interface ShipmentDetailsModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	shipment: ShipmentItemType | null;
+	shipmentItem: ShipmentItemType | null;
 }
 
 const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 	isOpen,
 	onClose,
-	shipment,
+	shipmentItem,
 }) => {
+	const [showShipmentModal, setShowShipmentModal] = useState(false);
+	const [selectedShipment, setSelectedShipment] =
+		useState<ShipmentItemType | null>(null);
+	const approveMutation = api.admin.approveShipment.useMutation();
+	const rejectMutation = api.admin.rejectShipment.useMutation();
+
+	const utils = api.useUtils();
+
+	const {
+		register,
+		handleSubmit,
+		formState: { errors, isSubmitting },
+		setValue,
+		control,
+		setError, // Add setError from useForm
+		clearErrors, // Add clearErrors from useForm
+	} = useForm<CombinedShipmentFormData>({
+		resolver: zodResolver(combinedShipmentSchema), // Use the combined schema
+		defaultValues: {
+			shipmentId: shipmentItem?.shipment_id || "",
+			awbNumber: shipmentItem?.awb_number || "",
+			reason: "",
+		},
+	});
+
+	useEffect(() => {
+		if (shipmentItem) {
+			setValue("shipmentId", shipmentItem.shipment_id);
+			setValue("awbNumber", shipmentItem.awb_number || "");
+			setValue("reason", ""); // Clear reason when shipment item changes
+			clearErrors(); // Clear all errors on shipment item change
+		}
+	}, [shipmentItem, setValue, clearErrors]);
+
+	const handleApprove = handleSubmit((data) => {
+		// Custom validation for approval
+		if (!data.awbNumber || data.awbNumber.trim() === "") {
+			setError("awbNumber", {
+				type: "manual",
+				message: "AWB Number is required.",
+			});
+			toast.error("AWB Number is required.");
+			return;
+		}
+		clearErrors("awbNumber"); // Clear AWB Number errors if validation passes
+
+		approveMutation.mutate(
+			{
+				shipmentId: data.shipmentId,
+				awbNumber: data.awbNumber,
+			},
+			{
+				onSuccess: () => {
+					utils.admin.pendingShipments.invalidate();
+					onClose();
+				},
+			},
+		);
+	});
+
+	const handleReject = handleSubmit((data) => {
+		// Custom validation for rejection
+		if (!data.reason || data.reason.trim() === "") {
+			setError("reason", {
+				type: "manual",
+				message: "Rejection reason is required.",
+			});
+			toast.error("Rejection reason is required.");
+			return;
+		}
+		clearErrors("reason"); // Clear reason errors if validation passes
+
+		rejectMutation.mutate(
+			{ shipmentId: data.shipmentId, reason: data.reason },
+			{
+				onSuccess: () => {
+					utils.admin.pendingShipments.invalidate();
+					onClose();
+				},
+			},
+		);
+	});
+
+	const handleViewShipment = (shipment: ShipmentItemType) => {
+		setSelectedShipment(shipment);
+		setShowShipmentModal(true);
+	};
+
 	return (
-		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent className="sm:max-w-[425px]">
-				<DialogHeader>
-					<DialogTitle>Shipment Details</DialogTitle>
-					<DialogDescription>
-						Details of the selected shipment.
-					</DialogDescription>
-				</DialogHeader>
-				{shipment && (
-					<div className="grid gap-4 py-4">
-						<p>ID: {shipment.human_readable_shipment_id}</p>
-						<p>AWB Number: {shipment.awb_number || "N/A"}</p>
-						<p>Recipient Name: {shipment.recipient_name}</p>
-						<p>Recipient Mobile: {shipment.recipient_mobile}</p>
-						<p>Package Weight: {shipment.package_weight.toString()}</p>
-						<p>Shipping Cost: ₹{shipment.shipping_cost.toString()}</p>
-						{shipment.declared_value && (
-							<p>Declared Value: ₹{shipment.declared_value.toString()}</p>
-						)}
-						<p>
-							Insurance Selected:{" "}
-							{shipment.is_insurance_selected ? "Yes" : "No"}
-						</p>
-						{shipment.insurance_premium && (
-							<p>Insurance Premium: ₹{shipment.insurance_premium.toString()}</p>
-						)}
-						{shipment.compensation_amount && (
+		<>
+			<Dialog open={isOpen} onOpenChange={onClose}>
+				<DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[800px]">
+					<DialogHeader>
+						<DialogTitle>Shipment Details</DialogTitle>
+						<DialogDescription>
+							Details of the selected shipment.
+						</DialogDescription>
+					</DialogHeader>
+					{shipmentItem && (
+						<div className="grid gap-4 overflow-y-auto py-4">
 							<p>
-								Compensation Amount: ₹{shipment.compensation_amount.toString()}
+								<strong>User:</strong> {shipmentItem.user.name}
 							</p>
-						)}
-						<p>Package Dimensions: {shipment.package_dimensions}</p>
-						{shipment.invoiceUrl && (
 							<p>
-								Invoice:{" "}
-								<Link
-									href={shipment.invoiceUrl}
-									target="_blank"
-									className="text-blue-500 hover:underline"
-								>
-									View Invoice
-								</Link>
+								<strong>Email:</strong> {shipmentItem.user.email}
 							</p>
-						)}
-						<b>
-							<p>From:</p>
-						</b>
-						<p>
-							{shipment.origin_address.address_line},{" "}
-							{shipment.origin_address.city}, {shipment.origin_address.state} -{" "}
-							{shipment.origin_address.zip_code}
-						</p>
-						<b>
-							<p>To:</p>
-						</b>
-						<p>
-							{shipment.destination_address.address_line},{" "}
-							{shipment.destination_address.city},{" "}
-							{shipment.destination_address.state} -{" "}
-							{shipment.destination_address.zip_code}
-						</p>
-						<Image
-							src={shipment.package_image_url}
-							alt="Shipment Weight Image"
-							width={500}
-							height={500}
-						/>
-					</div>
-				)}
-				<Button onClick={onClose}>Close</Button>
-			</DialogContent>
-		</Dialog>
+							<p>
+								<strong>Created At:</strong>{" "}
+								{formatDateToSeconds(shipmentItem.created_at)}
+							</p>
+							<p>
+								<strong>Shipment ID:</strong>{" "}
+								{shipmentItem.human_readable_shipment_id}
+							</p>
+							<p>
+								<strong>Recipient Name:</strong> {shipmentItem.recipient_name}
+							</p>
+							<p>
+								<strong>Recipient Mobile:</strong>{" "}
+								{shipmentItem.recipient_mobile}
+							</p>
+							<p>
+								<strong>Package Weight:</strong>{" "}
+								{shipmentItem.package_weight.toFixed(2)} Kg
+							</p>
+							<p>
+								<strong>Package Dimensions:</strong>{" "}
+								{shipmentItem.package_dimensions}
+							</p>
+							<p>
+								<strong>Shipping Cost:</strong> ₹
+								{shipmentItem.shipping_cost.toFixed(2)}
+							</p>
+							<p>
+								<strong>Payment Status:</strong> {shipmentItem.payment_status}
+							</p>
+							<p>
+								<strong>Approval Status:</strong> {shipmentItem.shipment_status}
+							</p>
+							{shipmentItem.rejection_reason && (
+								<p>
+									<strong>Rejection Reason:</strong>{" "}
+									{shipmentItem.rejection_reason}
+								</p>
+							)}
+							{shipmentItem.shipment_status === "PendingApproval" && (
+								<div className="mt-2 w-full">
+									<Label htmlFor={`awbNumber-${shipmentItem.shipment_id}`}>
+										AWB Number
+									</Label>
+									<Input
+										id={`awbNumber-${shipmentItem.shipment_id}`}
+										{...register("awbNumber")}
+										placeholder="Enter AWB Number"
+									/>
+									{errors.awbNumber && (
+										<FieldError message={errors.awbNumber.message} />
+									)}
+								</div>
+							)}
+							<div className="mt-4 flex justify-end space-x-2">
+								{shipmentItem.shipment_status === "PendingApproval" && (
+									<>
+										<Button
+											onClick={handleApprove}
+											disabled={
+												approveMutation.isPending || rejectMutation.isPending
+											}
+										>
+											{approveMutation.isPending ? "Approving..." : "Approve"}
+										</Button>
+										<Button
+											variant="destructive"
+											onClick={handleReject}
+											disabled={
+												approveMutation.isPending || rejectMutation.isPending
+											}
+										>
+											{rejectMutation.isPending ? "Rejecting..." : "Reject"}
+										</Button>
+									</>
+								)}
+							</div>
+						</div>
+					)}
+				</DialogContent>
+			</Dialog>
+		</>
 	);
 };
 

@@ -8,30 +8,35 @@ import { Button } from "~/components/ui/button";
 import { formatDateToSeconds } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 
-type Order = RouterOutputs["order"]["getUserOrders"]["orders"][number];
+type Shipment =
+	RouterOutputs["shipment"]["getAllShipments"]["shipments"][number];
 
-export default function UserOrdersPage() {
+export default function AdminOrdersPage() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [statusFilter, setStatusFilter] = useState<
 		"PendingApproval" | "Approved" | "Rejected" | undefined
 	>(undefined);
+	const [userIdFilter, setUserIdFilter] = useState<string | undefined>(
+		undefined,
+	);
 
-	const { data, isLoading } = api.order.getUserOrders.useQuery({
+	const { data, isLoading } = api.shipment.getAllShipments.useQuery({
 		page,
 		pageSize,
 		status: statusFilter,
+		userId: userIdFilter,
 	});
 
 	const columns = [
 		{
-			key: "order_id",
-			header: "Order ID",
-			render: (order: Order) => (
+			key: "human_readable_shipment_id",
+			header: "Shipment ID",
+			render: (shipment: Shipment) => (
 				<div className="overflow-x-auto text-ellipsis whitespace-nowrap">
-					<CopyableId id={order.order_id} />
+					<CopyableId id={shipment.human_readable_shipment_id} />
 					<Link
-						href={`/dashboard/orders/${order.order_id}`}
+						href={`/admin/shipments/${shipment.human_readable_shipment_id}`}
 						className="text-blue-600 hover:underline"
 					>
 						View
@@ -40,16 +45,27 @@ export default function UserOrdersPage() {
 			),
 		},
 		{
-			key: "total_amount",
-			header: "Total Amount",
-			render: (order: Order) => `₹${Number(order.total_amount).toFixed(2)}`,
+			key: "user.name",
+			header: "User Name",
+			render: (shipment: Shipment) => shipment.user.name,
 		},
-		{ key: "order_status", header: "Order Status" },
+		{
+			key: "user.email",
+			header: "User Email",
+			render: (shipment: Shipment) => shipment.user.email,
+		},
+		{
+			key: "shipping_cost",
+			header: "Shipping Cost",
+			render: (shipment: Shipment) =>
+				`₹${Number(shipment.shipping_cost).toFixed(2)}`,
+		},
+		{ key: "shipment_status", header: "Shipment Status" },
 		{ key: "payment_status", header: "Payment Status" },
 		{
 			key: "created_at",
 			header: "Created At",
-			render: (order: Order) => formatDateToSeconds(order.created_at),
+			render: (shipment: Shipment) => formatDateToSeconds(shipment.created_at),
 		},
 	];
 
@@ -72,22 +88,30 @@ export default function UserOrdersPage() {
 						: (value as "PendingApproval" | "Approved" | "Rejected"),
 				),
 		},
+		{
+			id: "userId",
+			label: "User ID",
+			type: "text" as const,
+			value: userIdFilter || "",
+			onChange: (value: string) => setUserIdFilter(value || undefined),
+		},
 	];
 
 	const handleClearFilters = () => {
 		setStatusFilter(undefined);
+		setUserIdFilter(undefined);
 	};
 
 	return (
 		<div className="p-8">
 			<DataTable
-				title="My Orders"
-				data={data?.orders || []}
+				title="All Shipments"
+				data={data?.shipments || []}
 				columns={columns}
 				filters={filters}
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
-				idKey="order_id"
+				idKey="shipment_id"
 			/>
 			<div className="mt-4 flex justify-between">
 				<Button

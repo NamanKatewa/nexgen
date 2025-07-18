@@ -31,7 +31,7 @@ const notifications = [
 	},
 	{
 		name: "XpressBees",
-		message: "Order has been packed at seller warehouse.",
+		message: "Shipment has been packed at seller warehouse.",
 		time: "45m ago",
 		icon: "🎁",
 	},

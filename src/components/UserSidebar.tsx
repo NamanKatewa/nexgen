@@ -28,9 +28,9 @@ const sidebarLinks = [
 		label: "Create Bulk Shipment",
 	},
 	{
-		href: "/dashboard/orders",
+		href: "/dashboard/shipments",
 		icon: Package,
-		label: "My Orders",
+		label: "My Shipments",
 	},
 ];
 

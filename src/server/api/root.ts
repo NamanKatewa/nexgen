@@ -4,8 +4,8 @@ import { addressRouter } from "./routers/address";
 import { adminRouter } from "./routers/admin";
 import { kycRouter } from "./routers/kyc";
 import { labelRouter } from "./routers/label";
-import { orderRouter } from "./routers/order";
 import { rateRouter } from "./routers/rate";
+import { shipmentRouter } from "./routers/shipment";
 import { walletRouter } from "./routers/wallet";
 
 export const appRouter = createTRPCRouter({
@@ -14,7 +14,7 @@ export const appRouter = createTRPCRouter({
 	admin: adminRouter,
 	wallet: walletRouter,
 	address: addressRouter,
-	order: orderRouter,
+	shipment: shipmentRouter,
 	rate: rateRouter,
 	label: labelRouter,
 });

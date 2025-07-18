@@ -127,14 +127,6 @@ export const excelShipmentSchema = z
 		},
 	);
 
-export const orderSchema = z.object({
-	shipments: z.array(submitShipmentSchema),
-});
-
-export const excelOrderSchema = z.object({
-	shipments: z.array(excelShipmentSchema),
-});
-
 export const bulkShipmentItemSchema = z
 	.object({
 		recipientName: z.string().min(1, "Name is Required"),
@@ -204,8 +196,6 @@ export const bulkShipmentsSchema = z.object({
 	shipments: z.array(bulkShipmentItemSchema),
 });
 
-export type TOrderSchema = z.infer<typeof orderSchema>;
-export type TExcelOrderSchema = z.infer<typeof excelOrderSchema>;
 export type TShipmentSchema = z.infer<typeof submitShipmentSchema>;
 export type TExcelShipmentSchema = z.infer<typeof excelShipmentSchema>;
 export type TBulkShipmentItemSchema = z.infer<typeof bulkShipmentItemSchema>;
@@ -216,12 +206,7 @@ export const approveShipmentSchema = z.object({
 	awbNumber: z.string().min(1, "AWB Number is required"),
 });
 
-export const approveOrderSchema = z.object({
-	orderId: z.string(),
-	shipments: z.array(approveShipmentSchema),
-});
-
-export const rejectOrderSchema = z.object({
-	orderId: z.string(),
+export const rejectShipmentSchema = z.object({
+	shipmentId: z.string(),
 	reason: z.string().min(1, "Rejection reason is required"),
 });

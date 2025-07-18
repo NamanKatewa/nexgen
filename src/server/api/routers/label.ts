@@ -18,7 +18,7 @@ export const labelRouter = createTRPCRouter({
 				include: {
 					destination_address: true,
 					origin_address: true,
-					order: { include: { user: { include: { kyc: true } } } },
+					user: { include: { kyc: true } },
 				},
 			});
 
@@ -31,7 +31,7 @@ export const labelRouter = createTRPCRouter({
 
 			// Authorization check
 			if (ctx.user?.role !== "Admin") {
-				if (shipment.order.user.user_id !== ctx.user?.user_id) {
+				if (shipment.user.user_id !== ctx.user?.user_id) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "Unauthorized",
@@ -39,7 +39,7 @@ export const labelRouter = createTRPCRouter({
 				}
 			}
 
-			const companyName = shipment.order.user.kyc?.entity_name;
+			const companyName = shipment.user.kyc?.entity_name;
 			if (!companyName) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",

@@ -27,7 +27,7 @@ import {
 import { Label } from "~/components/ui/label";
 import { fileToBase64 } from "~/lib/file-utils";
 import type { TFileSchema } from "~/schemas/file";
-import { type TShipmentSchema, submitShipmentSchema } from "~/schemas/order";
+import { type TShipmentSchema, submitShipmentSchema } from "~/schemas/shipment";
 import { api } from "~/trpc/react";
 
 interface PincodeDetails {
@@ -165,7 +165,7 @@ export default function CreateShipmentPage() {
 		}
 	}, [userAddresses, recipientName, setValue]);
 
-	const createShipmentMutation = api.order.createShipment.useMutation({
+	const createShipmentMutation = api.shipment.createShipment.useMutation({
 		onSuccess: () => {
 			setIsLoading(false);
 			toast.success("Shipment created successfully! Redirecting...");
@@ -407,6 +407,7 @@ export default function CreateShipmentPage() {
 												state: e.target.value,
 											}))
 										}
+										disabled={isLoading}
 									/>
 									<FieldError message={errors.destinationAddressId?.message} />
 								</div>
@@ -570,7 +571,9 @@ export default function CreateShipmentPage() {
 										placeholder="Declared Value"
 										type="number"
 										step="1"
-										{...register("declaredValue")}
+										{...register("declaredValue", {
+											valueAsNumber: true,
+										})}
 									/>
 									<FieldError message={errors.declaredValue?.message} />
 								</div>
