@@ -169,15 +169,15 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 							</p>
 							<p>
 								<strong>Package Weight:</strong>{" "}
-								{shipmentItem.package_weight.toFixed(2)} Kg
+								{Number(shipmentItem.package_weight).toFixed(2)} Kg
 							</p>
 							<p>
 								<strong>Package Dimensions:</strong>{" "}
 								{shipmentItem.package_dimensions}
 							</p>
 							<p>
-								<strong>Shipping Cost:</strong> ₹
-								{shipmentItem.shipping_cost.toFixed(2)}
+								<strong>Amount:</strong> ₹
+								{Number(shipmentItem.shipping_cost).toFixed(2)}
 							</p>
 							<p>
 								<strong>Payment Status:</strong> {shipmentItem.payment_status}

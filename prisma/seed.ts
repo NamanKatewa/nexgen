@@ -58,7 +58,9 @@ function generateBase64File(): {
 	size: number;
 } {
 	const content = faker.lorem.paragraph();
-	const base64Data = `data:text/plain;base64,${Buffer.from(content).toString("base64")}`;
+	const base64Data = `data:text/plain;base64,${Buffer.from(content).toString(
+		"base64",
+	)}`;
 
 	return {
 		data: base64Data,
@@ -804,9 +806,7 @@ async function main() {
 						compensation_amount: new Decimal(compensationAmount),
 						invoiceUrl: invoiceFile?.data, // Storing base64 data directly for seeding
 						rejection_reason:
-							faker.datatype.boolean() &&
-							SHIPMENT_APPROVAL_STATUS.Rejected ===
-								SHIPMENT_APPROVAL_STATUS.Rejected
+							faker.datatype.boolean() && SHIPMENT_APPROVAL_STATUS.Rejected
 								? faker.lorem.sentence()
 								: null,
 					},

@@ -27,21 +27,23 @@ export const createTRPCContext = async (opts: {
 					status: true,
 				},
 			});
-			let kycStatus = null;
-			try {
-				const kyc = await db.kyc.findUnique({
-					where: { user_id: baseUser?.user_id },
-					select: { kyc_status: true },
-				});
-				kycStatus = kyc?.kyc_status;
-			} catch (kycError) {
-				logger.error("Failed to fetch KYC status for user", {
-					userId: baseUser?.user_id,
-					kycError,
-				});
-			}
 
-			user = { ...baseUser, kyc_status: kycStatus };
+			if (baseUser) {
+				let kycStatus = null;
+				try {
+					const kyc = await db.kyc.findUnique({
+						where: { user_id: baseUser.user_id },
+						select: { kyc_status: true },
+					});
+					kycStatus = kyc?.kyc_status;
+				} catch (kycError) {
+					logger.error("Failed to fetch KYC status for user", {
+						userId: baseUser.user_id,
+						kycError,
+					});
+				}
+				user = { ...baseUser, kyc_status: kycStatus };
+			}
 		} catch (error) {
 			logger.error("Invalid token", { error });
 		}
@@ -105,7 +107,7 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure = t.procedure
 	.use(timingMiddleware)
 	.use(({ ctx, next }) => {
-		if (!ctx.user) {
+		if (!ctx.user || !ctx.user.user_id || !ctx.user.role) {
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You must be logged in to access this resource",
@@ -126,7 +128,7 @@ export const protectedProcedure = t.procedure
 export const adminProcedure = t.procedure
 	.use(timingMiddleware)
 	.use(({ ctx, next }) => {
-		if (!ctx.user) {
+		if (!ctx.user || !ctx.user.user_id) {
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You must be logged in to access this resource",
@@ -140,10 +142,14 @@ export const adminProcedure = t.procedure
 			});
 		}
 
+		type AuthContext = typeof ctx & {
+			user: NonNullable<typeof ctx.user>;
+		};
+
 		return next({
 			ctx: {
 				...ctx,
-				user: ctx.user,
+				user: ctx.user as AuthContext["user"],
 			},
 		});
 	});

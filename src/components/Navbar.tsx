@@ -7,6 +7,7 @@ import {
 	LogOut,
 	Menu,
 	Plus,
+	RefreshCw,
 	Wallet,
 } from "lucide-react";
 import Image from "next/image";
@@ -41,6 +42,7 @@ const Navbar = () => {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [amount, setAmount] = useState("");
 	const addFunds = api.wallet.addFunds.useMutation();
+	const checkPendingTxns = api.wallet.checkPendingTransactions.useMutation();
 	const logoutMutation = api.auth.logout.useMutation();
 	const router = useRouter();
 	const [pathname, setPathname] = useState("/");
@@ -224,6 +226,19 @@ const Navbar = () => {
 										</Dialog>
 										₹{String(user.walletBalance)}
 										<Wallet className="text-blue-950" />
+										<Button
+											variant="ghost"
+											size="icon"
+											onClick={async () => {
+												await checkPendingTxns.mutateAsync();
+												await utils.auth.me.invalidate();
+												await utils.wallet.getPassbook.invalidate();
+											}}
+											disabled={checkPendingTxns.isPending}
+											className="text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+										>
+											<RefreshCw className="h-4 w-4" />
+										</Button>
 									</div>
 								) : (
 									<></>
@@ -392,6 +407,19 @@ const Navbar = () => {
 											</Dialog>
 											₹{String(user?.walletBalance)}
 											<Wallet className="h-4 w-4" />
+											<Button
+												variant="ghost"
+												size="icon"
+												onClick={async () => {
+													await checkPendingTxns.mutateAsync();
+													await utils.auth.me.invalidate();
+													await utils.wallet.getPassbook.invalidate();
+												}}
+												disabled={checkPendingTxns.isPending}
+												className="text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+											>
+												<RefreshCw className="h-4 w-4" />
+											</Button>
 										</div>
 									)}
 

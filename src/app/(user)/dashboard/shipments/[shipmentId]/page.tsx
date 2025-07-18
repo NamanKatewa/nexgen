@@ -112,7 +112,7 @@ export default function UserShipmentDetailPage() {
 					</p>
 					<p>
 						<strong>Package Weight:</strong>{" "}
-						{shipment.package_weight.toFixed(2)} Kg
+						{Number(shipment.package_weight).toFixed(2)} Kg
 					</p>
 					<p>
 						<strong>Package Dimensions:</strong> {shipment.package_dimensions}

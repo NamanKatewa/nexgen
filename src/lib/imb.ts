@@ -63,3 +63,55 @@ export async function createIMBPaymentOrder(
 	});
 	return data;
 }
+
+interface CheckOrderStatusPayload {
+	order_id: string;
+}
+
+interface IMBCheckOrderStatusSuccessResponse {
+	status: "COMPLETED";
+	message: string;
+	result: {
+		status: "SUCCESS" | "PENDING" | "FAILED";
+	};
+}
+
+interface IMBCheckOrderStatusFailedResponse {
+	status: "ERROR";
+	message: string;
+}
+
+type IMBCheckOrderStatusResponse =
+	| IMBCheckOrderStatusSuccessResponse
+	| IMBCheckOrderStatusFailedResponse;
+
+export async function checkIMBOrderStatus(
+	payload: CheckOrderStatusPayload,
+): Promise<IMBCheckOrderStatusSuccessResponse> {
+	const params = new URLSearchParams();
+	params.append("user_token", env.IMB_TOKEN);
+	params.append("order_id", payload.order_id);
+
+	logger.info("Checking IMB order status", { payload });
+
+	const response = await fetch(`${env.IMB_API_URL}/check-order-status`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded",
+		},
+		body: params.toString(),
+	});
+
+	const data: IMBCheckOrderStatusResponse = await response.json();
+
+	if (data.status !== "COMPLETED") {
+		logger.error("IMB Order Status Check Error", { payload, response: data });
+		throw new Error(`IMB Order Status Check Error: ${data.message}`);
+	}
+
+	logger.info("IMB order status checked successfully", {
+		payload,
+		response: data,
+	});
+	return data;
+}

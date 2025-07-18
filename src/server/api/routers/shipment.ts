@@ -75,12 +75,6 @@ export const shipmentRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const { user } = ctx;
 			const userId = user.user_id;
-			if (!userId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "User ID not found.",
-				});
-			}
 			const logData = { userId, input };
 			logger.info("Creating single shipment", logData);
 
@@ -210,6 +204,37 @@ export const shipmentRouter = createTRPCRouter({
 				const human_readable_shipment_id = generateShipmentId(user.user_id);
 
 				await db.$transaction(async (tx) => {
+					const packageImageUrl = await uploadFileToS3(
+						input.packageImage,
+						"shipment/",
+					);
+
+					let invoiceUrl: string | undefined;
+					if (input.invoice) {
+						invoiceUrl = await uploadFileToS3(input.invoice, "invoices/");
+					}
+					const shipment = await tx.shipment.create({
+						data: {
+							human_readable_shipment_id,
+							user_id: userId,
+							payment_status: "Pending",
+							shipment_status: "PendingApproval",
+							current_status: "Booked",
+							origin_address_id: originAddress?.address_id,
+							destination_address_id: destinationAddress?.address_id,
+							recipient_name: input.recipientName,
+							recipient_mobile: input.recipientMobile,
+							package_image_url: packageImageUrl,
+							package_weight: input.packageWeight,
+							package_dimensions: `${input.packageBreadth} X ${input.packageHeight} X ${input.packageLength}`,
+							shipping_cost: finalShippingCost,
+							declared_value: input.declaredValue,
+							is_insurance_selected: input.isInsuranceSelected,
+							insurance_premium: insurancePremium,
+							compensation_amount: compensationAmount,
+							invoiceUrl: invoiceUrl,
+						},
+					});
 					const wallet = await tx.wallet.findUnique({
 						where: { user_id: user.user_id },
 					});
@@ -246,54 +271,31 @@ export const shipmentRouter = createTRPCRouter({
 							transaction_type: "Debit",
 							amount: new Decimal(finalShippingCost),
 							payment_status: "Completed",
-							shipment_id: human_readable_shipment_id,
+							shipment_id: shipment.shipment_id,
 							description: "Single Shipment Created",
 						},
 					});
 
-					const packageImageUrl = await uploadFileToS3(
-						input.packageImage,
-						"shipment/",
-					);
-
-					let invoiceUrl: string | undefined;
-					if (input.invoice) {
-						invoiceUrl = await uploadFileToS3(input.invoice, "invoices/");
-					}
-
-					await tx.shipment.create({
+					await tx.shipment.update({
+						where: {
+							shipment_id: shipment.shipment_id,
+							user_id: wallet.user_id,
+						},
 						data: {
-							human_readable_shipment_id,
-							user_id: userId,
 							payment_status: "Paid",
-							shipment_status: "PendingApproval",
-							current_status: "Booked",
-							origin_address_id: originAddress?.address_id,
-							destination_address_id: destinationAddress?.address_id,
-							recipient_name: input.recipientName,
-							recipient_mobile: input.recipientMobile,
-							package_image_url: packageImageUrl,
-							package_weight: input.packageWeight,
-							package_dimensions: `${input.packageBreadth} X ${input.packageHeight} X ${input.packageLength}`,
-							shipping_cost: finalShippingCost,
-							declared_value: input.declaredValue,
-							is_insurance_selected: input.isInsuranceSelected,
-							insurance_premium: insurancePremium,
-							compensation_amount: compensationAmount,
-							invoiceUrl: invoiceUrl,
 						},
 					});
-				});
 
-				logger.info("Successfully created single shipment", {
-					...logData,
-					shipmentId: human_readable_shipment_id,
+					logger.info("Successfully created single shipment", {
+						...logData,
+						shipmentId: shipment.shipment_id,
+					});
+					return {
+						success: true,
+						message: "Shipment created successfully",
+						shipmentId: shipment.shipment_id,
+					};
 				});
-				return {
-					success: true,
-					message: "Shipment created successfully",
-					shipmentId: human_readable_shipment_id,
-				};
 			} catch (error) {
 				logger.error("Failed to create single shipment", { ...logData, error });
 				throw error;
@@ -708,7 +710,7 @@ export const shipmentRouter = createTRPCRouter({
 							const human_readable_shipment_id = generateShipmentId(
 								user.user_id,
 							);
-							await tx.shipment.create({
+							const shipment = await tx.shipment.create({
 								data: {
 									human_readable_shipment_id,
 									user_id: userId,
@@ -732,7 +734,7 @@ export const shipmentRouter = createTRPCRouter({
 							});
 							createdShipmentRecords.push({
 								recipientName: s.recipientName,
-								shipmentId: human_readable_shipment_id,
+								shipmentId: shipment.shipment_id,
 							});
 						}
 						return createdShipmentRecords;
