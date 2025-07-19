@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { sendEmail } from "~/lib/email";
 import logger from "~/lib/logger";
+import { pushOrderToShipway } from "~/lib/shipway";
 import {
 	approvePendingAddressSchema,
 	rejectPendingAddressSchema,
@@ -394,45 +395,101 @@ export const adminRouter = createTRPCRouter({
 				});
 			}
 		}),
-
 	approveShipment: adminProcedure
 		.input(approveShipmentSchema)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({ ctx, input }) => {
+			const { shipmentId, awbNumber, courierId } = input;
+			const { user } = ctx;
 			const logData = {
-				shipmentId: input.shipmentId,
-				adminId: ctx.user.user_id,
+				userId: user.user_id,
+				shipmentId,
+				awbNumber,
+				courierId,
 			};
-			logger.info("Approving shipment", logData);
+			logger.info(
+				"Attempting to approve shipment and push to Shipway",
+				logData,
+			);
 
-			const shipment = await db.shipment.findUnique({
-				where: { shipment_id: input.shipmentId },
-				include: { user: { select: { email: true } } },
+			const shipment = await ctx.db.shipment.findUnique({
+				where: { shipment_id: shipmentId },
+				include: {
+					user: true,
+					origin_address: true,
+					destination_address: true,
+				},
 			});
+
 			if (!shipment) {
 				logger.warn("Shipment not found for approval", logData);
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "Shipment not found",
+					message: "Shipment not found.",
 				});
 			}
 
-			try {
-				await db.$transaction(async (prisma) => {
-					await prisma.shipment.update({
-						where: { shipment_id: shipment.shipment_id },
-						data: {
-							shipment_status: "Approved",
-							awb_number: input.awbNumber,
-						},
-					});
+			if (shipment.shipment_status !== "PendingApproval") {
+				logger.warn("Shipment not in PendingApproval status", {
+					...logData,
+					currentStatus: shipment.shipment_status,
 				});
-				logger.info("Successfully approved shipment", logData);
-				return true;
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Shipment is not in 'Pending Approval' status.",
+				});
+			}
+
+			const courier = await ctx.db.courier.findUnique({
+				where: { id: courierId },
+			});
+
+			if (!courier) {
+				logger.warn("Courier not found", logData);
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Selected courier not found.",
+				});
+			}
+
+			const shipwayPayload = {
+				carrier_id: courier.shipway_id,
+				awb: awbNumber,
+				order_id: shipment.shipment_id,
+				first_name: shipment.user.name.split(" ")[0] || "N/A",
+				last_name: shipment.user.name.split(" ").slice(1).join(" ") || "N/A",
+				email: shipment.user.email,
+				phone: shipment.recipient_mobile,
+				products: "Shipment",
+				company: shipment.user.company_name || "NexGen",
+				shipment_type: "1",
+			};
+
+			try {
+				await pushOrderToShipway(shipwayPayload);
+
+				// Update shipment in DB
+				await ctx.db.shipment.update({
+					where: { shipment_id: shipmentId },
+					data: {
+						awb_number: awbNumber,
+						courier_id: courierId,
+						shipment_status: "Approved",
+					},
+				});
+
+				logger.info("Shipment approved and updated in DB", logData);
+				return {
+					success: true,
+					message: "Shipment approved and pushed to Shipway.",
+				};
 			} catch (error) {
-				logger.error("Failed to approve shipment", { ...logData, error });
+				logger.error("Error during Shipway integration or shipment approval", {
+					...logData,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Something went wrong",
+					message: `Failed to approve shipment: ${error instanceof Error ? error.message : "Unknown error"}`,
 				});
 			}
 		}),

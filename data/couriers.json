@@ -1,0 +1,42 @@
+[
+	{
+		"id": "1",
+		"courier_name": "Bluedart",
+		"image": "https://shipway.in/images/clogo/bluedart.png"
+	},
+	{
+		"id": "2",
+		"courier_name": "Delhivery",
+		"image": "https://shipway.in/images/clogo/delhivery.png"
+	},
+	{
+		"id": "16",
+		"courier_name": "Xpress Bees",
+		"image": "https://shipway.in/images/clogo/xpress-bees.png"
+	},
+	{
+		"id": "7",
+		"courier_name": "DTDC",
+		"image": "https://shipway.in/images/clogo/dtdc.png"
+	},
+	{
+		"id": "499",
+		"courier_name": "Shadowfax",
+		"image": "https://shipway.in/images/clogo/shadowfax.png"
+	},
+	{
+		"id": "60",
+		"courier_name": "Ekart Logistics",
+		"image": "https://shipway.in/images/clogo/ekart_logistics.png"
+	},
+	{
+		"id": "99",
+		"courier_name": "ATS Amazon Shipping",
+		"image": "https://shipway.in/images/clogo/ats_amazon_shipping.png"
+	},
+	{
+		"id": "19",
+		"courier_name": "India Post",
+		"image": "https://shipway.in/images/clogo/india-post.png"
+	}
+]

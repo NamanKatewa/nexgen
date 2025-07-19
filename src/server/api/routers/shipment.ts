@@ -9,8 +9,7 @@ import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { uploadFileToS3 } from "~/lib/s3";
 import { generateShipmentId } from "~/lib/utils";
-import type { TFileSchema } from "~/schemas/file";
-import type { TImageSchema } from "~/schemas/image";
+
 import {
 	type TBulkShipmentItemSchema,
 	type TShipmentSchema,

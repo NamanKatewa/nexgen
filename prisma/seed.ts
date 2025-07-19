@@ -467,10 +467,36 @@ function generateShipmentId(userId: string): string {
 }
 
 // --- Main Seeding Function ---
+async function seedCouriers() {
+	console.log("Seeding couriers...");
+	const filePath = path.join(process.cwd(), "data", "couriers.json");
+	try {
+		const fileContent = await fs.readFile(filePath, "utf-8");
+		const couriers = JSON.parse(fileContent);
+
+		for (const courier of couriers) {
+			await prisma.courier.upsert({
+				where: { shipway_id: String(courier.id) },
+				update: {},
+				create: {
+					shipway_id: String(courier.id),
+					name: courier.courier_name,
+					image_url: courier.image,
+				},
+			});
+		}
+		console.log("Couriers seeded successfully.");
+	} catch (error) {
+		console.error("Error seeding couriers:", error);
+		throw error;
+	}
+}
+
 async function main() {
 	console.log("Start seeding...");
 
 	await loadPincodeMap();
+	await seedCouriers(); // Call the new function
 	const allPincodes = Array.from(pincodeMap.keys());
 
 	const password = "Tarzan678$";
@@ -814,16 +840,24 @@ async function main() {
 				console.log(`Created shipment with id: ${shipment.shipment_id}`);
 
 				// Create Tracking for Shipment
+				const allCouriers = await prisma.courier.findMany();
+				if (allCouriers.length === 0) {
+					console.warn(
+						"No couriers found to create tracking records. Skipping tracking seeding.",
+					);
+					continue;
+				}
+				const randomCourier = faker.helpers.arrayElement(allCouriers);
+
 				const numberOfTrackingUpdates = faker.number.int({ min: 2, max: 5 });
 				for (let l = 0; l < numberOfTrackingUpdates; l++) {
 					await prisma.tracking.create({
 						data: {
 							shipment_id: shipment.shipment_id,
+							courier_id: randomCourier.id,
 							timestamp: faker.date.recent(),
-							location: faker.location.city(),
+							location: faker.location.city() || "Unknown Location", // Ensure location is always a string
 							status_description: faker.lorem.sentence(),
-							carrier_update_code: faker.string.alphanumeric(5).toUpperCase(),
-							event_details: faker.lorem.paragraph(),
 						},
 					});
 				}

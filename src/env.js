@@ -20,6 +20,9 @@ export const env = createEnv({
 		EMAIL_PASSWORD: z.string(),
 		IMB_TOKEN: z.string(),
 		IMB_API_URL: z.string().url(),
+		SHIPWAY_USERNAME: z.string().email(),
+		SHIPWAY_PASSWORD: z.string(),
+		SHIPWAY_HASH: z.string(),
 	},
 
 	client: {},
@@ -37,6 +40,9 @@ export const env = createEnv({
 		EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
 		IMB_TOKEN: process.env.IMB_TOKEN,
 		IMB_API_URL: process.env.IMB_API_URL,
+		SHIPWAY_USERNAME: process.env.SHIPWAY_USERNAME,
+		SHIPWAY_PASSWORD: process.env.SHIPWAY_PASSWORD,
+		SHIPWAY_HASH: process.env.SHIPWAY_HASH,
 	},
 
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

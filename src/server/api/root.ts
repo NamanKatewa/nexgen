@@ -6,6 +6,7 @@ import { kycRouter } from "./routers/kyc";
 import { labelRouter } from "./routers/label";
 import { rateRouter } from "./routers/rate";
 import { shipmentRouter } from "./routers/shipment";
+import { trackingRouter } from "./routers/tracking";
 import { walletRouter } from "./routers/wallet";
 
 export const appRouter = createTRPCRouter({
@@ -17,6 +18,7 @@ export const appRouter = createTRPCRouter({
 	shipment: shipmentRouter,
 	rate: rateRouter,
 	label: labelRouter,
+	tracking: trackingRouter,
 });
 
 export type AppRouter = typeof appRouter;

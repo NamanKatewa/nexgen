@@ -14,6 +14,13 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "~/components/ui/select";
 import { Textarea } from "~/components/ui/textarea";
 import { formatDateToSeconds } from "~/lib/utils";
 import {
@@ -27,11 +34,11 @@ type ShipmentItemType =
 	RouterOutputs["admin"]["pendingShipments"]["shipments"][number];
 type ShipmentDetailType = ShipmentItemType;
 
-// Define a combined schema for form data
 const combinedShipmentSchema = z.object({
 	shipmentId: z.string(),
-	awbNumber: z.string().optional(),
-	reason: z.string().optional(),
+	awbNumber: z.string().min(1, "AWB Number is required.").optional(),
+	courierId: z.string().min(1, "Courier is required.").optional(),
+	reason: z.string().min(1, "Rejection Reason is required.").optional(),
 });
 
 type CombinedShipmentFormData = z.infer<typeof combinedShipmentSchema>;
@@ -52,6 +59,9 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 		useState<ShipmentItemType | null>(null);
 	const approveMutation = api.admin.approveShipment.useMutation();
 	const rejectMutation = api.admin.rejectShipment.useMutation();
+
+	const { data: couriers, isLoading: isLoadingCouriers } =
+		api.tracking.getCouriers.useQuery();
 
 	const utils = api.useUtils();
 
@@ -76,8 +86,8 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 		if (shipmentItem) {
 			setValue("shipmentId", shipmentItem.shipment_id);
 			setValue("awbNumber", shipmentItem.awb_number || "");
-			setValue("reason", ""); // Clear reason when shipment item changes
-			clearErrors(); // Clear all errors on shipment item change
+			setValue("reason", "");
+			clearErrors();
 		}
 	}, [shipmentItem, setValue, clearErrors]);
 
@@ -91,12 +101,21 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 			toast.error("AWB Number is required.");
 			return;
 		}
-		clearErrors("awbNumber"); // Clear AWB Number errors if validation passes
+		if (!data.courierId || data.courierId.trim() === "") {
+			setError("courierId", {
+				type: "manual",
+				message: "Courier is required.",
+			});
+			toast.error("Courier is required.");
+			return;
+		}
+		clearErrors(["awbNumber", "courierId"]);
 
 		approveMutation.mutate(
 			{
 				shipmentId: data.shipmentId,
 				awbNumber: data.awbNumber,
+				courierId: data.courierId,
 			},
 			{
 				onSuccess: () => {
@@ -193,19 +212,49 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 								</p>
 							)}
 							{shipmentItem.shipment_status === "PendingApproval" && (
-								<div className="mt-2 w-full">
-									<Label htmlFor={`awbNumber-${shipmentItem.shipment_id}`}>
-										AWB Number
-									</Label>
-									<Input
-										id={`awbNumber-${shipmentItem.shipment_id}`}
-										{...register("awbNumber")}
-										placeholder="Enter AWB Number"
-									/>
-									{errors.awbNumber && (
-										<FieldError message={errors.awbNumber.message} />
-									)}
-								</div>
+								<>
+									<div className="mt-2 w-full">
+										<Label htmlFor={`awbNumber-${shipmentItem.shipment_id}`}>
+											AWB Number
+										</Label>
+										<Input
+											id={`awbNumber-${shipmentItem.shipment_id}`}
+											{...register("awbNumber")}
+											placeholder="Enter AWB Number"
+										/>
+										{errors.awbNumber && (
+											<FieldError message={errors.awbNumber.message} />
+										)}
+									</div>
+									<div className="mt-2 w-full">
+										<Label htmlFor={`courier-${shipmentItem.shipment_id}`}>
+											Select Courier
+										</Label>
+										<Select
+											onValueChange={(value) => setValue("courierId", value)}
+											value={control._formValues.courierId}
+										>
+											<SelectTrigger id={`courier-${shipmentItem.shipment_id}`}>
+												<SelectValue placeholder="Select a courier" />
+											</SelectTrigger>
+											<SelectContent>
+												{isLoadingCouriers && (
+													<SelectItem value="" disabled>
+														Loading couriers...
+													</SelectItem>
+												)}
+												{couriers?.map((courier) => (
+													<SelectItem key={courier.id} value={courier.id}>
+														{courier.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										{errors.courierId && (
+											<FieldError message={errors.courierId.message} />
+										)}
+									</div>
+								</>
 							)}
 							<div className="mt-4 flex justify-end space-x-2">
 								{shipmentItem.shipment_status === "PendingApproval" && (

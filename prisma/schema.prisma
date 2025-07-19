@@ -219,8 +219,9 @@ model Shipment {
   shipment_id            String          @id @default(uuid())
   human_readable_shipment_id String          @unique
   user_id                String
-  carrier_id             String?
+  courier_id             String?
   awb_number             String?          @unique
+  courier                Courier? @relation(fields: [courier_id], references: [id])
   current_status         SHIPMENT_STATUS
   payment_status         SHIPMENT_PAYMENT_STATUS
   shipment_status        SHIPMENT_APPROVAL_STATUS
@@ -252,13 +253,13 @@ model Shipment {
 model Tracking {
   tracking_id        String   @id @default(uuid())
   shipment_id        String
+  courier_id         String
   timestamp          DateTime
   location           String
   status_description String
-  carrier_update_code String
-  event_details      String
 
   shipment Shipment @relation(fields: [shipment_id], references: [shipment_id], onDelete: Cascade)
+  courier  Courier  @relation(fields: [courier_id], references: [id])
 }
 
 model SupportTicket {
@@ -310,4 +311,15 @@ model PasswordReset {
   otp       String
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model Courier {
+  id          String   @id @default(uuid()) // Unique ID for the courier in our system
+  shipway_id  String   @unique // ID from Shipway (e.g., "1", "2", "16")
+  name        String   @unique
+  image_url   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  shipments   Shipment[]
+  tracking    Tracking[]
 }

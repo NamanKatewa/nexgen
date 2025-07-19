@@ -204,6 +204,7 @@ export type TBulkShipmentsSchema = z.infer<typeof bulkShipmentsSchema>;
 export const approveShipmentSchema = z.object({
 	shipmentId: z.string(),
 	awbNumber: z.string().min(1, "AWB Number is required"),
+	courierId: z.string().min(1, "Courier is required"),
 });
 
 export const rejectShipmentSchema = z.object({
