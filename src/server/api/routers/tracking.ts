@@ -56,7 +56,7 @@ export const trackingRouter = createTRPCRouter({
 				}
 
 				const courier = await db.courier.findUnique({
-					where: { shipway_id: String(carrier_id) },
+					where: { shipway_id: String(shipment.courier_id) },
 				});
 
 				if (!courier) {
