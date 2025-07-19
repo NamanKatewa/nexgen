@@ -1,9 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import ShipmentDetailsModal from "~/components/ShipmentDetailsModal";
 
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -18,20 +17,11 @@ export default function UserShipmentDetailPage() {
 	const params = useParams();
 	const shipmentId = params.shipmentId as string;
 
-	const [showShipmentModal, setShowShipmentModal] = useState(false);
-	const [selectedShipment, setSelectedShipment] =
-		useState<ShipmentItemType | null>(null);
-
 	const {
 		data: shipment,
 		isLoading,
 		error,
 	} = api.shipment.getShipmentById.useQuery({ shipmentId });
-
-	const handleViewShipment = (shipment: ShipmentItemType) => {
-		setSelectedShipment(shipment);
-		setShowShipmentModal(true);
-	};
 
 	const generateLabelMutation = api.label.generateLabel.useMutation();
 

@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import CopyableId from "~/components/CopyableId";
+import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
+import PaginationButtons from "~/components/PaginationButtons";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import useDebounce from "~/lib/hooks/useDebounce";
+import { cn } from "~/lib/utils";
 import { formatDateToSeconds } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 
@@ -17,41 +21,92 @@ export default function UserOrdersPage() {
 	const [statusFilter, setStatusFilter] = useState<
 		"PendingApproval" | "Approved" | "Rejected" | undefined
 	>(undefined);
+	const [searchText, setSearchText] = useState("");
+	const debouncedSearchFilter = useDebounce(searchText, 500);
 
 	const { data, isLoading } = api.shipment.getUserShipments.useQuery({
 		page,
 		pageSize,
 		status: statusFilter,
+		searchFilter:
+			debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
 	});
 
 	const columns = [
 		{
 			key: "shipment_id",
 			header: "Shipment ID",
-			render: (shipment: Shipment) => (
-				<div className="overflow-x-auto text-ellipsis whitespace-nowrap">
-					<CopyableId id={shipment.shipment_id} />
-					<Link
-						href={`/dashboard/shipments/${shipment.shipment_id}`}
-						className="text-blue-600 hover:underline"
-					>
-						View
-					</Link>
-				</div>
+			className: "px-4 w-30",
+			render: (item: Shipment) => (
+				<Copyable content={item.human_readable_shipment_id} />
 			),
+		},
+		{
+			key: "client_name",
+			header: "Client Name",
+			className: "px-4 w-40 whitespace-normal",
+			render: (item: Shipment) => item.recipient_name,
+		},
+		{
+			key: "client_contact",
+			header: "Client Contact",
+			className: "px-4 w-30 whitespace-normal",
+			render: (item: Shipment) => item.recipient_mobile,
 		},
 		{
 			key: "shipping_cost",
 			header: "Shipping Cost",
-			render: (shipment: Shipment) =>
-				`₹${Number(shipment.shipping_cost).toFixed(2)}`,
+			className: "px-4 w-30 text-center",
+			render: (item: Shipment) => `₹ ${Number(item.shipping_cost).toFixed(2)}`,
 		},
-		{ key: "shipment_status", header: "Shipment Status" },
-		{ key: "payment_status", header: "Payment Status" },
 		{
-			key: "created_at",
-			header: "Created At",
-			render: (shipment: Shipment) => formatDateToSeconds(shipment.created_at),
+			key: "shipment_status",
+			header: "Shipment Status",
+			className: "px-4 w-40 text-center",
+			render: (item: Shipment) => (
+				<Badge
+					className={cn("text-950", {
+						"bg-green-200": item.shipment_status === "Approved",
+						"bg-yellow-200": item.shipment_status === "PendingApproval",
+						"bg-red-200": item.shipment_status === "Rejected",
+					})}
+				>
+					{item.shipment_status}
+				</Badge>
+			),
+		},
+		{
+			key: "payment_status",
+			header: "Payment Status",
+			className: "px-4 w-40 text-center",
+			render: (item: Shipment) => (
+				<Badge
+					className={cn("text-950", {
+						"bg-green-200": item.payment_status === "Paid",
+						"bg-yellow-200": item.payment_status === "Pending",
+					})}
+				>
+					{item.payment_status}
+				</Badge>
+			),
+		},
+		{
+			key: "date",
+			header: "Date",
+			className: "px-4 w-50",
+			render: (item: Shipment) => formatDateToSeconds(item.created_at),
+		},
+		{
+			key: "actions",
+			header: "Actions",
+			className: "w-30 px-4",
+			render: (item: Shipment) => (
+				<Button className="cursor-pointer">
+					<Link href={`/dashboard/shipments/${item.shipment_id}`}>
+						View Shipment
+					</Link>
+				</Button>
+			),
 		},
 	];
 
@@ -74,14 +129,22 @@ export default function UserOrdersPage() {
 						: (value as "PendingApproval" | "Approved" | "Rejected"),
 				),
 		},
+		{
+			id: "search",
+			label: "Search",
+			type: "text" as const,
+			value: searchText,
+			onChange: setSearchText,
+		},
 	];
 
 	const handleClearFilters = () => {
 		setStatusFilter(undefined);
+		setSearchText("");
 	};
 
 	return (
-		<div className="p-8">
+		<>
 			<DataTable
 				title="My Shipments"
 				data={data?.shipments || []}
@@ -91,29 +154,11 @@ export default function UserOrdersPage() {
 				isLoading={isLoading}
 				idKey="shipment_id"
 			/>
-			<div className="mt-4 flex justify-between">
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-					disabled={page === 1}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Previous
-				</Button>
-				<span>
-					Page {page} of {data?.totalPages || 1}
-				</span>
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => prev + 1)}
-					disabled={page === (data?.totalPages || 1)}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Next
-				</Button>
-			</div>
-		</div>
+			<PaginationButtons
+				page={page}
+				totalPages={data?.totalPages || 1}
+				setPage={setPage}
+			/>
+		</>
 	);
 }

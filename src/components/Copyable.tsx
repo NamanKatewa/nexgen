@@ -6,17 +6,17 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 
 interface CopyableIdProps {
-	id: string;
+	content: string;
 }
 
-const CopyableId: React.FC<CopyableIdProps> = ({ id }) => {
+const Copyable: React.FC<CopyableIdProps> = ({ content }) => {
 	const handleCopy = async () => {
 		try {
-			await navigator.clipboard.writeText(id);
-			toast.success("ID copied to clipboard!");
+			await navigator.clipboard.writeText(content);
+			toast.success("Copied to clipboard!");
 		} catch (err) {
-			console.error("Failed to copy ID: ", err);
-			toast.error("Failed to copy ID.");
+			console.error("Failed to copy: ", err);
+			toast.error("Failed to copy");
 		}
 	};
 
@@ -26,13 +26,12 @@ const CopyableId: React.FC<CopyableIdProps> = ({ id }) => {
 				className="max-w-[200px] overflow-x-auto text-ellipsis whitespace-nowrap"
 				style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
 			>
-				{/* Hide scrollbar for Webkit browsers */}
 				<style jsx>{`
           div::-webkit-scrollbar {
             display: none;
           }
         `}</style>
-				{id}
+				{content}
 			</div>
 			<Button
 				variant="ghost"
@@ -47,4 +46,4 @@ const CopyableId: React.FC<CopyableIdProps> = ({ id }) => {
 	);
 };
 
-export default CopyableId;
+export default Copyable;

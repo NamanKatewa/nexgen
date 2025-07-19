@@ -304,13 +304,6 @@ export default function CreateBulkShipmentPage() {
 				toast.info(
 					`Processing complete: ${successCount} created, ${pendingCount} pending, ${errorCount} failed.`,
 				);
-
-				// if (successCount > 0) {
-				// 	toast.success("Redirecting to dashboard in 3 seconds...");
-				// 	setTimeout(() => {
-				// 		router.push("/dashboard");
-				// 		router.refresh();
-				// 	}, 3000);
 			},
 			onError: (err) => {
 				toast.error(err.message);
@@ -351,26 +344,33 @@ export default function CreateBulkShipmentPage() {
 						onSubmit={handleSubmit(onSubmit)}
 						className="space-y-4 text-blue-950"
 					>
-						<div className="space-y-2">
-							<Label htmlFor="excelFile">Upload Excel File</Label>
-							<Input
-								id="excelFile"
-								type="file"
-								accept=".xlsx, .xls"
-								onChange={handleFileUpload}
-								disabled={isLoading}
-							/>
-							<p className="text-gray-500 text-sm">
-								Download sample template:{" "}
-								<a
-									href="/templates/sample_bulk_shipments.xlsx"
-									download
-									className="text-blue-600 hover:underline"
-								>
-									sample_bulk_shipments.xlsx
-								</a>
-							</p>
-						</div>
+						<Card className="mb-6 p-4">
+							<CardHeader className="p-0 pb-4">
+								<h2 className="font-semibold text-lg">Upload Shipment Data</h2>
+							</CardHeader>
+							<CardContent className="space-y-4 p-0">
+								<div className="space-y-2">
+									<Label htmlFor="excelFile">Select Excel File</Label>
+									<Input
+										id="excelFile"
+										type="file"
+										accept=".xlsx, .xls"
+										onChange={handleFileUpload}
+										disabled={isLoading}
+									/>
+									<p className="text-gray-500 text-sm">
+										Download sample template:{" "}
+										<a
+											href="/templates/sample_bulk_shipments.xlsx"
+											download
+											className="text-blue-600 hover:underline"
+										>
+											sample_bulk_shipments.xlsx
+										</a>
+									</p>
+								</div>
+							</CardContent>
+						</Card>
 
 						{shipments.length > 0 && (
 							<div className="mt-8">
@@ -384,106 +384,59 @@ export default function CreateBulkShipmentPage() {
 									>
 										<thead className="bg-gray-50">
 											<tr>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ width: "60px" }}
-												>
+												<th className="w-[60px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													#
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "150px" }}
-												>
+												<th className="min-w-[150px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Recipient Name
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "130px" }}
-												>
+												<th className="min-w-[130px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Recipient Mobile
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "100px" }}
-												>
+												<th className="min-w-[100px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Weight (kg)
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "100px" }}
-												>
+												<th className="min-w-[100px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Height (cm)
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "100px" }}
-												>
+												<th className="min-w-[100px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Length (cm)
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "100px" }}
-												>
+												<th className="min-w-[100px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Breadth (cm)
 												</th>
-												<th
-													className="px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ width: "250px" }}
-												>
+												<th className="min-w-[250px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Origin Address
 												</th>
-												<th
-													className="px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ width: "250px" }}
-												>
+												<th className="min-w-[250px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Destination Address
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "100px" }}
-												>
+												<th className="min-w-[100px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Declared Value
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "100px" }}
-												>
+												<th className="min-w-[100px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Insurance
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "180px" }}
-												>
+												<th className="min-w-[180px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Package Image
 												</th>
-												<th
-													className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-													style={{ minWidth: "180px" }}
-												>
+												<th className="min-w-[180px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 													Invoice
 												</th>
-												{isSubmitted ? (
-													<th
-														className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-														style={{ minWidth: "150px" }}
-													>
+												{isSubmitted && (
+													<th className="min-w-[150px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
 														Status
 													</th>
-												) : (
-													<>
-														<th
-															className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-															style={{ minWidth: "120px" }}
-														>
-															Calculated Rate
-														</th>
-														<th
-															className="whitespace-nowrap px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider"
-															style={{ minWidth: "120px" }}
-														>
-															Insurance Premium
-														</th>
-													</>
+												)}
+												{!isSubmitted && (
+													<th className="min-w-[120px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
+														Calculated Rate
+													</th>
+												)}
+												{!isSubmitted && (
+													<th className="min-w-[120px] px-3 py-3 text-left font-medium text-gray-500 text-xs uppercase tracking-wider">
+														Insurance Premium
+													</th>
 												)}
 											</tr>
 										</thead>
@@ -499,10 +452,7 @@ export default function CreateBulkShipmentPage() {
 													>
 														{index + 1}
 													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "150px" }}
-													>
+													<td className="min-w-[150px] px-3 py-2 align-top text-gray-500 text-sm">
 														<Input
 															value={shipment.recipientName}
 															onChange={(e) => {
@@ -518,12 +468,7 @@ export default function CreateBulkShipmentPage() {
 																	trigger(`shipments.${index}.recipientName`);
 																}
 															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.recipientName
-																	?.message
-																	? "border-red-500"
-																	: ""
-															}`}
+															className={`w-full ${errors.shipments?.[index]?.recipientName?.message ? "border-red-500" : ""}`}
 														/>
 														<FieldError
 															message={
@@ -532,10 +477,7 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "130px" }}
-													>
+													<td className="min-w-[130px] px-3 py-2 align-top text-gray-500 text-sm">
 														<Input
 															value={shipment.recipientMobile}
 															onChange={(e) => {
@@ -552,12 +494,7 @@ export default function CreateBulkShipmentPage() {
 																	trigger(`shipments.${index}.recipientMobile`);
 																}
 															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.recipientMobile
-																	?.message
-																	? "border-red-500"
-																	: ""
-															}`}
+															className={`w-full ${errors.shipments?.[index]?.recipientMobile?.message ? "border-red-500" : ""}`}
 														/>
 														<FieldError
 															message={
@@ -566,10 +503,7 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "100px" }}
-													>
+													<td className="min-w-[100px] px-3 py-2 align-top text-gray-500 text-sm">
 														<Input
 															type="number"
 															step="any"
@@ -587,12 +521,7 @@ export default function CreateBulkShipmentPage() {
 																	trigger(`shipments.${index}.packageWeight`);
 																}
 															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.packageWeight
-																	?.message
-																	? "border-red-500"
-																	: ""
-															}`}
+															className={`w-full ${errors.shipments?.[index]?.packageWeight?.message ? "border-red-500" : ""}`}
 														/>
 														<FieldError
 															message={
@@ -601,10 +530,7 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "100px" }}
-													>
+													<td className="min-w-[100px] px-3 py-2 align-top text-gray-500 text-sm">
 														<Input
 															type="number"
 															step="any"
@@ -622,12 +548,7 @@ export default function CreateBulkShipmentPage() {
 																	trigger(`shipments.${index}.packageHeight`);
 																}
 															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.packageHeight
-																	?.message
-																	? "border-red-500"
-																	: ""
-															}`}
+															className={`w-full ${errors.shipments?.[index]?.packageHeight?.message ? "border-red-500" : ""}`}
 														/>
 														<FieldError
 															message={
@@ -636,10 +557,7 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "100px" }}
-													>
+													<td className="min-w-[100px] px-3 py-2 align-top text-gray-500 text-sm">
 														<Input
 															type="number"
 															step="any"
@@ -657,12 +575,7 @@ export default function CreateBulkShipmentPage() {
 																	trigger(`shipments.${index}.packageLength`);
 																}
 															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.packageLength
-																	?.message
-																	? "border-red-500"
-																	: ""
-															}`}
+															className={`w-full ${errors.shipments?.[index]?.packageLength?.message ? "border-red-500" : ""}`}
 														/>
 														<FieldError
 															message={
@@ -671,10 +584,7 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "100px" }}
-													>
+													<td className="min-w-[100px] px-3 py-2 align-top text-gray-500 text-sm">
 														<Input
 															type="number"
 															step="any"
@@ -692,12 +602,7 @@ export default function CreateBulkShipmentPage() {
 																	trigger(`shipments.${index}.packageBreadth`);
 																}
 															}}
-															className={`w-full ${
-																errors.shipments?.[index]?.packageBreadth
-																	?.message
-																	? "border-red-500"
-																	: ""
-															}`}
+															className={`w-full ${errors.shipments?.[index]?.packageBreadth?.message ? "border-red-500" : ""}`}
 														/>
 														<FieldError
 															message={
@@ -706,7 +611,6 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													{/* origin address fields */}
 													<td
 														className="px-3 py-2 align-top text-gray-500 text-sm"
 														style={{ width: "250px" }}
@@ -807,7 +711,6 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													{/* destination address fields */}
 													<td
 														className="px-3 py-2 align-top text-gray-500 text-sm"
 														style={{ width: "250px" }}
@@ -989,7 +892,6 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													{/* package image */}
 													<td
 														className="px-3 py-2 align-top text-gray-500 text-sm"
 														style={{ minWidth: "180px" }}
@@ -1022,7 +924,7 @@ export default function CreateBulkShipmentPage() {
 															}
 														/>
 													</td>
-													{/* invoice */}
+
 													<td
 														className="px-3 py-2 align-top text-gray-500 text-sm"
 														style={{ minWidth: "180px" }}
@@ -1052,44 +954,58 @@ export default function CreateBulkShipmentPage() {
 															</>
 														)}
 													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "120px" }}
-													>
-														{isSubmitted
-															? shipment.status && (
-																	<div className="flex max-w-[150px] flex-col gap-1 whitespace-normal">
-																		<Badge
-																			variant={
-																				shipment.status === "success"
-																					? "default"
-																					: shipment.status === "pending"
-																						? "secondary"
-																						: "destructive"
-																			}
-																			className="capitalize"
-																		>
-																			{shipment.status}
-																		</Badge>
-																		<p className="text-gray-500 text-xs">
-																			{shipment.message}
-																		</p>
-																	</div>
-																)
-															: calculatedRates[index]
+													{isSubmitted && (
+														<td
+															className="px-3 py-2 align-top text-gray-500 text-sm"
+															style={{ minWidth: "120px" }}
+														>
+															{shipment.status && (
+																<div className="flex max-w-[150px] flex-col gap-1 whitespace-normal">
+																	<Badge
+																		variant={
+																			shipment.status === "success"
+																				? "default"
+																				: shipment.status === "pending"
+																					? "secondary"
+																					: "destructive"
+																		}
+																		className={`capitalize ${
+																			shipment.status === "success"
+																				? "bg-green-200 text-white"
+																				: shipment.status === "pending"
+																					? "bg-yellow-200 text-black"
+																					: "bg-red-200 text-white"
+																		}`}
+																	>
+																		{shipment.status}
+																	</Badge>
+																	<p className="text-gray-500 text-xs">
+																		{shipment.message}
+																	</p>
+																</div>
+															)}
+														</td>
+													)}
+													{!isSubmitted && (
+														<td
+															className="px-3 py-2 align-top text-gray-500 text-sm"
+															style={{ minWidth: "120px" }}
+														>
+															{calculatedRates[index]
 																? `₹${calculatedRates[index]?.rate?.toFixed(2)}`
 																: "N/A"}
-													</td>
-													<td
-														className="px-3 py-2 align-top text-gray-500 text-sm"
-														style={{ minWidth: "120px" }}
-													>
-														{isSubmitted
-															? null
-															: calculatedRates[index]
+														</td>
+													)}
+													{!isSubmitted && (
+														<td
+															className="px-3 py-2 align-top text-gray-500 text-sm"
+															style={{ minWidth: "120px" }}
+														>
+															{calculatedRates[index]
 																? `₹${calculatedRates[index]?.insurancePremium?.toFixed(2)}`
 																: "N/A"}
-													</td>
+														</td>
+													)}
 												</tr>
 											))}
 										</tbody>
@@ -1108,15 +1024,16 @@ export default function CreateBulkShipmentPage() {
 							</Button>
 						)}
 
-						{totalCalculatedRate !== null && !shipmentResults.length && (
-							<div className="mt-4 text-right font-semibold text-xl">
-								Total Estimated Rate: ₹{totalCalculatedRate.toFixed(2)} + ₹
-								{totalInsurancePremium?.toFixed(2)} (Insurance) = ₹
-								{(totalCalculatedRate + (totalInsurancePremium ?? 0)).toFixed(
-									2,
-								)}
-							</div>
-						)}
+						<div
+							className={`mt-4 text-right font-semibold text-xl ${totalCalculatedRate === null || shipmentResults.length > 0 ? "invisible h-0" : ""}`}
+						>
+							Total Estimated Rate: ₹{totalCalculatedRate?.toFixed(2)} + ₹
+							{totalInsurancePremium?.toFixed(2)} (Insurance) = ₹
+							{(totalCalculatedRate && totalInsurancePremium !== null
+								? totalCalculatedRate + totalInsurancePremium
+								: totalCalculatedRate
+							)?.toFixed(2)}
+						</div>
 
 						<Button
 							type="submit"

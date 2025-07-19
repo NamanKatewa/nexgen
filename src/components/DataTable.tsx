@@ -21,12 +21,12 @@ interface FilterOption {
 interface FilterConfig {
 	id: string;
 	label: string;
-	type?: "select" | "text"; // Add type property
-	options?: FilterOption[]; // Make options optional
-	selectedValue?: string; // Make selectedValue optional
-	onValueChange?: (value: string) => void; // Make onValueChange optional
-	value?: string; // Add value for text input
-	onChange?: (value: string) => void; // Add onChange for text input
+	type?: "select" | "text";
+	options?: FilterOption[];
+	selectedValue?: string;
+	onValueChange?: (value: string) => void;
+	value?: string;
+	onChange?: (value: string) => void;
 }
 
 interface ColumnConfig<T> {
@@ -44,7 +44,7 @@ interface DataTableProps<T> {
 	onClearFilters?: () => void;
 	isLoading: boolean;
 	noResultsMessage?: string;
-	idKey?: string; // New prop for dynamic ID key
+	idKey?: string;
 	onRowClick?: (row: T) => void;
 }
 
@@ -56,7 +56,7 @@ const DataTable = <T,>({
 	onClearFilters,
 	isLoading,
 	noResultsMessage = "No results found.",
-	idKey, // Destructure new prop
+	idKey,
 }: DataTableProps<T>) => {
 	const topRef = useRef<HTMLDivElement>(null);
 
@@ -69,26 +69,29 @@ const DataTable = <T,>({
 	}
 
 	return (
-		<div className="flex h-screen w-full flex-col">
+		<div className="flex h-[50vw] w-full flex-col">
 			<div
 				ref={topRef}
-				className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-4 border-b p-4"
+				className="sticky top-0 z-30 flex flex-col justify-between gap-4 border-b bg-blue-50 p-4"
 			>
 				<h1 className="font-semibold text-2xl text-blue-950">{title}</h1>
-				<div className="flex flex-wrap items-center gap-4">
-					{filters.map((filter) => (
-						<DataTableFilter key={filter.id} {...filter} />
-					))}
-
-					{filters.length > 0 && onClearFilters && (
-						<Button
-							variant="secondary"
-							className="bg-blue-100 text-sm hover:bg-blue-200/50"
-							onClick={onClearFilters}
-						>
-							Clear Filters
-						</Button>
-					)}
+				<div className="flex items-center justify-between gap-4">
+					<div className="flex flex-wrap items-center gap-4">
+						{filters.map((filter) => (
+							<DataTableFilter key={filter.id} {...filter} />
+						))}
+					</div>
+					<div>
+						{filters.length > 0 && onClearFilters && (
+							<Button
+								variant="secondary"
+								className="bg-blue-100 text-sm hover:bg-blue-200/50"
+								onClick={onClearFilters}
+							>
+								Clear Filters
+							</Button>
+						)}
+					</div>
 				</div>
 			</div>
 

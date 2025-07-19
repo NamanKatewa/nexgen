@@ -129,7 +129,7 @@ const Footer = () => {
 
 				<div className="mt-16 border-blue-950 border-t pt-8">
 					<p className="text-center text-blue-950 text-sm">
-						&copy; {new Date().getFullYear()} Kishan Kumar Sah. All rights
+						&copy; {new Date().getFullYear()} Kishan Kumar Shah. All rights
 						reserved.
 					</p>
 				</div>

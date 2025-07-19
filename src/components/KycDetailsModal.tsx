@@ -100,7 +100,6 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 
 	return (
 		<>
-			{/* Approve Confirmation Modal */}
 			<Dialog
 				open={showApproveConfirmModal}
 				onOpenChange={setShowApproveConfirmModal}
@@ -137,7 +136,6 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 				</DialogContent>
 			</Dialog>
 
-			{/* Reject Confirmation Modal */}
 			<Dialog
 				open={showRejectConfirmModal}
 				onOpenChange={setShowRejectConfirmModal}
@@ -210,6 +208,22 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 					</DialogHeader>
 					<div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
 						<div className="space-y-2">
+							<Label>User Name</Label>
+							<Input
+								value={kycItem.user.name || "N/A"}
+								readOnly
+								tabIndex={-1}
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>Mobile Number</Label>
+							<Input
+								value={kycItem.user.mobile_number || "N/A"}
+								readOnly
+								tabIndex={-1}
+							/>
+						</div>
+						<div className="space-y-2">
 							<Label>Entity Name</Label>
 							<Input
 								value={kycItem.entity_name || "N/A"}
@@ -240,7 +254,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 									href={kycItem.website_url}
 									target="_blank"
 									rel="noreferrer"
-									className="block w-full rounded-md border border-input bg-background px-3 py-2 text-blue-600 text-sm underline"
+									className="block w-full rounded-md border border-input bg-blue-100/20 px-3 py-2 text-sm "
 									tabIndex={-1}
 								>
 									{kycItem.website_url}
@@ -252,7 +266,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 						<div className="space-y-2">
 							<Label>GST</Label>
 							<Badge
-								variant={kycItem.gst ? "default" : "secondary"}
+								variant="default"
 								className="min-w-[48px] px-3 py-1 text-center text-xs"
 							>
 								{kycItem.gst ? "Yes" : "No"}
@@ -275,7 +289,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 							<Label>Billing Address</Label>
 							{address ? (
 								<div
-									className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+									className="rounded-md border border-input px-3 py-2 text-sm"
 									tabIndex={-1}
 								>
 									{address.address_line}

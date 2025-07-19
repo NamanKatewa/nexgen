@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import CopyableId from "~/components/CopyableId";
+import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
+import PaginationButtons from "~/components/PaginationButtons";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import useDebounce from "~/lib/hooks/useDebounce";
+import { cn } from "~/lib/utils";
 import { formatDateToSeconds } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 
@@ -17,55 +21,93 @@ export default function AdminOrdersPage() {
 	const [statusFilter, setStatusFilter] = useState<
 		"PendingApproval" | "Approved" | "Rejected" | undefined
 	>(undefined);
-	const [userIdFilter, setUserIdFilter] = useState<string | undefined>(
-		undefined,
-	);
+	const [userIdSearchText, setUserIdSearchText] = useState("");
+	const debouncedUserIdFilter = useDebounce(userIdSearchText, 500);
 
 	const { data, isLoading } = api.shipment.getAllShipments.useQuery({
 		page,
 		pageSize,
 		status: statusFilter,
-		userId: userIdFilter,
+		userId: debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
 	});
 
 	const columns = [
 		{
 			key: "human_readable_shipment_id",
 			header: "Shipment ID",
-			render: (shipment: Shipment) => (
-				<div className="overflow-x-auto text-ellipsis whitespace-nowrap">
-					<CopyableId id={shipment.human_readable_shipment_id} />
-					<Link
-						href={`/admin/shipments/${shipment.human_readable_shipment_id}`}
-						className="text-blue-600 hover:underline"
-					>
-						View
-					</Link>
-				</div>
+			className: "w-30 px-4",
+			render: (item: Shipment) => (
+				<Copyable content={item.human_readable_shipment_id} />
 			),
 		},
 		{
 			key: "user.name",
 			header: "User Name",
-			render: (shipment: Shipment) => shipment.user.name,
+			className: "w-40 px-4 whitespace-normal",
+			render: (item: Shipment) => (
+				<Link href={`/admin/user/${item.user_id}`}>{item.user.name}</Link>
+			),
 		},
 		{
 			key: "user.email",
 			header: "User Email",
-			render: (shipment: Shipment) => shipment.user.email,
+			className: "w-40 px-4",
+			render: (item: Shipment) => <Copyable content={item.user.email} />,
 		},
 		{
 			key: "shipping_cost",
 			header: "Shipping Cost",
-			render: (shipment: Shipment) =>
-				`₹${Number(shipment.shipping_cost).toFixed(2)}`,
+			className: "w-30 px-4 text-center",
+			render: (item: Shipment) => `₹${Number(item.shipping_cost).toFixed(2)}`,
 		},
-		{ key: "shipment_status", header: "Shipment Status" },
-		{ key: "payment_status", header: "Payment Status" },
 		{
-			key: "created_at",
-			header: "Created At",
-			render: (shipment: Shipment) => formatDateToSeconds(shipment.created_at),
+			key: "shipment_status",
+			header: "Shipment Status",
+			className: "w-30 px-4 text-center",
+			render: (item: Shipment) => (
+				<Badge
+					className={cn("text-blue-950", {
+						"bg-green-200": item.shipment_status === "Approved",
+						"bg-yellow-200": item.shipment_status === "PendingApproval",
+						"bg-red-200": item.shipment_status === "Rejected",
+					})}
+				>
+					{item.shipment_status}
+				</Badge>
+			),
+		},
+		{
+			key: "payment_status",
+			header: "Payment Status",
+			className: "w-30 px-4 text-center",
+			render: (item: Shipment) => (
+				<Badge
+					className={cn("text-blue-950", {
+						"bg-green-200": item.payment_status === "Paid",
+						"bg-yellow-200": item.payment_status === "Pending",
+					})}
+				>
+					{item.payment_status}
+				</Badge>
+			),
+		},
+		{
+			key: "date",
+			header: "Date",
+			className: "w-40 px-4",
+			render: (item: Shipment) => formatDateToSeconds(item.created_at),
+		},
+		{
+			key: "actions",
+			header: "Actions",
+			className: "w-30 px-4",
+			render: (item: Shipment) => (
+				<Button className="cursor-pointer">
+					<Link href={`/admin/shipments/${item.shipment_id}`}>
+						View Shipment
+					</Link>
+				</Button>
+			),
 		},
 	];
 
@@ -92,18 +134,18 @@ export default function AdminOrdersPage() {
 			id: "userId",
 			label: "User ID",
 			type: "text" as const,
-			value: userIdFilter || "",
-			onChange: (value: string) => setUserIdFilter(value || undefined),
+			value: userIdSearchText,
+			onChange: setUserIdSearchText,
 		},
 	];
 
 	const handleClearFilters = () => {
 		setStatusFilter(undefined);
-		setUserIdFilter(undefined);
+		setUserIdSearchText("");
 	};
 
 	return (
-		<div className="p-8">
+		<>
 			<DataTable
 				title="All Shipments"
 				data={data?.shipments || []}
@@ -113,29 +155,11 @@ export default function AdminOrdersPage() {
 				isLoading={isLoading}
 				idKey="shipment_id"
 			/>
-			<div className="mt-4 flex justify-between">
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-					disabled={page === 1}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Previous
-				</Button>
-				<span>
-					Page {page} of {data?.totalPages || 1}
-				</span>
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => prev + 1)}
-					disabled={page === (data?.totalPages || 1)}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Next
-				</Button>
-			</div>
-		</div>
+			<PaginationButtons
+				page={page}
+				totalPages={data?.totalPages || 1}
+				setPage={setPage}
+			/>
+		</>
 	);
 }

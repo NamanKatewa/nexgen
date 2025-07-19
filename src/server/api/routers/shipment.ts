@@ -1,4 +1,4 @@
-import { ADDRESS_TYPE } from "@prisma/client";
+import { ADDRESS_TYPE, type Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -816,16 +816,35 @@ export const shipmentRouter = createTRPCRouter({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
 				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+				searchFilter: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const { user } = ctx;
-			const { page, pageSize, status } = input;
+			const { page, pageSize, status, searchFilter } = input;
 			const skip = (page - 1) * pageSize;
+
+			const whereClause: Prisma.ShipmentWhereInput = {
+				user_id: user.user_id,
+				shipment_status: status,
+			};
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{
+						human_readable_shipment_id: {
+							contains: searchFilter,
+							mode: "insensitive",
+						},
+					},
+					{ recipient_name: { contains: searchFilter, mode: "insensitive" } },
+					{ recipient_mobile: { contains: searchFilter, mode: "insensitive" } },
+				];
+			}
 
 			const [shipments, totalShipments] = await db.$transaction([
 				db.shipment.findMany({
-					where: { user_id: user.user_id, shipment_status: status },
+					where: whereClause,
 					include: {
 						user: {
 							select: {
@@ -843,7 +862,7 @@ export const shipmentRouter = createTRPCRouter({
 					},
 				}),
 				db.shipment.count({
-					where: { user_id: user.user_id, shipment_status: status },
+					where: whereClause,
 				}),
 			]);
 

@@ -5,11 +5,15 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	FileUser,
+	IndianRupee,
 	LayoutDashboard,
 	MapPinCheck,
 	NotebookText,
 	Package,
 	PackageCheck,
+	Tag,
+	User,
+	UserCog,
 	Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -37,29 +41,11 @@ const sidebarLinks = [
 		icon: MapPinCheck,
 		label: "Approve Addresses",
 	},
-	{ href: "/admin/all-orders", icon: LayoutDashboard, label: "All Orders" },
-	{
-		href: "/admin/tracking/dashboard",
-		icon: LayoutDashboard,
-		label: "Tracking Dashboard",
-	},
-	{
-		href: "/admin/revenue/dashboard",
-		icon: LayoutDashboard,
-		label: "Revenue Dashboard",
-	},
-	{ href: "/admin/label-maker", icon: LayoutDashboard, label: "Label Maker" },
-	{ href: "/admin/approve-users", icon: LayoutDashboard, label: "Users" },
-	{ href: "/admin/employees", icon: LayoutDashboard, label: "Employees" },
-	{ href: "/admin/support", icon: LayoutDashboard, label: "Support" },
-	{ href: "/admin/payments", icon: LayoutDashboard, label: "Payments" },
-	{
-		href: "/admin/payment-history",
-		icon: LayoutDashboard,
-		label: "Payment History",
-	},
-	{ href: "/admin/promotions", icon: LayoutDashboard, label: "Promotions" },
-	{ href: "/admin/rates", icon: LayoutDashboard, label: "Rates" },
+	{ href: "/admin/label-maker", icon: Tag, label: "Label Maker" },
+	{ href: "/admin/approve-users", icon: User, label: "Users" },
+	{ href: "/admin/employees", icon: UserCog, label: "Employees" },
+	{ href: "/admin/rates", icon: IndianRupee, label: "Rates" },
+	{ href: "/admin/refund", icon: IndianRupee, label: "Refund" },
 ];
 
 const AdminSidebar = () => {

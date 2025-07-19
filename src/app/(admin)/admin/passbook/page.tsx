@@ -1,12 +1,10 @@
 "use client";
 
-import { PAYMENT_STATUS, TRANSACTION_TYPE } from "@prisma/client";
 import type { inferRouterOutputs } from "@trpc/server";
-import { format } from "date-fns";
 import React, { useState } from "react";
-import CopyableId from "~/components/CopyableId";
 import { DataTable } from "~/components/DataTable";
 import { Badge } from "~/components/ui/badge";
+import useDebounce from "~/lib/hooks/useDebounce";
 import { cn } from "~/lib/utils";
 import { formatDateToSeconds } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
@@ -17,65 +15,61 @@ type Transaction = PassbookOutput["transactions"][number];
 
 import { paymentStatusTypes, transactionTypes } from "~/constants";
 
+import Link from "next/link";
+import Copyable from "~/components/Copyable";
+import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
 
 const PassbookPage = () => {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
+	const [filterStatus, setFilterStatus] = useState("ALL");
+	const [filterTxnType, setFilterTxnType] = useState("ALL");
+	const [searchText, setSearchText] = useState("");
+	const debouncedSearchFilter = useDebounce(searchText, 500);
+
 	const { data, isLoading } = api.admin.getPassbook.useQuery(
-		{ page, pageSize },
+		{
+			page,
+			pageSize,
+			filterStatus: filterStatus === "ALL" ? undefined : filterStatus,
+			filterTxnType: filterTxnType === "ALL" ? undefined : filterTxnType,
+			searchFilter:
+				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+		},
 		{
 			retry: 3,
 			refetchOnWindowFocus: false,
 		},
 	);
 
-	const [filterStatus, setFilterStatus] = useState("ALL");
-	const [filterTxnType, setFilterTxnType] = useState("ALL");
-	const [searchFilter, setSearchFilter] = useState("");
-
 	const handleClearFilters = () => {
 		setFilterStatus("ALL");
 		setFilterTxnType("ALL");
-		setSearchFilter("");
+		setSearchText("");
 	};
-
-	const filteredData = React.useMemo(() => {
-		return (data?.transactions ?? []).filter((item) => {
-			const searchLower = searchFilter.toLowerCase();
-			const statusMatch =
-				filterStatus === "ALL" || item.payment_status === filterStatus;
-			const typeMatch =
-				filterTxnType === "ALL" || item.transaction_type === filterTxnType;
-			const searchMatch =
-				item.user.email.toLowerCase().includes(searchLower) ||
-				item.user.name.toLowerCase().includes(searchLower) ||
-				(item.description ?? "").toLowerCase().includes(searchLower) ||
-				item.amount.toString().includes(searchLower);
-
-			return statusMatch && typeMatch && searchMatch;
-		});
-	}, [data?.transactions, filterStatus, filterTxnType, searchFilter]);
 
 	const columns = [
 		{
 			key: "transaction_id",
 			header: "Transaction ID",
 			className: "w-50 px-4",
-			render: (item: Transaction) => <CopyableId id={item.transaction_id} />,
+			render: (item: Transaction) => <Copyable content={item.transaction_id} />,
 		},
 		{
 			key: "user.name",
-			header: "Name",
-			className: "w-40 px-4",
-			render: (item: Transaction) => item.user.name,
+			header: "User Name",
+			className: "w-40 px-4 whitespace-normal",
+			render: (item: Transaction) => (
+				<Link href={`/admin/user/${item.user_id}`}>{item.user.name}</Link>
+			),
 		},
 		{
 			key: "user.email",
-			header: "Email",
-			className: "w-50 px-4",
-			render: (item: Transaction) => item.user.email,
+			header: "User Email",
+			className: "w-50 px-4 whitespace-normal break-all",
+			render: (item: Transaction) => <Copyable content={item.user.email} />,
 		},
 		{
 			key: "amount",
@@ -86,16 +80,14 @@ const PassbookPage = () => {
 		{
 			key: "transaction_date",
 			header: "Date",
-			className: "w-30 px-4 text-center",
+			className: "w-50 px-4",
 			render: (item: Transaction) =>
-				item.created_at
-					? formatDateToSeconds(new Date(item.created_at))
-					: "N/A",
+				formatDateToSeconds(new Date(item.created_at)),
 		},
 		{
 			key: "transaction_type",
 			header: "Transaction Type",
-			className: "w-40 px-4 text-center",
+			className: "w-30 px-4 text-center",
 			render: (item: Transaction) => (
 				<Badge
 					className={cn("text-950", {
@@ -110,7 +102,7 @@ const PassbookPage = () => {
 		{
 			key: "payment_status",
 			header: "Payment Status",
-			className: "w-50 px-4 text-center",
+			className: "w-40 px-4 text-center",
 			render: (item: Transaction) => (
 				<Badge
 					className={cn("text-950", {
@@ -126,9 +118,21 @@ const PassbookPage = () => {
 		{
 			key: "description",
 			header: "Description",
-			className: "w-50 px-4 text-center",
+			className: "px-4 w-50 whitespace-normal",
 			render: (item: Transaction) =>
 				item.description ? item.description : "N/A",
+		},
+		{
+			key: "actions",
+			header: "Actions",
+			className: "w-50 px-4 text-blue-950",
+			render: (item: Transaction) => {
+				return item.shipment_id ? (
+					<Button>
+						<Link href={`/shipments/${item.shipment_id}`}>View Shipment</Link>
+					</Button>
+				) : null;
+			},
 		},
 	];
 
@@ -137,8 +141,8 @@ const PassbookPage = () => {
 			id: "search",
 			label: "Search",
 			type: "text" as const,
-			value: searchFilter,
-			onChange: setSearchFilter,
+			value: searchText,
+			onChange: setSearchText,
 		},
 		{
 			id: "payment-status-filter",
@@ -163,7 +167,7 @@ const PassbookPage = () => {
 	];
 
 	return (
-		<div className="p-8">
+		<>
 			<DataTable
 				title="Transactions"
 				data={data?.transactions || []}
@@ -173,30 +177,12 @@ const PassbookPage = () => {
 				isLoading={isLoading}
 				idKey="transaction_id"
 			/>
-			<div className="mt-4 flex justify-between">
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-					disabled={page === 1}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Previous
-				</Button>
-				<span>
-					Page {page} of {data?.totalPages || 1}
-				</span>
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => prev + 1)}
-					disabled={page === (data?.totalPages || 1)}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Next
-				</Button>
-			</div>
-		</div>
+			<PaginationButtons
+				page={page}
+				totalPages={data?.totalPages || 1}
+				setPage={setPage}
+			/>
+		</>
 	);
 };
 

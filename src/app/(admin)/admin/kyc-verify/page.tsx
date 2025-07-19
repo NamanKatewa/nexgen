@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
+import useDebounce from "~/lib/hooks/useDebounce";
 
-import CopyableId from "~/components/CopyableId";
+import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import KycDetailsModal from "~/components/KycDetailsModal";
 import { api } from "~/trpc/react";
@@ -11,59 +13,52 @@ import { api } from "~/trpc/react";
 import { entityTypes } from "~/constants";
 
 import type { inferRouterOutputs } from "@trpc/server";
+import Link from "next/link";
+import { formatDateToSeconds } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 
 const VerifyKycPage = () => {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
+	type KycListOutput = inferRouterOutputs<AppRouter>["admin"]["pendingKyc"];
+	type KycItem = KycListOutput["kycList"][number];
+
+	const [filterGST, setFilterGST] = useState("ALL");
+	const [filterType, setFilterType] = useState("ALL");
+	const [searchText, setSearchText] = useState("");
+	const debouncedSearchFilter = useDebounce(searchText, 500);
+
+	const [showKycDetailsModal, setShowKycDetailsModal] = useState(false);
+	const [selectedKycItem, setSelectedKycItem] = useState<KycItem | null>(null);
+
 	const { data, isLoading } = api.admin.pendingKyc.useQuery(
-		{ page, pageSize },
+		{
+			page,
+			pageSize,
+			filterGST: filterGST === "ALL" ? undefined : filterGST,
+			filterType: filterType === "ALL" ? undefined : filterType,
+			searchFilter:
+				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+		},
 		{
 			retry: 3,
 			refetchOnWindowFocus: false,
 		},
 	);
 
-	type KycListOutput = inferRouterOutputs<AppRouter>["admin"]["pendingKyc"];
-	type KycItem = KycListOutput["kycList"][number];
-
-	const [filterGST, setFilterGST] = useState("ALL");
-	const [filterType, setFilterType] = useState("ALL");
-	const [searchFilter, setSearchFilter] = useState("");
-	const [showKycDetailsModal, setShowKycDetailsModal] = useState(false);
-	const [selectedKycItem, setSelectedKycItem] = useState<KycItem | null>(null);
-
 	const handleClearFilters = () => {
 		setFilterGST("ALL");
 		setFilterType("ALL");
-		setSearchFilter("");
+		setSearchText("");
 	};
-
-	const filteredData = React.useMemo(() => {
-		return (data?.kycList ?? []).filter((item) => {
-			const searchLower = searchFilter.toLowerCase();
-			const matchesSearch =
-				(item.entity_name ?? "").toLowerCase().includes(searchLower) ||
-				item.user.email.toLowerCase().includes(searchLower) ||
-				(item.user.name ?? "").toLowerCase().includes(searchLower) ||
-				(item.entity_type ?? "").toLowerCase().includes(searchLower) ||
-				(item.gst ? "yes" : "no").includes(searchLower);
-
-			return (
-				(filterGST === "ALL" || (filterGST === "YES" ? item.gst : !item.gst)) &&
-				(filterType === "ALL" || item.entity_type === filterType) &&
-				matchesSearch
-			);
-		});
-	}, [data?.kycList, filterGST, filterType, searchFilter]);
 
 	const columns = [
 		{
 			key: "kyc_id",
 			header: "KYC ID",
 			className: "w-50 px-4 text-blue-950",
-			render: (item: KycItem) => <CopyableId id={item.kyc_id} />,
+			render: (item: KycItem) => <Copyable content={item.kyc_id} />,
 		},
 		{
 			key: "entity_name",
@@ -73,14 +68,25 @@ const VerifyKycPage = () => {
 		},
 		{
 			key: "user_email",
-			header: "Email",
+			header: "User Email",
 			className: "w-70 px-4 text-blue-950",
-			render: (item: KycItem) => item.user.email,
+			render: (item: KycItem) => (
+				<Link href={`/admin/user/${item.user_id}`}>{item.user.email}</Link>
+			),
+		},
+		{
+			key: "date",
+			header: "Date",
+			className: "w-70 px-4 text-blue-950",
+			render: (item: KycItem) =>
+				item.submission_date
+					? formatDateToSeconds(new Date(item.submission_date))
+					: "",
 		},
 		{
 			key: "actions",
 			header: "Actions",
-			className: "w-50 px-4 text-right text-blue-950",
+			className: "w-50 px-4 text-blue-950",
 			render: (item: KycItem) => (
 				<Button
 					size="sm"
@@ -102,8 +108,8 @@ const VerifyKycPage = () => {
 			id: "search",
 			label: "Search",
 			type: "text" as const,
-			value: searchFilter,
-			onChange: setSearchFilter,
+			value: searchText,
+			onChange: setSearchText,
 		},
 		{
 			id: "gst-filter",
@@ -129,7 +135,7 @@ const VerifyKycPage = () => {
 	];
 
 	return (
-		<div className="p-8">
+		<>
 			<DataTable
 				title="KYC Verification"
 				data={data?.kycList || []}
@@ -143,35 +149,17 @@ const VerifyKycPage = () => {
 					setShowKycDetailsModal(true);
 				}}
 			/>
-			<div className="mt-4 flex justify-between">
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-					disabled={page === 1}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Previous
-				</Button>
-				<span>
-					Page {page} of {data?.totalPages || 1}
-				</span>
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => prev + 1)}
-					disabled={page === (data?.totalPages || 1)}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Next
-				</Button>
-			</div>
+			<PaginationButtons
+				page={page}
+				totalPages={data?.totalPages || 1}
+				setPage={setPage}
+			/>
 			<KycDetailsModal
 				isOpen={showKycDetailsModal}
 				onClose={() => setShowKycDetailsModal(false)}
 				kycItem={selectedKycItem}
 			/>
-		</div>
+		</>
 	);
 };
 

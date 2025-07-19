@@ -2,41 +2,41 @@
 	{
 		"id": "1",
 		"courier_name": "Bluedart",
-		"image": "https://shipway.in/images/clogo/bluedart.png"
+		"image": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Blue_Dart_logo_transparent.png"
 	},
 	{
 		"id": "2",
 		"courier_name": "Delhivery",
-		"image": "https://shipway.in/images/clogo/delhivery.png"
+		"image": "https://upload.wikimedia.org/wikipedia/commons/2/23/Delhivery_Logo_%282019%29.png"
 	},
 	{
 		"id": "16",
 		"courier_name": "Xpress Bees",
-		"image": "https://shipway.in/images/clogo/xpress-bees.png"
+		"image": "https://pnghdpro.com/wp-content/themes/pnghdpro/download/social-media-and-brands/xpressbees-logistics-logo.png"
 	},
 	{
 		"id": "7",
 		"courier_name": "DTDC",
-		"image": "https://shipway.in/images/clogo/dtdc.png"
+		"image": "https://upload.wikimedia.org/wikipedia/commons/7/75/DTDC_logo.png?20230811094202"
 	},
 	{
 		"id": "499",
 		"courier_name": "Shadowfax",
-		"image": "https://shipway.in/images/clogo/shadowfax.png"
+		"image": "https://i0.wp.com/hrnxt.com/wp-content/uploads/2019/12/shadowfax.png?resize=560%2C213&ssl=1"
 	},
 	{
 		"id": "60",
 		"courier_name": "Ekart Logistics",
-		"image": "https://shipway.in/images/clogo/ekart_logistics.png"
+		"image": "https://cdn.brandfetch.io/idsCz7qb6f/w/565/h/176/theme/dark/logo.png?c=1bxid64Mup7aczewSAYMX&t=1749209457118"
 	},
 	{
 		"id": "99",
 		"courier_name": "ATS Amazon Shipping",
-		"image": "https://shipway.in/images/clogo/ats_amazon_shipping.png"
+		"image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Amazon_PNG6.png/960px-Amazon_PNG6.png?20200324004345"
 	},
 	{
 		"id": "19",
 		"courier_name": "India Post",
-		"image": "https://shipway.in/images/clogo/india-post.png"
+		"image": "https://upload.wikimedia.org/wikipedia/en/thumb/3/32/India_Post.svg/1920px-India_Post.svg.png"
 	}
 ]

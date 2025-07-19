@@ -1,17 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import CopyableId from "~/components/CopyableId";
+import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
+import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
+import useDebounce from "~/lib/hooks/useDebounce";
 import { type RouterOutputs, api } from "~/trpc/react";
 
 type PendingAddress =
 	RouterOutputs["admin"]["pendingAddresses"]["pendingAddresses"][number];
 
 export default function PendingAddressesPage() {
-	const [filter, setFilter] = useState("");
+	const [searchText, setSearchText] = useState("");
+	const debouncedSearchFilter = useDebounce(searchText, 500);
 	const [processingAddressId, setProcessingAddressId] = useState<string | null>(
 		null,
 	);
@@ -22,6 +26,8 @@ export default function PendingAddressesPage() {
 	const { data, isLoading, refetch } = api.admin.pendingAddresses.useQuery({
 		page,
 		pageSize,
+		searchFilter:
+			debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
 	});
 	const approveMutation = api.admin.approvePendingAddress.useMutation({
 		onMutate: (variables) => {
@@ -58,32 +64,48 @@ export default function PendingAddressesPage() {
 		{
 			key: "pending_address_id",
 			header: "Address ID",
-			render: (row: PendingAddress) => (
-				<CopyableId id={row.pending_address_id} />
+			className: "w-30 px-4",
+			render: (item: PendingAddress) => (
+				<Copyable content={item.pending_address_id} />
 			),
 		},
 		{
 			key: "user_name",
 			header: "User Name",
-			render: (row: PendingAddress) => row.user.name,
+			className: "w-40 px-4 whitespace-normal",
+			render: (item: PendingAddress) => (
+				<Link href={`{/admin/user/${item.user_id}}`}>{item.user.name}</Link>
+			),
 		},
 		{
 			key: "user_email",
 			header: "User Email",
-			render: (row: PendingAddress) => row.user.email,
-			className: "w-60",
+			className: "w-40 px-4",
+			render: (item: PendingAddress) => <Copyable content={item.user.email} />,
 		},
-		{ key: "name", header: "Name" },
-		{ key: "address_line", header: "Address Line" },
-		{ key: "city", header: "City" },
-		{ key: "state", header: "State" },
-		{ key: "zip_code", header: "Zip Code" },
+		{
+			key: "name",
+			header: "Address Name",
+			className: "w-40 px-4 whitespace-normal",
+		},
+		{
+			key: "address_line",
+			header: "Address Line",
+			className: "w-50 px-4 whitespace-normal",
+		},
+		{ key: "city", header: "City", className: "w-30 px-4 whitespace-normal" },
+		{ key: "state", header: "State", className: "w-30 px-4 whitespace-normal" },
+		{
+			key: "zip_code",
+			header: "Zip Code",
+			className: "w-30 px-4 whitespace-normal",
+		},
 		{
 			key: "actions",
 			header: "Actions",
-			className: "w-90 text-center",
+			className: "w-60",
 			render: (row: PendingAddress) => (
-				<div className="flex justify-center gap-2">
+				<div className="flex gap-2">
 					<Button
 						onClick={() =>
 							approveMutation.mutate({
@@ -116,19 +138,8 @@ export default function PendingAddressesPage() {
 		},
 	];
 
-	const filteredAddresses = data?.pendingAddresses?.filter(
-		(address) =>
-			address.user.name.toLowerCase().includes(filter.toLowerCase()) ||
-			address.user.email.toLowerCase().includes(filter.toLowerCase()) ||
-			address.name.toLowerCase().includes(filter.toLowerCase()) ||
-			address.address_line.toLowerCase().includes(filter.toLowerCase()) ||
-			address.city.toLowerCase().includes(filter.toLowerCase()) ||
-			address.state.toLowerCase().includes(filter.toLowerCase()) ||
-			address.zip_code.toString().includes(filter.toLowerCase()),
-	);
-
 	return (
-		<div className="p-8">
+		<>
 			<DataTable
 				title="Pending Pickup Addresses"
 				data={data?.pendingAddresses || []}
@@ -140,35 +151,17 @@ export default function PendingAddressesPage() {
 						id: "search",
 						label: "Search",
 						type: "text",
-						value: filter,
-						onChange: setFilter,
+						value: searchText,
+						onChange: setSearchText,
 					},
 				]}
-				onClearFilters={() => setFilter("")}
+				onClearFilters={() => setSearchText("")}
 			/>
-			<div className="mt-4 flex justify-between">
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-					disabled={page === 1}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Previous
-				</Button>
-				<span>
-					Page {page} of {data?.totalPages || 1}
-				</span>
-				<Button
-					type="button"
-					onClick={() => setPage((prev) => prev + 1)}
-					disabled={page === (data?.totalPages || 1)}
-					variant="outline"
-					className="px-4 py-2"
-				>
-					Next
-				</Button>
-			</div>
-		</div>
+			<PaginationButtons
+				page={page}
+				totalPages={data?.totalPages || 1}
+				setPage={setPage}
+			/>
+		</>
 	);
 }

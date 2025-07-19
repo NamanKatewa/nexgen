@@ -50,6 +50,11 @@ export const adminRouter = createTRPCRouter({
 					{ entity_name: { contains: searchFilter, mode: "insensitive" } },
 					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
 					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
+					{
+						user: {
+							mobile_number: { contains: searchFilter, mode: "insensitive" },
+						},
+					},
 				];
 			}
 
@@ -59,7 +64,9 @@ export const adminRouter = createTRPCRouter({
 						where: whereClause,
 						include: {
 							address: true,
-							user: { select: { email: true, name: true } },
+							user: {
+								select: { email: true, name: true, mobile_number: true },
+							},
 						},
 						orderBy: { submission_date: "desc" },
 						skip,
@@ -185,17 +192,19 @@ export const adminRouter = createTRPCRouter({
 	getTransactions: adminProcedure
 		.input(
 			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
 				filterType: z.string().optional(),
 				searchFilter: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { filterType, searchFilter } = input;
-			logger.info("Fetching all credit transactions");
+			const { page, pageSize, filterType, searchFilter } = input;
+			const skip = (page - 1) * pageSize;
+			logger.info("Fetching all credit transactions", { page, pageSize });
 
 			const whereClause: Prisma.TransactionWhereInput = {
 				transaction_type: "Credit",
-				description: "Funds added to wallet",
 			};
 
 			if (filterType && filterType !== "ALL") {
@@ -212,27 +221,43 @@ export const adminRouter = createTRPCRouter({
 			}
 
 			try {
-				const transactions = await db.transaction.findMany({
-					where: whereClause,
-					select: {
-						transaction_id: true,
-						user: {
-							select: {
-								name: true,
-								email: true,
+				const [transactions, totalTransactions] = await db.$transaction([
+					db.transaction.findMany({
+						where: whereClause,
+						select: {
+							user_id: true,
+							transaction_id: true,
+							user: {
+								select: {
+									name: true,
+									email: true,
+								},
 							},
+							payment_status: true,
+							amount: true,
+							created_at: true,
 						},
-						payment_status: true,
-						transaction_type: true,
-						amount: true,
-						created_at: true,
-					},
-					orderBy: { created_at: "desc" },
-				});
+						orderBy: { created_at: "desc" },
+						skip,
+						take: pageSize,
+					}),
+					db.transaction.count({
+						where: whereClause,
+					}),
+				]);
 				logger.info("Successfully fetched all credit transactions", {
 					count: transactions.length,
+					totalTransactions,
+					page,
+					pageSize,
 				});
-				return transactions;
+				return {
+					transactions,
+					totalTransactions,
+					page,
+					pageSize,
+					totalPages: Math.ceil(totalTransactions / pageSize),
+				};
 			} catch (error) {
 				logger.error("Failed to fetch credit transactions", { error });
 				throw new TRPCError({
@@ -289,6 +314,8 @@ export const adminRouter = createTRPCRouter({
 							transaction_type: true,
 							payment_status: true,
 							description: true,
+							shipment_id: true,
+							user_id: true,
 							user: {
 								select: {
 									name: true,

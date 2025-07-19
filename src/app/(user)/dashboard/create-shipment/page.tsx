@@ -170,7 +170,7 @@ export default function CreateShipmentPage() {
 			setIsLoading(false);
 			toast.success("Shipment created successfully! Redirecting...");
 			setTimeout(() => {
-				router.push("/dashboard");
+				router.push("/dashboard/shipments");
 			}, 2000);
 		},
 		onError(err) {
@@ -277,8 +277,6 @@ export default function CreateShipmentPage() {
 				if ("address_id" in newAddress) {
 					finalDestinationAddressId = newAddress.address_id;
 				} else {
-					// This case should ideally not be reached if type is ADDRESS_TYPE.User
-					// but added for type safety and robustness.
 					toast.error("Failed to retrieve address ID for new address.");
 					setIsLoading(false);
 					return;
@@ -324,31 +322,29 @@ export default function CreateShipmentPage() {
 						onSubmit={handleSubmit(onSubmit)}
 						className="space-y-4 text-blue-950"
 					>
-						<div className="mb-10 flex gap-10">
+						<div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-4">
 								<Label>Recipient Name</Label>
 								<Input {...register("recipientName")} disabled={isLoading} />
 								<FieldError message={errors.recipientName?.message} />
 							</div>
-							<div className="mb-10 flex flex-wrap gap-10">
-								<div className="space-y-2">
-									<Label>Recipient Mobile Number</Label>
-									<InputOTP
-										maxLength={10}
-										value={watch("recipientMobile")}
-										onChange={(val) => setValue("recipientMobile", val)}
-										disabled={isLoading}
-										pattern="\d*"
-										inputMode="numeric"
-									>
-										<InputOTPGroup>
-											{[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-												<InputOTPSlot key={i} index={i} />
-											))}
-										</InputOTPGroup>
-									</InputOTP>
-									<FieldError message={errors.recipientMobile?.message} />
-								</div>
+							<div className="space-y-4">
+								<Label>Recipient Mobile Number</Label>
+								<InputOTP
+									maxLength={10}
+									value={watch("recipientMobile")}
+									onChange={(val) => setValue("recipientMobile", val)}
+									disabled={isLoading}
+									pattern="\d*"
+									inputMode="numeric"
+								>
+									<InputOTPGroup>
+										{[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+											<InputOTPSlot key={i} index={i} />
+										))}
+									</InputOTPGroup>
+								</InputOTP>
+								<FieldError message={errors.recipientMobile?.message} />
 							</div>
 						</div>
 
@@ -465,7 +461,7 @@ export default function CreateShipmentPage() {
 
 						<div className="space-y-4">
 							<Label className="font-bold">Package Details</Label>
-							<div className="mb-10 grid grid-cols-2 gap-10 p-4">
+							<div className="mb-10 grid grid-cols-1 gap-10 p-4 sm:grid-cols-2">
 								<div className="space-y-2">
 									<Label>Package Weight</Label>
 									<Input
@@ -516,13 +512,25 @@ export default function CreateShipmentPage() {
 								</div>
 								<div className="space-y-2">
 									<Label>Package Weight Image</Label>
-									<Image
-										src="/sample_package_image.jpeg"
-										alt="Package Image Preview"
-										className="h-32 w-32 rounded border object-cover"
-										width={200}
-										height={200}
-									/>
+									<div className="relative flex h-32 w-32 items-center justify-center rounded border bg-gray-100">
+										{packageImagePreview ? (
+											<Image
+												src={packageImagePreview}
+												alt="Package Image Preview"
+												className="h-full w-full object-cover"
+												width={200}
+												height={200}
+											/>
+										) : (
+											<Image
+												src="/sample_package_image.jpeg"
+												alt="Sample Package Image"
+												className="h-full w-full object-cover"
+												width={200}
+												height={200}
+											/>
+										)}
+									</div>
 									<Input
 										type="file"
 										accept="image/*"
@@ -534,21 +542,42 @@ export default function CreateShipmentPage() {
 											);
 										}}
 									/>
-									{packageImagePreview && (
-										<Image
-											src={packageImagePreview}
-											alt="Package Image Preview"
-											className="h-32 w-32 rounded border object-cover"
-											width={200}
-											height={200}
-										/>
-									)}
 									<FieldError
 										message={errors.packageImage?.message as string}
 									/>
 								</div>
-								{watch("isInsuranceSelected") && (
-									<div className="space-y-2">
+								<div className="space-y-2">
+									<Label>Declared Value (₹)</Label>
+									<Input
+										placeholder="Declared Value"
+										type="number"
+										step="1"
+										{...register("declaredValue", {
+											valueAsNumber: true,
+										})}
+									/>
+									<FieldError message={errors.declaredValue?.message} />
+									<div className="flex items-center space-x-2">
+										<Input
+											id="isInsuranceSelected"
+											type="checkbox"
+											{...register("isInsuranceSelected")}
+											className="h-4 w-4"
+										/>
+										<Label htmlFor="isInsuranceSelected">
+											Opt for Insurance
+										</Label>
+										<Link
+											href="/insurance-rates"
+											className="text-blue-500 text-sm hover:underline"
+											target="_blank"
+										>
+											(View Rates)
+										</Link>
+									</div>
+									<div
+										className={`space-y-2 ${!watch("isInsuranceSelected") ? "invisible h-0" : ""}`}
+									>
 										<Label>Invoice</Label>
 										<Input
 											type="file"
@@ -564,34 +593,6 @@ export default function CreateShipmentPage() {
 										)}
 										<FieldError message={errors.invoice?.message as string} />
 									</div>
-								)}
-								<div className="space-y-2">
-									<Label>Declared Value (₹)</Label>
-									<Input
-										placeholder="Declared Value"
-										type="number"
-										step="1"
-										{...register("declaredValue", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.declaredValue?.message} />
-								</div>
-								<div className="col-span-2 flex items-center space-x-2">
-									<Input
-										id="isInsuranceSelected"
-										type="checkbox"
-										{...register("isInsuranceSelected")}
-										className="h-4 w-4"
-									/>
-									<Label htmlFor="isInsuranceSelected">Opt for Insurance</Label>
-									<Link
-										href="/insurance-rates"
-										className="text-blue-500 text-sm hover:underline"
-										target="_blank"
-									>
-										(View Rates)
-									</Link>
 								</div>
 							</div>
 						</div>
@@ -602,10 +603,12 @@ export default function CreateShipmentPage() {
 						>
 							{isCalculatingRate ? "Calculating..." : "Calculate Rate"}
 						</Button>
-						{calculatedRate && (
-							<div className="font-semibold text-lg">
-								Calculated Rate: ₹{calculatedRate.rate.toFixed(2)}
-								{calculatedRate.insurancePremium > 0 && (
+						<div
+							className={`font-semibold text-lg ${!calculatedRate ? "invisible h-0" : ""}`}
+						>
+							Calculated Rate: ₹{calculatedRate?.rate.toFixed(2)}
+							{calculatedRate?.insurancePremium &&
+								calculatedRate.insurancePremium > 0 && (
 									<p className="font-normal text-green-600 text-sm">
 										(Includes Insurance Premium: ₹
 										{calculatedRate.insurancePremium.toFixed(2)}
@@ -616,15 +619,14 @@ export default function CreateShipmentPage() {
 										)
 									</p>
 								)}
-								{origin && destination && (
-									<div className="font-normal text-sm">
-										From: {origin.city}, {origin.state}
-										<br />
-										To: {destination.city}, {destination.state}
-									</div>
-								)}
-							</div>
-						)}
+							{origin && destination && (
+								<div className="font-normal text-sm">
+									From: {origin.city}, {origin.state}
+									<br />
+									To: {destination.city}, {destination.state}
+								</div>
+							)}
+						</div>
 						<Button
 							type="submit"
 							className="w-full"
