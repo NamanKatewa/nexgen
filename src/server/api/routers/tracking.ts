@@ -16,7 +16,7 @@ export const trackingRouter = createTRPCRouter({
 		.input(webhookSchema)
 		.mutation(async ({ input }) => {
 			const { hash, status_feed } = input;
-			const expectedHash = env.SHIPWAY_HASH.replace(/^"|"$/g, '');
+			const expectedHash = env.SHIPWAY_HASH.replace(/^"|"$/g, "");
 			if (hash !== expectedHash) {
 				logger.warn("Shipway webhook received with invalid hash", {
 					receivedHash: hash,
@@ -38,16 +38,16 @@ export const trackingRouter = createTRPCRouter({
 
 			for (const update of status_feed) {
 				const {
+					order_id,
 					awbno,
 					current_status,
 					status_time,
-					carrier,
 					carrier_id,
 					scans,
 				} = update;
 
 				const shipment = await db.shipment.findUnique({
-					where: { awb_number: awbno },
+					where: { awb_number: awbno, shipment_id: order_id },
 				});
 
 				if (!shipment) {
