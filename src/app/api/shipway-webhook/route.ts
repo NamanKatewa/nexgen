@@ -14,7 +14,6 @@ export async function POST(req: Request) {
 		});
 		const caller = appRouter.createCaller(createContext);
 
-		// Call the internal tRPC procedure
 		const result = await caller.tracking.receiveShipwayWebhook(webhookData);
 
 		return NextResponse.json(result, { status: 200 });

@@ -39,7 +39,6 @@ export const trackingRouter = createTRPCRouter({
 			for (const update of status_feed) {
 				const {
 					awbno,
-					current_status_desc,
 					current_status,
 					status_time,
 					carrier,
@@ -95,16 +94,11 @@ export const trackingRouter = createTRPCRouter({
 					}
 				} else {
 					// If no scans, log the main update details as a single tracking entry
-					const mappedStatusDescription = current_status_desc;
-					const mappedCarrierUpdateCode = current_status;
 
 					logger.info("Processing Shipway tracking update (no scans)", {
 						shipment_id: shipment.shipment_id,
 						courier_id: courier.id,
-						timestamp: new Date(status_time),
 						location: update.from || update.to || null,
-						status_description: mappedStatusDescription,
-						carrier_update_code: mappedCarrierUpdateCode,
 						event_details: JSON.stringify({
 							time: status_time,
 							status: current_status,
