@@ -16,7 +16,7 @@ export const trackingRouter = createTRPCRouter({
 		.input(webhookSchema)
 		.mutation(async ({ input }) => {
 			const { hash, status_feed } = input;
-			const expectedHash = env.SHIPWAY_HASH;
+			const expectedHash = env.SHIPWAY_HASH.replace(/^"|"$/g, '');
 			if (hash !== expectedHash) {
 				logger.warn("Shipway webhook received with invalid hash", {
 					receivedHash: hash,
