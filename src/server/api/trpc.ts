@@ -10,7 +10,7 @@ export const createTRPCContext = async (opts: {
 	headers: Headers;
 	req: Request;
 }) => {
-	const token = opts.headers.get("authorization")?.replace("Bearer ", "");
+	const token = opts.req.headers.get("authorization")?.replace("Bearer ", "");
 	let user = null;
 
 	if (token) {
