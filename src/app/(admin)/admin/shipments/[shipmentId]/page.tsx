@@ -1,38 +1,22 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useRef, useState } from "react";
 import { toast } from "sonner";
-import ShipmentDetailsModal from "~/components/ShipmentDetailsModal";
 
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { formatDateToSeconds } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import type { RouterOutputs } from "~/trpc/react";
-
-type ShipmentItemType = RouterOutputs["shipment"]["getShipmentById"];
 
 export default function AdminOrderDetailPage() {
 	const params = useParams();
 	const shipmentId = params.shipmentId as string;
-
-	const [showShipmentModal, setShowShipmentModal] = useState(false);
-	const [selectedShipment, setSelectedShipment] =
-		useState<ShipmentItemType | null>(null);
 
 	const {
 		data: shipment,
 		isLoading,
 		error,
 	} = api.shipment.getShipmentById.useQuery({ shipmentId });
-
-	const utils = api.useUtils();
-
-	const handleViewShipment = (shipment: ShipmentItemType) => {
-		setSelectedShipment(shipment);
-		setShowShipmentModal(true);
-	};
 
 	const generateLabelMutation = api.label.generateLabel.useMutation();
 

@@ -8,6 +8,7 @@ import logger from "~/lib/logger";
 import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { uploadFileToS3 } from "~/lib/s3";
+import { getOrderShipmentDetails } from "~/lib/shipway";
 import { generateShipmentId } from "~/lib/utils";
 
 import {
@@ -136,7 +137,7 @@ export const shipmentRouter = createTRPCRouter({
 				);
 
 				if (!originDetails) {
-					logger.warn("Invalid origin pincode", {
+					logger.warn("Invalid pincode", {
 						...logData,
 						pincode: originAddress.zip_code,
 					});
@@ -146,7 +147,7 @@ export const shipmentRouter = createTRPCRouter({
 					});
 				}
 				if (!destinationDetails) {
-					logger.warn("Invalid destination pincode", {
+					logger.warn("Invalid pincode", {
 						...logData,
 						pincode: destinationAddress.zip_code,
 					});
@@ -373,7 +374,7 @@ export const shipmentRouter = createTRPCRouter({
 					results.push({
 						recipientName: shipment.recipientName,
 						status: "pending",
-						message: "Origin address is already pending approval.",
+						message: "New origin address sent for admin approval.",
 					});
 				} else {
 					const isValid = await validateAddressForPickup(
@@ -878,6 +879,7 @@ export const shipmentRouter = createTRPCRouter({
 					},
 					origin_address: true,
 					destination_address: true,
+					tracking: true, // Include existing tracking records
 				},
 			});
 
@@ -895,6 +897,77 @@ export const shipmentRouter = createTRPCRouter({
 				});
 			}
 
-			return shipment;
+			// Fetch latest tracking from Shipway and update DB
+			if (shipment.awb_number && shipment.courier_id) {
+				const courier = await db.courier.findUnique({
+					where: { id: shipment.courier_id },
+				});
+
+				if (courier) {
+					try {
+						const shipwayTracking = await getOrderShipmentDetails({
+							order_id: shipment.human_readable_shipment_id,
+						});
+
+						if (shipwayTracking.response?.scans) {
+							for (const scan of shipwayTracking.response.scans) {
+								const existingTracking = shipment.tracking.find(
+									(t) =>
+										t.timestamp.toISOString() ===
+											new Date(scan.time).toISOString() &&
+										t.location === scan.location &&
+										t.status_description === scan.status,
+								);
+
+								if (!existingTracking) {
+									await db.tracking.create({
+										data: {
+											shipment_id: shipment.shipment_id,
+											courier_id: courier.id,
+											timestamp: new Date(scan.time),
+											location: scan.location || "", // Ensure location is not null
+											status_description: scan.status,
+										},
+									});
+									logger.info("New tracking record added", {
+										shipmentId: shipment.shipment_id,
+										scanTime: scan.time,
+										scanStatus: scan.status,
+									});
+								}
+							}
+						}
+					} catch (error) {
+						logger.error("Failed to fetch or update Shipway tracking", {
+							shipmentId: shipment.shipment_id,
+							error,
+						});
+					}
+				}
+			}
+
+			// Re-fetch shipment to include newly added tracking data
+			const updatedShipment = await db.shipment.findUnique({
+				where: { shipment_id: shipmentId },
+				include: {
+					user: {
+						select: {
+							name: true,
+							email: true,
+							user_id: true,
+							kyc: {
+								select: {
+									entity_name: true,
+								},
+							},
+						},
+					},
+					origin_address: true,
+					destination_address: true,
+					tracking: true, // Ensure tracking is included in the final response
+				},
+			});
+
+			return updatedShipment;
 		}),
 });

@@ -36,89 +36,101 @@ export const trackingRouter = createTRPCRouter({
 				});
 			}
 
-			for (const update of status_feed) {
-				const {
-					order_id,
-					awbno,
-					current_status,
-					status_time,
-					carrier_id,
-					scans,
-				} = update;
+			await db.$transaction(async (tx) => {
+				for (const update of status_feed) {
+					const { awbno, current_status, status_time, carrier_id, scans } =
+						update;
 
-				const shipment = await db.shipment.findUnique({
-					where: { awb_number: awbno, shipment_id: order_id },
-				});
+					const shipment = await tx.shipment.findUnique({
+						where: { awb_number: awbno },
+					});
 
-				if (!shipment) {
-					logger.warn("Shipment not found for AWB", { awbno });
-					continue;
-				}
+					if (!shipment) {
+						logger.warn("Shipment not found for AWB", { awbno });
+						continue;
+					}
 
-				const courier = await db.courier.findUnique({
-					where: { shipway_id: String(shipment.courier_id) },
-				});
+					const courier = await tx.courier.findUnique({
+						where: { shipway_id: String(carrier_id) },
+					});
 
-				if (!courier) {
-					logger.warn("Courier not found for Shipway ID", { carrier_id });
-					continue;
-				}
+					if (!courier) {
+						logger.warn("Courier not found for Shipway ID", { carrier_id });
+						continue;
+					}
 
-				if (scans && scans.length > 0) {
-					for (const scan of scans) {
-						logger.info("Processing Shipway tracking scan update", {
-							shipment_id: shipment.shipment_id,
-							courier_id: courier.id,
-							timestamp: new Date(scan.time),
-							location: scan.location,
-							status_description: scan.status,
-							event_details: JSON.stringify({
-								time: scan.time,
-								status: scan.status,
-								location: scan.location,
-							}),
+					if (scans && scans.length > 0) {
+						for (const scan of scans) {
+							const timestamp = new Date(scan.time || new Date().toISOString()); // Ensure scan.time is string
+							const location = scan.location || "";
+							const status_description = scan.status || "";
+
+							const existingTracking = await tx.tracking.findFirst({
+								where: {
+									shipment_id: shipment.shipment_id,
+									courier_id: courier.id,
+									timestamp: timestamp,
+									location: location,
+									status_description: status_description,
+								},
+							});
+
+							if (!existingTracking) {
+								logger.info("Creating new tracking record", {
+									shipment_id: shipment.shipment_id,
+									courier_id: courier.id,
+									timestamp: timestamp,
+									location: location,
+									status_description: status_description,
+								});
+								await tx.tracking.create({
+									data: {
+										shipment_id: shipment.shipment_id,
+										courier_id: courier.id,
+										timestamp: timestamp,
+										location: location,
+										status_description: status_description,
+									},
+								});
+							}
+						}
+					} else {
+						// If no scans, create a single tracking entry from the main update details
+						const timestamp = new Date(status_time || new Date().toISOString()); // Ensure status_time is string
+						const location = update.from || update.to || "";
+						const status_description = current_status || "";
+
+						const existingTracking = await tx.tracking.findFirst({
+							where: {
+								shipment_id: shipment.shipment_id,
+								courier_id: courier.id,
+								timestamp: timestamp,
+								location: location,
+								status_description: status_description,
+							},
 						});
 
-						// TODO: For now, only log the data. Saving to DB will be implemented later.
-						// await db.tracking.create({
-						//   data: {
-						//     shipment_id: shipment.shipment_id,
-						//     courier_id: courier.id,
-						//     timestamp: new Date(scan.time),
-						//     location: scan.location,
-						//     status_description: mappedStatusDescription,
-						//     carrier_update_code: mappedCarrierUpdateCode,
-						//     event_details: JSON.stringify({ time: scan.time, status: scan.status, location: scan.location }),
-						//   },
-						// });
+						if (!existingTracking) {
+							logger.info("Creating new tracking record (no scans)", {
+								shipment_id: shipment.shipment_id,
+								courier_id: courier.id,
+								timestamp: timestamp,
+								location: location,
+								status_description: status_description,
+							});
+							await tx.tracking.create({
+								data: {
+									shipment_id: shipment.shipment_id,
+									courier_id: courier.id,
+									timestamp: timestamp,
+									location: location,
+									status_description: status_description,
+								},
+							});
+						}
 					}
-				} else {
-					// If no scans, log the main update details as a single tracking entry
-
-					logger.info("Processing Shipway tracking update (no scans)", {
-						shipment_id: shipment.shipment_id,
-						courier_id: courier.id,
-						location: update.from || update.to || null,
-						event_details: JSON.stringify({
-							time: status_time,
-							status: current_status,
-							location: update.from || update.to || null,
-						}),
-					});
-					// TODO: For now, only log the data. Saving to DB will be implemented later.
-					// await db.tracking.create({
-					//   data: {
-					//     shipment_id: shipment.shipment_id,
-					//     courier_id: courier.id,
-					//     timestamp: new Date(status_time),
-					//     location: update.from || update.to || null,
-					//     status_description: mappedStatusDescription,
-					//     carrier_update_code: mappedCarrierUpdateCode,
-					//     event_details: JSON.stringify({ time: status_time, status: current_status, location: update.from || update.to || null }),
-					//   },
-					// });
 				}
-			}
+			});
 
 			return { status: "success", message: "Webhook received and processed" };
 		}),
