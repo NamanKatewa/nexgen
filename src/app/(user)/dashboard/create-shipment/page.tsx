@@ -62,6 +62,7 @@ export default function CreateShipmentPage() {
 		watch,
 		formState: { errors },
 		getValues,
+		trigger,
 	} = useForm<TShipmentSchema>({
 		resolver: zodResolver(submitShipmentSchema),
 	});
@@ -225,15 +226,31 @@ export default function CreateShipmentPage() {
 		}
 	}, [rateError]);
 
-	const handleCalculateRate = () => {
+	const handleCalculateRate = async () => {
+		const isValid = await trigger([
+			"originAddressId",
+			"packageWeight",
+			"declaredValue",
+		]);
+
+		if (!isValid) {
+			toast.error("Please fill in all required fields correctly.");
+			return;
+		}
+
 		const data = getValues();
 		const originAddress = warehouseAddresses?.find(
 			(address) => address.address_id === data.originAddressId,
 		);
 
-		if (!originAddress || !destinationAddress.zipCode || !data.packageWeight) {
+		if (
+			!originAddress ||
+			!destinationAddress.zipCode ||
+			!data.packageWeight ||
+			!data.declaredValue
+		) {
 			toast.error(
-				"Please select origin, destination, and enter package weight.",
+				"Please select origin, destination, and enter package weight and declared value.",
 			);
 			return;
 		}
