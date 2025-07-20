@@ -2,7 +2,8 @@
 
 import type { SupportTicket } from "@prisma/client";
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
@@ -23,7 +24,9 @@ export default function AdminSupportPage() {
 	const [priorityFilter, setPriorityFilter] = useState<
 		"Low" | "Medium" | "High" | undefined
 	>(undefined);
-	const [userIdSearchText, setUserIdSearchText] = useState("");
+	const searchParams = useSearchParams();
+	const initialUserId = searchParams.get("userId") || "";
+	const [userIdSearchText, setUserIdSearchText] = useState(initialUserId);
 	const debouncedUserIdFilter = useDebounce(userIdSearchText, 500);
 
 	const { data, isLoading } = api.support.getAllTickets.useQuery({

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
@@ -14,7 +15,9 @@ type PendingAddress =
 	RouterOutputs["admin"]["pendingAddresses"]["pendingAddresses"][number];
 
 export default function PendingAddressesPage() {
-	const [searchText, setSearchText] = useState("");
+	const searchParams = useSearchParams();
+	const initialUserId = searchParams.get("userId") || "";
+	const [searchText, setSearchText] = useState(initialUserId);
 	const debouncedSearchFilter = useDebounce(searchText, 500);
 	const [processingAddressId, setProcessingAddressId] = useState<string | null>(
 		null,
@@ -74,7 +77,7 @@ export default function PendingAddressesPage() {
 			header: "User Name",
 			className: "w-40 px-4 whitespace-normal",
 			render: (item: PendingAddress) => (
-				<Link href={`{/admin/user/${item.user_id}}`}>{item.user.name}</Link>
+				<Link href={`/admin/user/${item.user_id}`}>{item.user.name}</Link>
 			),
 		},
 		{

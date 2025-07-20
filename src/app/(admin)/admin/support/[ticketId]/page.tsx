@@ -23,6 +23,7 @@ import {
 } from "~/schemas/support";
 import { api } from "~/trpc/react";
 
+import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import {
 	Select,
@@ -32,7 +33,6 @@ import {
 	SelectValue,
 } from "~/components/ui/select";
 import { cn } from "~/lib/utils";
-import Link from "next/link";
 
 export default function AdminTicketDetailsPage() {
 	const params = useParams();

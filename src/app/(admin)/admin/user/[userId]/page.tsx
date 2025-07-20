@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import Copyable from "~/components/Copyable";
 
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import { cn } from "~/lib/utils";
@@ -14,7 +16,11 @@ export default function AdminUserDetailPage() {
 	const params = useParams();
 	const userId = params.userId as string;
 
-	const { data: user, isLoading, error } = api.admin.getUserById.useQuery({
+	const {
+		data: user,
+		isLoading,
+		error,
+	} = api.admin.getUserById.useQuery({
 		userId,
 	});
 
@@ -41,7 +47,7 @@ export default function AdminUserDetailPage() {
 				<CardContent className="grid gap-4">
 					<div className="grid grid-cols-2 items-center gap-2">
 						<p className="font-medium text-sm">User ID:</p>
-						<p className="text-sm">{user.user_id}</p>
+						<Copyable content={user.user_id} />
 
 						<p className="font-medium text-sm">Name:</p>
 						<p className="text-sm">{user.name}</p>
@@ -107,7 +113,7 @@ export default function AdminUserDetailPage() {
 					<CardContent className="grid gap-4">
 						<div className="grid grid-cols-2 items-center gap-2">
 							<p className="font-medium text-sm">KYC ID:</p>
-							<p className="text-sm">{user.kyc.kyc_id}</p>
+							<Copyable content={user.kyc.kyc_id} />
 
 							<p className="font-medium text-sm">Entity Name:</p>
 							<p className="text-sm">{user.kyc.entity_name || "N/A"}</p>
@@ -125,7 +131,7 @@ export default function AdminUserDetailPage() {
 							<p className="text-sm">{user.kyc.pan_number || "N/A"}</p>
 
 							<p className="font-medium text-sm">GST Registered:</p>
-							<p className="text-sm">{user.kyc.gst ? "Yes" : "No"}</p>
+							<Badge>{user.kyc.gst ? "Yes" : "No"}</Badge>
 
 							<p className="font-medium text-sm">KYC Status:</p>
 							<Badge
@@ -153,10 +159,14 @@ export default function AdminUserDetailPage() {
 									: "N/A"}
 							</p>
 
-							<p className="font-medium text-sm">Rejection Reason:</p>
-							<p className="text-sm">
-								{user.kyc.rejection_reason || "N/A"}
-							</p>
+							{user.kyc.rejection_reason && (
+								<>
+									<p className="font-medium text-sm">Rejection Reason:</p>
+									<p className="text-red-500 text-sm">
+										{user.kyc.rejection_reason || "N/A"}
+									</p>
+								</>
+							)}
 						</div>
 					</CardContent>
 				</Card>
@@ -170,10 +180,17 @@ export default function AdminUserDetailPage() {
 					<CardContent className="grid gap-4">
 						<div className="grid grid-cols-2 items-center gap-2">
 							<p className="font-medium text-sm">Wallet ID:</p>
-							<p className="text-sm">{user.wallet.wallet_id}</p>
+							<Copyable content={user.wallet.wallet_id} />
 
 							<p className="font-medium text-sm">Balance:</p>
-							<p className="text-sm">₹{Number(user.wallet.balance).toFixed(2)}</p>
+							<p
+								className={cn("text-sm", {
+									"text-red-500": Number(user.wallet.balance) < 0,
+									"text-green-500": Number(user.wallet.balance) >= 0,
+								})}
+							>
+								₹ {Number(user.wallet.balance).toFixed(2)}
+							</p>
 
 							<p className="font-medium text-sm">Created At:</p>
 							<p className="text-sm">{formatDate(user.wallet.created_at)}</p>
@@ -192,16 +209,16 @@ export default function AdminUserDetailPage() {
 					</CardHeader>
 					<CardContent className="grid gap-4">
 						{user.addresses.map((address) => (
-							<div key={address.address_id} className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0">
+							<div
+								key={address.address_id}
+								className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0"
+							>
 								<div className="grid grid-cols-2 items-center gap-2">
 									<p className="font-medium text-sm">Address ID:</p>
 									<p className="text-sm">{address.address_id}</p>
 
 									<p className="font-medium text-sm">Name:</p>
 									<p className="text-sm">{address.name}</p>
-
-									<p className="font-medium text-sm">Type:</p>
-									<p className="text-sm">{address.type}</p>
 
 									<p className="font-medium text-sm">Address Line:</p>
 									<p className="text-sm">{address.address_line}</p>
@@ -227,19 +244,25 @@ export default function AdminUserDetailPage() {
 						<CardTitle>Shipments</CardTitle>
 					</CardHeader>
 					<CardContent className="grid gap-4">
-						{user.shipments.map((shipment) => (
-							<div key={shipment.shipment_id} className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0">
+						{user.shipments.slice(0, 2).map((shipment) => (
+							<div
+								key={shipment.shipment_id}
+								className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0"
+							>
 								<div className="grid grid-cols-2 items-center gap-2">
 									<p className="font-medium text-sm">Shipment ID:</p>
 									<Link href={`/admin/shipments/${shipment.shipment_id}`}>
-										<p className="text-sm">{shipment.human_readable_shipment_id}</p>
+										<p className="text-sm">
+											{shipment.human_readable_shipment_id}
+										</p>
 									</Link>
 
 									<p className="font-medium text-sm">Status:</p>
 									<Badge
 										className={cn("w-fit text-blue-950", {
 											"bg-green-200": shipment.shipment_status === "Approved",
-											"bg-yellow-200": shipment.shipment_status === "PendingApproval",
+											"bg-yellow-200":
+												shipment.shipment_status === "PendingApproval",
 											"bg-red-200": shipment.shipment_status === "Rejected",
 										})}
 									>
@@ -247,13 +270,19 @@ export default function AdminUserDetailPage() {
 									</Badge>
 
 									<p className="font-medium text-sm">Shipping Cost:</p>
-									<p className="text-sm">₹{Number(shipment.shipping_cost).toFixed(2)}</p>
+									<p className="text-sm">
+										₹{Number(shipment.shipping_cost).toFixed(2)}
+									</p>
 
 									<p className="font-medium text-sm">Created At:</p>
 									<p className="text-sm">{formatDate(shipment.created_at)}</p>
 								</div>
 							</div>
 						))}
+
+						<Link href={`/admin/shipments?userId=${user.user_id}`}>
+							<Button className="w-full">View User Shipments</Button>
+						</Link>
 					</CardContent>
 				</Card>
 			)}
@@ -264,22 +293,35 @@ export default function AdminUserDetailPage() {
 						<CardTitle>Transactions</CardTitle>
 					</CardHeader>
 					<CardContent className="grid gap-4">
-						{user.transactions.map((transaction) => (
-							<div key={transaction.transaction_id} className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0">
+						{user.transactions.slice(0, 2).map((transaction) => (
+							<div
+								key={transaction.transaction_id}
+								className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0"
+							>
 								<div className="grid grid-cols-2 items-center gap-2">
 									<p className="font-medium text-sm">Transaction ID:</p>
 									<p className="text-sm">{transaction.transaction_id}</p>
 
 									<p className="font-medium text-sm">Type:</p>
-									<p className="text-sm">{transaction.transaction_type}</p>
+									<Badge
+										className={cn("w-fit text-blue-950", {
+											"bg-red-200": transaction.transaction_type === "Debit",
+											"bg-green-200": transaction.transaction_type === "Credit",
+										})}
+									>
+										{transaction.transaction_type}
+									</Badge>
 
 									<p className="font-medium text-sm">Amount:</p>
-									<p className="text-sm">₹{Number(transaction.amount).toFixed(2)}</p>
+									<p className="text-sm">
+										₹{Number(transaction.amount).toFixed(2)}
+									</p>
 
 									<p className="font-medium text-sm">Payment Status:</p>
 									<Badge
 										className={cn("w-fit text-blue-950", {
-											"bg-green-200": transaction.payment_status === "Completed",
+											"bg-green-200":
+												transaction.payment_status === "Completed",
 											"bg-yellow-200": transaction.payment_status === "Pending",
 											"bg-red-200": transaction.payment_status === "Failed",
 										})}
@@ -291,10 +333,16 @@ export default function AdminUserDetailPage() {
 									<p className="text-sm">{transaction.description || "N/A"}</p>
 
 									<p className="font-medium text-sm">Created At:</p>
-									<p className="text-sm">{formatDate(transaction.created_at)}</p>
+									<p className="text-sm">
+										{formatDate(transaction.created_at)}
+									</p>
 								</div>
 							</div>
 						))}
+
+						<Link href={`/admin/passbook?userId=${user.user_id}`}>
+							<Button className="w-full">View User Transactions</Button>
+						</Link>
 					</CardContent>
 				</Card>
 			)}
@@ -305,8 +353,11 @@ export default function AdminUserDetailPage() {
 						<CardTitle>Support Tickets</CardTitle>
 					</CardHeader>
 					<CardContent className="grid gap-4">
-						{user.tickets.map((ticket) => (
-							<div key={ticket.ticket_id} className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0">
+						{user.tickets.slice(0, 2).map((ticket) => (
+							<div
+								key={ticket.ticket_id}
+								className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0"
+							>
 								<div className="grid grid-cols-2 items-center gap-2">
 									<p className="font-medium text-sm">Ticket ID:</p>
 									<p className="text-sm">{ticket.ticket_id}</p>
@@ -325,13 +376,25 @@ export default function AdminUserDetailPage() {
 									</Badge>
 
 									<p className="font-medium text-sm">Priority:</p>
-									<p className="text-sm">{ticket.priority}</p>
+									<Badge
+										className={cn("w-fit text-blue-950", {
+											"bg-green-200": ticket.priority === "Low",
+											"bg-yellow-200": ticket.priority === "Medium",
+											"bg-red-200": ticket.priority === "High",
+										})}
+									>
+										{ticket.priority}
+									</Badge>
 
 									<p className="font-medium text-sm">Created At:</p>
 									<p className="text-sm">{formatDate(ticket.created_at)}</p>
 								</div>
 							</div>
 						))}
+
+						<Link href={`/admin/support?userId=${user.user_id}`}>
+							<Button className="w-full">View User Support Tickets</Button>
+						</Link>
 					</CardContent>
 				</Card>
 			)}
@@ -378,8 +441,11 @@ export default function AdminUserDetailPage() {
 						<CardTitle>User Rates</CardTitle>
 					</CardHeader>
 					<CardContent className="grid gap-4">
-						{user.userRates.map((rate) => (
-							<div key={rate.user_rate_id} className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0">
+						{user.userRates.slice(0, 2).map((rate) => (
+							<div
+								key={rate.user_rate_id}
+								className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0"
+							>
 								<div className="grid grid-cols-2 items-center gap-2">
 									<p className="font-medium text-sm">Rate ID:</p>
 									<p className="text-sm">{rate.user_rate_id}</p>
@@ -401,6 +467,10 @@ export default function AdminUserDetailPage() {
 								</div>
 							</div>
 						))}
+
+						<Link href={`/admin/rates?userId=${user.user_id}`}>
+							<Button className="w-full">View User Rates</Button>
+						</Link>
 					</CardContent>
 				</Card>
 			)}
@@ -411,8 +481,11 @@ export default function AdminUserDetailPage() {
 						<CardTitle>Pending Addresses</CardTitle>
 					</CardHeader>
 					<CardContent className="grid gap-4">
-						{user.pendingAddresses.map((pAddress) => (
-							<div key={pAddress.pending_address_id} className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0">
+						{user.pendingAddresses.slice(0, 2).map((pAddress) => (
+							<div
+								key={pAddress.pending_address_id}
+								className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0"
+							>
 								<div className="grid grid-cols-2 items-center gap-2">
 									<p className="font-medium text-sm">Pending Address ID:</p>
 									<p className="text-sm">{pAddress.pending_address_id}</p>
@@ -432,14 +505,15 @@ export default function AdminUserDetailPage() {
 									<p className="font-medium text-sm">Zip Code:</p>
 									<p className="text-sm">{pAddress.zip_code}</p>
 
-									<p className="font-medium text-sm">Approved:</p>
-									<p className="text-sm">{pAddress.is_approved ? "Yes" : "No"}</p>
-
 									<p className="font-medium text-sm">Created At:</p>
 									<p className="text-sm">{formatDate(pAddress.created_at)}</p>
 								</div>
 							</div>
 						))}
+
+						<Link href={`/admin/pending-addresses?userId=${user.user_id}`}>
+							<Button className="w-full">View User Pending Addresses</Button>
+						</Link>
 					</CardContent>
 				</Card>
 			)}

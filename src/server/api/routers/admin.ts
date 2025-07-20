@@ -216,6 +216,7 @@ export const adminRouter = createTRPCRouter({
 				whereClause.OR = [
 					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
 					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
+					{ user_id: { contains: searchFilter, mode: "insensitive" } },
 					{ transaction_id: { contains: searchFilter, mode: "insensitive" } },
 				];
 			}
@@ -296,6 +297,8 @@ export const adminRouter = createTRPCRouter({
 
 			if (searchFilter) {
 				whereClause.OR = [
+					{ user_id: { contains: searchFilter, mode: "insensitive" } },
+					{ transaction_id: { contains: searchFilter, mode: "insensitive" } },
 					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
 					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
 					{ description: { contains: searchFilter, mode: "insensitive" } },
@@ -381,6 +384,7 @@ export const adminRouter = createTRPCRouter({
 							mode: "insensitive",
 						},
 					},
+					{ user_id: { contains: searchFilter, mode: "insensitive" } },
 				];
 			}
 
@@ -603,6 +607,10 @@ export const adminRouter = createTRPCRouter({
 
 			if (searchFilter) {
 				whereClause.OR = [
+					{ user_id: { contains: searchFilter, mode: "insensitive" } },
+					{
+						pending_address_id: { contains: searchFilter, mode: "insensitive" },
+					},
 					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
 					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
 					{ name: { contains: searchFilter, mode: "insensitive" } },
@@ -758,14 +766,29 @@ export const adminRouter = createTRPCRouter({
 					include: {
 						kyc: true,
 						wallet: true,
-						shipments: true,
-						transactions: true,
-						tickets: true,
+						shipments: {
+							take: 2,
+							orderBy: { created_at: "desc" },
+						},
+						transactions: {
+							take: 2,
+							orderBy: { created_at: "desc" },
+						},
+						tickets: {
+							take: 2,
+							orderBy: { created_at: "desc" },
+						},
 						employee: true,
 						verifiedKYCs: true,
-						addresses: true,
-						userRates: true,
-						pendingAddresses: true,
+						addresses: { where: { type: "Warehouse" } },
+						userRates: {
+							take: 2,
+							orderBy: { created_at: "desc" },
+						},
+						pendingAddresses: {
+							take: 2,
+							orderBy: { created_at: "desc" },
+						},
 					},
 				});
 

@@ -1,7 +1,8 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
-import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import { Badge } from "~/components/ui/badge";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -26,7 +27,9 @@ const PassbookPage = () => {
 
 	const [filterStatus, setFilterStatus] = useState("ALL");
 	const [filterTxnType, setFilterTxnType] = useState("ALL");
-	const [searchText, setSearchText] = useState("");
+	const searchParams = useSearchParams();
+	const initialUserId = searchParams.get("userId") || "";
+	const [searchText, setSearchText] = useState(initialUserId);
 	const debouncedSearchFilter = useDebounce(searchText, 500);
 
 	const { data, isLoading } = api.admin.getPassbook.useQuery(
