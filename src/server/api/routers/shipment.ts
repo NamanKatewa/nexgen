@@ -8,7 +8,6 @@ import logger from "~/lib/logger";
 import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { uploadFileToS3 } from "~/lib/s3";
-import { getOrderShipmentDetails } from "~/lib/shipway";
 import { generateShipmentId } from "~/lib/utils";
 
 import {

@@ -132,7 +132,7 @@ export default function AdminOrderDetailPage() {
 
 					{shipment.package_image_url && (
 						<div className="mt-4">
-							<p className="font-medium text-sm mb-2">Package Image:</p>
+							<p className="mb-2 font-medium text-sm">Package Image:</p>
 							<Link
 								href={shipment.package_image_url}
 								target="_blank"
@@ -141,7 +141,7 @@ export default function AdminOrderDetailPage() {
 								<img
 									src={shipment.package_image_url}
 									alt="Package"
-									className="w-48 h-48 object-cover rounded-md"
+									className="h-48 w-48 rounded-md object-cover"
 								/>
 							</Link>
 						</div>

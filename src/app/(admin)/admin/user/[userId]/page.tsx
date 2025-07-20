@@ -168,9 +168,9 @@ export default function AdminUserDetailPage() {
 								</>
 							)}
 						</div>
-						<div className="grid grid-cols-2 gap-4 mt-4">
+						<div className="mt-4 grid grid-cols-2 gap-4">
 							<div>
-								<p className="font-medium text-sm mb-2">Aadhar Images:</p>
+								<p className="mb-2 font-medium text-sm">Aadhar Images:</p>
 								<div className="flex gap-4">
 									{user.kyc.aadhar_image_front && (
 										<Link
@@ -181,7 +181,7 @@ export default function AdminUserDetailPage() {
 											<img
 												src={user.kyc.aadhar_image_front}
 												alt="Aadhar Front"
-												className="w-48 h-48 object-cover rounded-md"
+												className="h-48 w-48 rounded-md object-cover"
 											/>
 										</Link>
 									)}
@@ -194,14 +194,14 @@ export default function AdminUserDetailPage() {
 											<img
 												src={user.kyc.aadhar_image_back}
 												alt="Aadhar Back"
-												className="w-48 h-48 object-cover rounded-md"
+												className="h-48 w-48 rounded-md object-cover"
 											/>
 										</Link>
 									)}
 								</div>
 							</div>
 							<div>
-								<p className="font-medium text-sm mb-2">PAN Images:</p>
+								<p className="mb-2 font-medium text-sm">PAN Images:</p>
 								<div className="flex gap-4">
 									{user.kyc.pan_image_front && (
 										<Link
@@ -212,7 +212,7 @@ export default function AdminUserDetailPage() {
 											<img
 												src={user.kyc.pan_image_front}
 												alt="PAN Front"
-												className="w-48 h-48 object-cover rounded-md"
+												className="h-48 w-48 rounded-md object-cover"
 											/>
 										</Link>
 									)}
@@ -225,7 +225,7 @@ export default function AdminUserDetailPage() {
 											<img
 												src={user.kyc.pan_image_back}
 												alt="PAN Back"
-												className="w-48 h-48 object-cover rounded-md"
+												className="h-48 w-48 rounded-md object-cover"
 											/>
 										</Link>
 									)}

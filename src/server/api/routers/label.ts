@@ -11,14 +11,20 @@ export const labelRouter = createTRPCRouter({
 	generateLabel: protectedProcedure
 		.input(z.object({ shipmentId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const shipment = await db.shipment.findUnique({
+			const shipment = await db.shipment.findFirst({
 				where: {
-					shipment_id: input.shipmentId,
+					OR: [
+						{ shipment_id: input.shipmentId },
+						{ awb_number: input.shipmentId },
+						{ human_readable_shipment_id: input.shipmentId },
+					],
+					shipment_status: "Approved",
 				},
 				include: {
 					destination_address: true,
 					origin_address: true,
 					user: { include: { kyc: true } },
+					courier: true,
 				},
 			});
 
@@ -29,7 +35,6 @@ export const labelRouter = createTRPCRouter({
 				});
 			}
 
-			// Authorization check
 			if (ctx.user?.role !== "Admin") {
 				if (shipment.user.user_id !== ctx.user?.user_id) {
 					throw new TRPCError({
@@ -50,8 +55,8 @@ export const labelRouter = createTRPCRouter({
 			let barcodeImageBase64 = "";
 			if (shipment.awb_number) {
 				const barcodeBuffer = await bwipjs.toBuffer({
-					bcid: "code128", // Barcode type
-					text: shipment.awb_number, // Text to encode
+					bcid: "code128",
+					text: shipment.awb_number,
 					scale: 3,
 					height: 10,
 					includetext: true,
@@ -70,6 +75,7 @@ export const labelRouter = createTRPCRouter({
 			const htmlContent = getLabelHTML(
 				shipment,
 				companyName,
+				shipment.courier?.image_url || "",
 				barcodeImageBase64,
 				qrCodeDataUrl,
 			);
