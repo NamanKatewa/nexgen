@@ -1,8 +1,8 @@
 "use client";
 
-import { toast } from "sonner";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";

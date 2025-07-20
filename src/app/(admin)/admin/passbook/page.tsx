@@ -128,7 +128,7 @@ function PassbookContent() {
 			key: "actions",
 			header: "Actions",
 			className: "w-50 px-4 text-blue-950",
-							render: (item: Transaction) => {
+			render: (item: Transaction) => {
 				return item.shipment_id ? (
 					<div className="flex flex-col gap-2">
 						<Button>
