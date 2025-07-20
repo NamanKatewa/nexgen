@@ -4,10 +4,12 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Separator } from "~/components/ui/separator";
 
-import { formatDateToSeconds } from "~/lib/utils";
+import { cn, formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import type { RouterOutputs } from "~/trpc/react";
 
@@ -68,58 +70,90 @@ export default function UserShipmentDetailPage() {
 				<CardHeader>
 					<CardTitle>Shipment Summary</CardTitle>
 				</CardHeader>
-				<CardContent>
-					<p>
-						<strong>User:</strong> {shipment.user.name} ({shipment.user.email})
-					</p>
-					<p>
-						<strong>Total Amount:</strong> ₹
-						{Number(shipment.shipping_cost).toFixed(2)}
-					</p>
-					<p>
-						<strong>Shipment Status:</strong> {shipment.shipment_status}
-					</p>
-					<p>
-						<strong>Payment Status:</strong> {shipment.payment_status}
-					</p>
-					<p>
-						<strong>Created At:</strong>{" "}
-						{formatDateToSeconds(shipment.created_at)}
-					</p>
-					{shipment.rejection_reason && (
-						<p className="text-red-500">
-							<strong>Rejection Reason:</strong> {shipment.rejection_reason}
+				<CardContent className="grid gap-4">
+					<div className="grid grid-cols-2 items-center gap-2">
+						<p className="font-medium text-sm">User:</p>
+						<p className="text-sm">
+							{shipment.user.name} ({shipment.user.email})
 						</p>
-					)}
-					<p>
-						<strong>AWB Number:</strong> {shipment.awb_number || "N/A"}
-					</p>
-					<p>
-						<strong>Recipient:</strong> {shipment.recipient_name}
-					</p>
-					<p>
-						<strong>Recipient Mobile:</strong> {shipment.recipient_mobile}
-					</p>
-					<p>
-						<strong>Package Weight:</strong>{" "}
-						{Number(shipment.package_weight).toFixed(2)} Kg
-					</p>
-					<p>
-						<strong>Package Dimensions:</strong> {shipment.package_dimensions}
-					</p>
-					<p>
-						<strong>Origin Address:</strong>{" "}
-						{shipment.origin_address.address_line},{" "}
-						{shipment.origin_address.city}, {shipment.origin_address.state} -{" "}
-						{shipment.origin_address.zip_code}
-					</p>
-					<p>
-						<strong>Destination Address:</strong>{" "}
-						{shipment.destination_address.address_line},{" "}
-						{shipment.destination_address.city},{" "}
-						{shipment.destination_address.state} -{" "}
-						{shipment.destination_address.zip_code}
-					</p>
+						<p className="font-medium text-sm">Total Amount:</p>
+						<p className="text-sm">
+							₹{Number(shipment.shipping_cost).toFixed(2)}
+						</p>
+						<p className="font-medium text-sm">Shipment Status:</p>
+						<Badge
+							className={cn("w-fit text-blue-950", {
+								"bg-green-200": shipment.shipment_status === "Approved",
+								"bg-yellow-200": shipment.shipment_status === "PendingApproval",
+								"bg-red-200": shipment.shipment_status === "Rejected",
+							})}
+						>
+							{shipment.shipment_status}
+						</Badge>
+						<p className="font-medium text-sm">Payment Status:</p>
+						<Badge
+							className={cn("w-fit text-blue-950", {
+								"bg-green-200": shipment.payment_status === "Paid",
+								"bg-yellow-200": shipment.payment_status === "Pending",
+							})}
+						>
+							{shipment.payment_status}
+						</Badge>
+						<p className="font-medium text-sm">Created At:</p>
+						<p className="text-sm">{formatDate(shipment.created_at)}</p>
+						{shipment.rejection_reason && (
+							<>
+								<p className="font-medium text-red-500 text-sm">
+									Rejection Reason:
+								</p>
+								<p className="text-red-500 text-sm">
+									{shipment.rejection_reason}
+								</p>
+							</>
+						)}
+						<p className="font-medium text-sm">AWB Number:</p>
+						<p className="text-sm">{shipment.awb_number || "N/A"}</p>
+					</div>
+
+					<Separator className="my-4" />
+
+					<h3 className="mb-2 font-semibold text-lg">Package Details</h3>
+					<div className="grid grid-cols-2 items-center gap-2">
+						<p className="font-medium text-sm">Recipient:</p>
+						<p className="text-sm">{shipment.recipient_name}</p>
+						<p className="font-medium text-sm">Recipient Mobile:</p>
+						<p className="text-sm">{shipment.recipient_mobile}</p>
+						<p className="font-medium text-sm">Package Weight:</p>
+						<p className="text-sm">
+							{Number(shipment.package_weight).toFixed(2)} Kg
+						</p>
+						<p className="font-medium text-sm">Package Dimensions:</p>
+						<p className="text-sm">{shipment.package_dimensions}</p>
+					</div>
+
+					<Separator className="my-4" />
+
+					<h3 className="mb-2 font-semibold text-lg">Addresses</h3>
+					<div className="grid grid-cols-2 gap-4">
+						<div>
+							<p className="font-medium text-sm">Origin Address:</p>
+							<p className="text-sm">
+								{shipment.origin_address.address_line},{" "}
+								{shipment.origin_address.city},{shipment.origin_address.state} -{" "}
+								{shipment.origin_address.zip_code}
+							</p>
+						</div>
+						<div>
+							<p className="font-medium text-sm">Destination Address:</p>
+							<p className="text-sm">
+								{shipment.destination_address.address_line},
+								{shipment.destination_address.city},
+								{shipment.destination_address.state} -{" "}
+								{shipment.destination_address.zip_code}
+							</p>
+						</div>
+					</div>
+
 					{shipment.awb_number && shipment.shipment_status === "Approved" && (
 						<Button
 							variant="outline"

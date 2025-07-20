@@ -2,11 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { SupportTicket } from "@prisma/client";
-import Link from "next/link";
 import { SUPPORT_PRIORITY, type SUPPORT_STATUS } from "@prisma/client";
+import Link from "next/link";
 import { useState } from "react";
-import { Badge } from "~/components/ui/badge";
-import { cn } from "~/lib/utils";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
@@ -14,6 +12,7 @@ import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import { FieldError } from "~/components/FieldError";
 import PaginationButtons from "~/components/PaginationButtons";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
@@ -25,7 +24,8 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import { formatDateToSeconds } from "~/lib/utils";
+import { cn } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 import { createTicketSchema } from "~/schemas/support";
 import type { CreateTicketInput } from "~/schemas/support";
 import { api } from "~/trpc/react";
@@ -122,7 +122,7 @@ export default function SupportPage() {
 			key: "updated_at",
 			header: "Last Updated",
 			className: "p-4 w-30",
-			render: (item: SupportTicket) => formatDateToSeconds(item.updated_at),
+			render: (item: SupportTicket) => formatDate(item.updated_at),
 		},
 		{
 			key: "actions",

@@ -745,4 +745,120 @@ export const adminRouter = createTRPCRouter({
 				});
 			}
 		}),
+
+	getUserById: adminProcedure
+		.input(z.object({ userId: z.string() }))
+		.query(async ({ input }) => {
+			const { userId } = input;
+			logger.info("Fetching user by ID", { userId });
+
+			try {
+				const user = await db.user.findUnique({
+					where: { user_id: userId },
+					include: {
+						kyc: true,
+						wallet: true,
+						shipments: true,
+						transactions: true,
+						tickets: true,
+						employee: true,
+						verifiedKYCs: true,
+						addresses: true,
+						userRates: true,
+						pendingAddresses: true,
+					},
+				});
+
+				if (!user) {
+					logger.warn("User not found", { userId });
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "User not found",
+					});
+				}
+
+				logger.info("Successfully fetched user by ID", { userId });
+				return user;
+			} catch (error) {
+				logger.error("Failed to fetch user by ID", { userId, error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
+
+	getAllUsers: adminProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+				searchFilter: z.string().optional(),
+				businessType: z.enum(["Retailer", "Ecommerce", "Franchise"]).optional(),
+				role: z.enum(["Client", "Admin", "Employee"]).optional(),
+				status: z.enum(["Active", "Inactive"]).optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { page, pageSize, searchFilter, businessType, role, status } =
+				input;
+			const skip = (page - 1) * pageSize;
+			logger.info("Fetching all users", { page, pageSize });
+
+			const whereClause: Prisma.UserWhereInput = {};
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{ name: { contains: searchFilter, mode: "insensitive" } },
+					{ email: { contains: searchFilter, mode: "insensitive" } },
+					{ mobile_number: { contains: searchFilter, mode: "insensitive" } },
+					{ company_name: { contains: searchFilter, mode: "insensitive" } },
+				];
+			}
+
+			if (businessType) {
+				whereClause.business_type = businessType;
+			}
+
+			if (role) {
+				whereClause.role = role;
+			}
+
+			if (status) {
+				whereClause.status = status;
+			}
+
+			try {
+				const [users, totalUsers] = await db.$transaction([
+					db.user.findMany({
+						where: whereClause,
+						orderBy: { created_at: "desc" },
+						skip,
+						take: pageSize,
+					}),
+					db.user.count({
+						where: whereClause,
+					}),
+				]);
+				logger.info("Successfully fetched all users", {
+					count: users.length,
+					totalUsers,
+					page,
+					pageSize,
+				});
+				return {
+					users,
+					totalUsers,
+					page,
+					pageSize,
+					totalPages: Math.ceil(totalUsers / pageSize),
+				};
+			} catch (error) {
+				logger.error("Failed to fetch users", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
 });

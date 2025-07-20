@@ -22,7 +22,7 @@ import {
 	SelectValue,
 } from "~/components/ui/select";
 import { Textarea } from "~/components/ui/textarea";
-import { formatDateToSeconds } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 import {
 	type approveShipmentSchema,
 	rejectShipmentSchema,
@@ -174,7 +174,7 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 							</p>
 							<p>
 								<strong>Created At:</strong>{" "}
-								{formatDateToSeconds(shipmentItem.created_at)}
+								{formatDate(shipmentItem.created_at)}
 							</p>
 							<p>
 								<strong>Shipment ID:</strong>{" "}

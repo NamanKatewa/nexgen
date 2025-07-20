@@ -7,7 +7,10 @@ import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Separator } from "~/components/ui/separator";
 import { Textarea } from "~/components/ui/textarea";
 import { cn } from "~/lib/utils";
 import { type AddMessageInput, addMessageSchema } from "~/schemas/support";
@@ -67,61 +70,98 @@ export default function TicketDetailsPage() {
 
 	return (
 		<div className="container mx-auto py-10">
-			<h1 className="mb-4 font-bold text-3xl">Ticket: {ticket.subject}</h1>
-			<div className="mb-6 rounded-lg bg-white p-6 shadow-md">
-				<p className="font-semibold text-lg">Status: {ticket.status}</p>
-				<p className="font-semibold text-lg">Priority: {ticket.priority}</p>
-				<p className="mt-2 text-gray-600">
-					Created: {format(ticket.created_at, "PPP p")}
-				</p>
-				{ticket.resolved_at && (
-					<p className="text-gray-600">
-						Resolved: {format(ticket.resolved_at, "PPP p")}
-					</p>
-				)}
-			</div>
+			<h1 className="mb-6 font-bold text-3xl">Ticket: {ticket.subject}</h1>
 
-			<div className="mb-6 space-y-4">
-				{ticket.messages.map((message) => (
-					<div
-						key={message.message_id}
-						className={cn(
-							"rounded-lg p-4",
-							message.sender_id === user?.id
-								? "ml-auto bg-blue-100 text-right"
-								: "mr-auto bg-gray-100 text-left",
+			<Card className="mb-6">
+				<CardHeader>
+					<CardTitle>Ticket Information</CardTitle>
+				</CardHeader>
+				<CardContent className="grid gap-4">
+					<div className="grid grid-cols-2 items-center gap-2">
+						<p className="font-medium text-sm">Status:</p>
+						<Badge
+							className={cn("w-fit text-blue-950", {
+								"bg-green-200": ticket.status === "Closed",
+								"bg-yellow-200": ticket.status === "Open",
+							})}
+						>
+							{ticket.status}
+						</Badge>
+						<p className="font-medium text-sm">Priority:</p>
+						<Badge
+							className={cn("w-fit text-blue-950", {
+								"bg-red-200": ticket.priority === "High",
+								"bg-yellow-200": ticket.priority === "Medium",
+								"bg-green-200": ticket.priority === "Low",
+							})}
+						>
+							{ticket.priority}
+						</Badge>
+						<p className="font-medium text-sm">Created:</p>
+						<p className="text-sm">{format(ticket.created_at, "PPP p")}</p>
+						{ticket.resolved_at && (
+							<>
+								<p className="font-medium text-sm">Resolved:</p>
+								<p className="text-sm">{format(ticket.resolved_at, "PPP p")}</p>
+							</>
 						)}
-						style={{
-							maxWidth: "75%",
-							marginLeft: message.sender_id === user?.id ? "auto" : "0",
-							marginRight: message.sender_id === user?.id ? "0" : "auto",
-						}}
-					>
-						<p className="font-semibold">
-							{message.sender_id === user?.id ? "You" : "Admin"} (
-							{(message.sender_role as USER_ROLE).toLowerCase()})
-						</p>
-						<p>{message.content}</p>
-						<p className="mt-1 text-gray-500 text-xs">
-							{format(message.created_at, "PPP p")}
-						</p>
 					</div>
-				))}
-			</div>
+				</CardContent>
+			</Card>
+
+			<Card className="mb-6">
+				<CardHeader>
+					<CardTitle>Messages</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					{ticket.messages.map((message) => (
+						<div
+							key={message.message_id}
+							className={cn(
+								"rounded-lg p-4",
+								message.sender_id === user?.id
+									? "ml-auto bg-blue-100 text-right"
+									: "mr-auto bg-gray-100 text-left",
+							)}
+							style={{ maxWidth: "75%" }}
+						>
+							<p className="font-semibold">
+								{message.sender_id === user?.id ? "You" : "Admin"} (
+								{(message.sender_role as USER_ROLE).toLowerCase()})
+							</p>
+							<p>{message.content}</p>
+							<p className="mt-1 text-gray-500 text-xs">
+								{format(message.created_at, "PPP p")}
+							</p>
+						</div>
+					))}
+				</CardContent>
+			</Card>
 
 			{ticket.status !== SUPPORT_STATUS.Closed && (
-				<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-					<div>
-						<label htmlFor="content" className="block font-medium text-sm">
-							Your Message
-						</label>
-						<Textarea id="content" {...register("content")} rows={4} />
-						{errors.content && <FieldError message={errors.content.message} />}
-					</div>
-					<Button type="submit" disabled={addMessageMutation.isPending}>
-						{addMessageMutation.isPending ? "Sending..." : "Send Message"}
-					</Button>
-				</form>
+				<Card>
+					<CardHeader>
+						<CardTitle>Your Reply</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+							<div>
+								<Textarea
+									id="content"
+									{...register("content")}
+									rows={4}
+									placeholder="Type your message here..."
+								/>
+								{errors.content && (
+									<FieldError message={errors.content.message} />
+								)}
+							</div>
+							<Button type="submit" disabled={addMessageMutation.isPending}>
+								{addMessageMutation.isPending ? "Sending..." : "Send Message"}
+							</Button>
+						</form>
+					</CardContent>
+				</Card>
 			)}
 		</div>
 	);

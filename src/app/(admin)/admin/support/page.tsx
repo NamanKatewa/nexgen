@@ -11,7 +11,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { cn } from "~/lib/utils";
-import { formatDateToSeconds } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 export default function AdminSupportPage() {
@@ -99,13 +99,13 @@ export default function AdminSupportPage() {
 			key: "created_at",
 			header: "Created At",
 			className: "p-4 w-50",
-			render: (item: SupportTicket) => formatDateToSeconds(item.created_at),
+			render: (item: SupportTicket) => formatDate(item.created_at),
 		},
 		{
 			key: "updated_at",
 			header: "Last Updated",
 			className: "p-4 w-50",
-			render: (item: SupportTicket) => formatDateToSeconds(item.updated_at),
+			render: (item: SupportTicket) => formatDate(item.updated_at),
 		},
 		{
 			key: "actions",

@@ -10,7 +10,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { cn } from "~/lib/utils";
-import { formatDateToSeconds } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 
 type Shipment =
@@ -94,7 +94,7 @@ export default function AdminOrdersPage() {
 			key: "date",
 			header: "Date",
 			className: "w-40 px-4",
-			render: (item: Shipment) => formatDateToSeconds(item.created_at),
+			render: (item: Shipment) => formatDate(item.created_at),
 		},
 		{
 			key: "actions",

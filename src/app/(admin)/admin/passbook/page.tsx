@@ -6,7 +6,7 @@ import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import { Badge } from "~/components/ui/badge";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { cn } from "~/lib/utils";
-import { formatDateToSeconds } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 import { api } from "~/trpc/react";
 
@@ -81,8 +81,7 @@ const PassbookPage = () => {
 			key: "transaction_date",
 			header: "Date",
 			className: "w-50 px-4",
-			render: (item: Transaction) =>
-				formatDateToSeconds(new Date(item.created_at)),
+			render: (item: Transaction) => formatDate(new Date(item.created_at)),
 		},
 		{
 			key: "transaction_type",

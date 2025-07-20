@@ -8,7 +8,7 @@ import PaginationButtons from "~/components/PaginationButtons";
 import ShipmentDetailsModal from "~/components/ShipmentDetailsModal";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
-import { formatDateToSeconds } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 
 type ShipmentListOutput = RouterOutputs["admin"]["pendingShipments"];
@@ -78,7 +78,7 @@ const ApproveOrderPage = () => {
 			header: "Date",
 			className: "w-30 px-4",
 			render: (item: ShipmentListItem) =>
-				item.created_at ? formatDateToSeconds(item.created_at) : "-",
+				item.created_at ? formatDate(item.created_at) : "-",
 		},
 		{
 			key: "actions",

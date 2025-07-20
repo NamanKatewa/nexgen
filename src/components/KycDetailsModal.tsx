@@ -12,7 +12,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
-import { formatDateToSeconds } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 
 import { api } from "~/trpc/react";
 
@@ -277,7 +277,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 							<Input
 								value={
 									kycItem.submission_date
-										? formatDateToSeconds(new Date(kycItem.submission_date))
+										? formatDate(new Date(kycItem.submission_date))
 										: "N/A"
 								}
 								readOnly

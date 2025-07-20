@@ -8,7 +8,7 @@ import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { cn } from "~/lib/utils";
-import { formatDateToSeconds } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 import { api } from "~/trpc/react";
 
@@ -65,9 +65,7 @@ const PassbookPage = () => {
 			header: "Date",
 			className: "w-30 px-4",
 			render: (item: Transaction) =>
-				item.created_at
-					? formatDateToSeconds(new Date(item.created_at))
-					: "N/A",
+				item.created_at ? formatDate(new Date(item.created_at)) : "N/A",
 		},
 		{
 			key: "transaction_type",

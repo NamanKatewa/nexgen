@@ -26,7 +26,7 @@ export function generateShipmentId(userId: string | undefined): string {
 	return shipmentId;
 }
 
-export function formatDateToSeconds(date: Date): string {
+export function formatDate(date: Date): string {
 	const options: Intl.DateTimeFormatOptions = {
 		year: "numeric",
 		month: "long",

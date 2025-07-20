@@ -7,7 +7,9 @@ import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
-import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Separator } from "~/components/ui/separator";
 import { Textarea } from "~/components/ui/textarea";
 import {
 	type AddMessageInput,
@@ -21,6 +23,7 @@ import {
 } from "~/schemas/support";
 import { api } from "~/trpc/react";
 
+import { Button } from "~/components/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -29,6 +32,7 @@ import {
 	SelectValue,
 } from "~/components/ui/select";
 import { cn } from "~/lib/utils";
+import Link from "next/link";
 
 export default function AdminTicketDetailsPage() {
 	const params = useParams();
@@ -162,120 +166,132 @@ export default function AdminTicketDetailsPage() {
 	}
 
 	return (
-		<div className="container mx-auto py-10">
-			<h1 className="mb-4 font-bold text-3xl">Ticket: {ticket.subject}</h1>
-			<div className="mb-6 rounded-lg bg-white p-6 shadow-md">
-				<p className="font-semibold text-lg">
-					User: {ticket.user.name} ({ticket.user.email})
-				</p>
-				<p className="font-semibold text-lg">
-					Mobile: {ticket.user.mobile_number}
-				</p>
-				<div className="mt-2 flex items-center space-x-4">
-					<p className="font-semibold text-lg">Status:</p>
-					<Select onValueChange={onStatusChange} value={ticket.status}>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Select Status" />
-						</SelectTrigger>
-						<SelectContent>
-							{Object.values(SUPPORT_STATUS).map((status) => (
-								<SelectItem key={status} value={status}>
-									{status}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-				<div className="mt-2 flex items-center space-x-4">
-					<p className="font-semibold text-lg">Priority:</p>
-					<Select onValueChange={onPriorityChange} value={ticket.priority}>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Select Priority" />
-						</SelectTrigger>
-						<SelectContent>
-							{Object.values(SUPPORT_PRIORITY).map((priority) => (
-								<SelectItem key={priority} value={priority}>
-									{priority}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-				{/* <div className="mt-2 flex items-center space-x-4">
-					<p className="font-semibold text-lg">Assigned To:</p>
-					<Select
-						onValueChange={onAssignChange}
-						value={ticket.assigned_to_employee_id || "unassign"}
-					>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Assign Employee" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="unassign">Unassign</SelectItem>
-							<SelectItem value="employee1">Employee 1</SelectItem>
-							<SelectItem value="employee2">Employee 2</SelectItem>
-						</SelectContent>
-					</Select>
-				</div> */}
-				<p className="mt-2 text-gray-600">
-					Created: {format(ticket.created_at, "PPP p")}
-				</p>
-				{ticket.resolved_at && (
-					<p className="text-gray-600">
-						Resolved: {format(ticket.resolved_at, "PPP p")}
-					</p>
-				)}
-			</div>
+		<div className="container mx-auto p-10">
+			<h1 className="mb-6 font-bold text-3xl">Ticket: {ticket.subject}</h1>
 
-			<div className="mb-6 space-y-4">
-				{ticket.messages.map((message) => (
-					<div
-						key={message.message_id}
-						className={cn(
-							"rounded-lg p-4",
-							message.sender_role === USER_ROLE.Admin
-								? "ml-auto bg-blue-100 text-right"
-								: "mr-auto bg-gray-100 text-left",
+			<Card className="mb-6">
+				<CardHeader>
+					<CardTitle>Ticket Information</CardTitle>
+				</CardHeader>
+				<CardContent className="grid gap-4">
+					<div className="grid grid-cols-2 items-center gap-2">
+						<p className="font-medium text-sm">User:</p>
+						<Link href={`/admin/user/${ticket.user_id}`}>
+							<p className="text-sm">
+								{ticket.user.name} ({ticket.user.email})
+							</p>
+						</Link>
+						<p className="font-medium text-sm">Mobile:</p>
+						<p className="text-sm">{ticket.user.mobile_number}</p>
+						<p className="font-medium text-sm">Status:</p>
+						<div className="flex w-70 items-center justify-between gap-2">
+							<Badge
+								className={cn("text-blue-950", {
+									"bg-green-200": ticket.status === "Closed",
+									"bg-yellow-200": ticket.status === "Open",
+								})}
+							>
+								{ticket.status}
+							</Badge>
+							<Select onValueChange={onStatusChange} value={ticket.status}>
+								<SelectTrigger className="w-[180px]">
+									<SelectValue placeholder="Select Status" />
+								</SelectTrigger>
+								<SelectContent>
+									{Object.values(SUPPORT_STATUS).map((status) => (
+										<SelectItem key={status} value={status}>
+											{status}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<p className="font-medium text-sm">Priority:</p>
+						<div className="flex w-70 items-center justify-between gap-2">
+							<Badge
+								className={cn("text-blue-950", {
+									"bg-red-200": ticket.priority === "High",
+									"bg-yellow-200": ticket.priority === "Medium",
+									"bg-green-200": ticket.priority === "Low",
+								})}
+							>
+								{ticket.priority}
+							</Badge>
+							<Select onValueChange={onPriorityChange} value={ticket.priority}>
+								<SelectTrigger className="w-[180px]">
+									<SelectValue placeholder="Select Priority" />
+								</SelectTrigger>
+								<SelectContent>
+									{Object.values(SUPPORT_PRIORITY).map((priority) => (
+										<SelectItem key={priority} value={priority}>
+											{priority}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<p className="font-medium text-sm">Created:</p>
+						<p className="text-sm">{format(ticket.created_at, "PPP p")}</p>
+						{ticket.resolved_at && (
+							<>
+								<p className="font-medium text-sm">Resolved:</p>
+								<p className="text-sm">{format(ticket.resolved_at, "PPP p")}</p>
+							</>
 						)}
-						style={{
-							maxWidth: "75%",
-							marginLeft:
-								message.sender_role === USER_ROLE.Admin ? "auto" : "0",
-							marginRight:
-								message.sender_role === USER_ROLE.Admin ? "0" : "auto",
-						}}
-					>
-						<p className="font-semibold">
-							{message.sender_role === USER_ROLE.Admin
-								? "Admin"
-								: ticket.user.name}{" "}
-							({(message.sender_role as USER_ROLE).toLowerCase()})
-						</p>
-						<p>{message.content}</p>
-						<p className="mt-1 text-gray-500 text-xs">
-							{format(message.created_at, "PPP p")}
-						</p>
 					</div>
-				))}
-			</div>
+				</CardContent>
+			</Card>
 
-			<form
-				onSubmit={handleMessageSubmit(onMessageSubmit)}
-				className="space-y-4"
-			>
-				<div>
-					<label htmlFor="content" className="block font-medium text-sm">
-						Reply
-					</label>
-					<Textarea id="content" {...messageRegister("content")} rows={4} />
-					{messageErrors.content && (
-						<FieldError message={messageErrors.content.message} />
-					)}
-				</div>
-				<Button type="submit" disabled={addMessageMutation.isPending}>
-					{addMessageMutation.isPending ? "Sending..." : "Send Reply"}
-				</Button>
-			</form>
+			<Card className="mb-6">
+				<CardHeader>
+					<CardTitle>Messages</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					{ticket.messages.map((message) => (
+						<div
+							key={message.message_id}
+							className={cn(
+								"max-w-1/3 rounded-lg p-4 text-blue-950",
+								message.sender_role === USER_ROLE.Admin
+									? "ml-auto bg-blue-100 text-right"
+									: "mr-auto bg-gray-100 text-left",
+							)}
+						>
+							<p>{message.content}</p>
+							<p className="mt-1 text-xs">
+								{format(message.created_at, "PPP p")}
+							</p>
+						</div>
+					))}
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Reply</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<form
+						onSubmit={handleMessageSubmit(onMessageSubmit)}
+						className="space-y-4"
+					>
+						<div>
+							<Textarea
+								id="content"
+								{...messageRegister("content")}
+								rows={4}
+								placeholder="Type your reply here..."
+							/>
+							{messageErrors.content && (
+								<FieldError message={messageErrors.content.message} />
+							)}
+						</div>
+						<Button type="submit" disabled={addMessageMutation.isPending}>
+							{addMessageMutation.isPending ? "Sending..." : "Send Reply"}
+						</Button>
+					</form>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

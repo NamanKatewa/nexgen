@@ -14,7 +14,7 @@ import { entityTypes } from "~/constants";
 
 import type { inferRouterOutputs } from "@trpc/server";
 import Link from "next/link";
-import { formatDateToSeconds } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 
 const VerifyKycPage = () => {
@@ -79,9 +79,7 @@ const VerifyKycPage = () => {
 			header: "Date",
 			className: "w-70 px-4 text-blue-950",
 			render: (item: KycItem) =>
-				item.submission_date
-					? formatDateToSeconds(new Date(item.submission_date))
-					: "",
+				item.submission_date ? formatDate(new Date(item.submission_date)) : "",
 		},
 		{
 			key: "actions",
