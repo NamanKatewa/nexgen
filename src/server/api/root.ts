@@ -5,6 +5,7 @@ import { adminRouter } from "./routers/admin";
 import { kycRouter } from "./routers/kyc";
 import { labelRouter } from "./routers/label";
 import { rateRouter } from "./routers/rate";
+import { refundRouter } from "./routers/refund";
 import { shipmentRouter } from "./routers/shipment";
 import { supportRouter } from "./routers/support";
 import { trackingRouter } from "./routers/tracking";
@@ -21,6 +22,7 @@ export const appRouter = createTRPCRouter({
 	label: labelRouter,
 	tracking: trackingRouter,
 	support: supportRouter,
+	refund: refundRouter,
 });
 
 export type AppRouter = typeof appRouter;

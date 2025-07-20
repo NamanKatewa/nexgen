@@ -1,8 +1,6 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
 import type React from "react";
-import { Alert, AlertDescription } from "~/components/ui/alert";
 import {
 	Card,
 	CardContent,
