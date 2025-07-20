@@ -53,7 +53,10 @@ export const rateRouter = createTRPCRouter({
 							source: "user",
 						});
 						const { insurancePremium, compensationAmount } =
-							calculateInsurancePremium(userRate, input.isInsuranceSelected);
+							calculateInsurancePremium(
+								input.declaredValue ?? userRate,
+								input.isInsuranceSelected,
+							);
 						const finalRate = userRate + insurancePremium;
 						logger.info("Found user-specific rate", {
 							...logData,
@@ -84,7 +87,10 @@ export const rateRouter = createTRPCRouter({
 				});
 				if (defaultRate !== null) {
 					const { insurancePremium, compensationAmount } =
-						calculateInsurancePremium(defaultRate, input.isInsuranceSelected);
+						calculateInsurancePremium(
+							input.declaredValue ?? defaultRate,
+							input.isInsuranceSelected,
+						);
 					const finalRate = defaultRate + insurancePremium;
 					logger.info("Found default rate", {
 						...logData,
@@ -176,9 +182,12 @@ export const rateRouter = createTRPCRouter({
 					}
 
 					const shipment = input[index];
+					if (!shipment) {
+						return { rate: null, insurancePremium: 0 };
+					}
 					const { insurancePremium } = calculateInsurancePremium(
-						rate,
-						shipment?.isInsuranceSelected,
+						shipment.declaredValue ?? rate,
+						shipment.isInsuranceSelected,
 					);
 
 					return { rate: rate + insurancePremium, insurancePremium };

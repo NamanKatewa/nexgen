@@ -199,7 +199,10 @@ export const shipmentRouter = createTRPCRouter({
 				}
 
 				const { insurancePremium, compensationAmount } =
-					calculateInsurancePremium(rate, input.isInsuranceSelected);
+					calculateInsurancePremium(
+						input.declaredValue ?? rate,
+						input.isInsuranceSelected,
+					);
 
 				const finalShippingCost = rate + insurancePremium;
 
@@ -589,7 +592,7 @@ export const shipmentRouter = createTRPCRouter({
 
 							const { insurancePremium, compensationAmount } =
 								calculateInsurancePremium(
-									rate,
+									currentShipment.declaredValue ?? rate,
 									currentShipment.isInsuranceSelected,
 								);
 

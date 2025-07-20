@@ -184,6 +184,7 @@ export default function CreateShipmentPage() {
 		destinationZipCode: string;
 		packageWeight: number;
 		isInsuranceSelected?: boolean;
+		declaredValue?: number;
 	} | null>(null);
 
 	const {
@@ -242,6 +243,7 @@ export default function CreateShipmentPage() {
 			destinationZipCode: destinationAddress.zipCode,
 			packageWeight: data.packageWeight,
 			isInsuranceSelected: data.isInsuranceSelected,
+			declaredValue: data.declaredValue,
 		});
 	};
 
