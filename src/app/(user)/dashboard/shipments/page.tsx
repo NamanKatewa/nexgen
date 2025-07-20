@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
+import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -32,38 +33,36 @@ export default function UserOrdersPage() {
 			debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
 	});
 
-	const columns = [
+	const columns: ColumnConfig<Shipment>[] = [
 		{
 			key: "shipment_id",
 			header: "Shipment ID",
 			className: "px-4 w-30",
-			render: (item: Shipment) => (
-				<Copyable content={item.human_readable_shipment_id} />
-			),
+			render: (item) => <Copyable content={item.human_readable_shipment_id} />,
 		},
 		{
 			key: "client_name",
 			header: "Client Name",
 			className: "px-4 w-40 whitespace-normal",
-			render: (item: Shipment) => item.recipient_name,
+			render: (item) => item.recipient_name,
 		},
 		{
 			key: "client_contact",
 			header: "Client Contact",
 			className: "px-4 w-30 whitespace-normal",
-			render: (item: Shipment) => item.recipient_mobile,
+			render: (item) => item.recipient_mobile,
 		},
 		{
 			key: "shipping_cost",
 			header: "Shipping Cost",
 			className: "px-4 w-30 text-center",
-			render: (item: Shipment) => `₹ ${Number(item.shipping_cost).toFixed(2)}`,
+			render: (item) => `₹ ${Number(item.shipping_cost).toFixed(2)}`,
 		},
 		{
 			key: "shipment_status",
 			header: "Shipment Status",
 			className: "px-4 w-40 text-center",
-			render: (item: Shipment) => (
+			render: (item) => (
 				<Badge
 					className={cn("text-950", {
 						"bg-green-200": item.shipment_status === "Approved",
@@ -79,7 +78,7 @@ export default function UserOrdersPage() {
 			key: "payment_status",
 			header: "Payment Status",
 			className: "px-4 w-40 text-center",
-			render: (item: Shipment) => (
+			render: (item) => (
 				<Badge
 					className={cn("text-950", {
 						"bg-green-200": item.payment_status === "Paid",
@@ -93,14 +92,14 @@ export default function UserOrdersPage() {
 		{
 			key: "date",
 			header: "Date",
-			className: "px-4 w-50",
-			render: (item: Shipment) => formatDateToSeconds(item.created_at),
+			className: "px-4 w-40",
+			render: (item) => formatDateToSeconds(item.created_at),
 		},
 		{
 			key: "actions",
 			header: "Actions",
 			className: "w-30 px-4",
-			render: (item: Shipment) => (
+			render: (item) => (
 				<Button className="cursor-pointer">
 					<Link href={`/dashboard/shipments/${item.shipment_id}`}>
 						View Shipment

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
-import { DataTable } from "~/components/DataTable";
+import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -60,7 +60,7 @@ export default function PendingAddressesPage() {
 		},
 	});
 
-	const columns = [
+	const columns: ColumnConfig<PendingAddress>[] = [
 		{
 			key: "pending_address_id",
 			header: "Address ID",

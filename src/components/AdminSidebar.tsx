@@ -5,6 +5,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	FileUser,
+	IdCard,
 	IndianRupee,
 	LayoutDashboard,
 	MapPinCheck,
@@ -43,9 +44,10 @@ const sidebarLinks = [
 	},
 	{ href: "/admin/label-maker", icon: Tag, label: "Label Maker" },
 	{ href: "/admin/approve-users", icon: User, label: "Users" },
-	{ href: "/admin/employees", icon: UserCog, label: "Employees" },
+	// { href: "/admin/employees", icon: UserCog, label: "Employees" },
 	{ href: "/admin/rates", icon: IndianRupee, label: "Rates" },
 	{ href: "/admin/refund", icon: IndianRupee, label: "Refund" },
+	{ href: "/admin/support", icon: IdCard, label: "Support" },
 ];
 
 const AdminSidebar = () => {

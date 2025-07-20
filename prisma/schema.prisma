@@ -274,8 +274,20 @@ model SupportTicket {
   updated_at              DateTime         @updatedAt
   resolved_at             DateTime?
 
-  user        User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  assigned_to Employee? @relation(fields: [assigned_to_employee_id], references: [employee_id])
+  user        User            @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  assigned_to Employee?       @relation(fields: [assigned_to_employee_id], references: [employee_id])
+  messages    SupportMessage[]
+}
+
+model SupportMessage {
+  message_id  String   @id @default(uuid())
+  ticket_id   String
+  sender_id   String
+  sender_role USER_ROLE
+  content     String
+  created_at  DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
 }
 
 model Employee {

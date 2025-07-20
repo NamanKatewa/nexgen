@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import Copyable from "~/components/Copyable";
-import { DataTable } from "~/components/DataTable";
+import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import ShipmentDetailsModal from "~/components/ShipmentDetailsModal";
 import { Button } from "~/components/ui/button";
@@ -42,7 +42,7 @@ const ApproveOrderPage = () => {
 		setSearchText("");
 	};
 
-	const columns = [
+	const columns: ColumnConfig<ShipmentListItem>[] = [
 		{
 			key: "human_readable_shipment_id",
 			header: "Shipment ID",

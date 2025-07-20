@@ -6,7 +6,7 @@ import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 
 import Copyable from "~/components/Copyable";
-import { DataTable } from "~/components/DataTable";
+import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import KycDetailsModal from "~/components/KycDetailsModal";
 import { api } from "~/trpc/react";
 
@@ -53,7 +53,7 @@ const VerifyKycPage = () => {
 		setSearchText("");
 	};
 
-	const columns = [
+	const columns: ColumnConfig<KycItem>[] = [
 		{
 			key: "kyc_id",
 			header: "KYC ID",

@@ -29,7 +29,7 @@ interface FilterConfig {
 	onChange?: (value: string) => void;
 }
 
-interface ColumnConfig<T> {
+export interface ColumnConfig<T> {
 	key: keyof T | string;
 	header: string;
 	render?: (item: T) => React.ReactNode;

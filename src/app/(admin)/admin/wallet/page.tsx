@@ -5,7 +5,7 @@ import { Badge } from "~/components/ui/badge";
 import useDebounce from "~/lib/hooks/useDebounce";
 
 import Copyable from "~/components/Copyable";
-import { DataTable } from "~/components/DataTable";
+import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import { cn } from "~/lib/utils";
 import { formatDateToSeconds } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -49,7 +49,7 @@ const WalletTopupPage = () => {
 		setSearchText("");
 	};
 
-	const columns = [
+	const columns: ColumnConfig<Transaction>[] = [
 		{
 			key: "transaction_id",
 			header: "Transaction ID",

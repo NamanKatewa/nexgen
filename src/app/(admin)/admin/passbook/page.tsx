@@ -2,7 +2,7 @@
 
 import type { inferRouterOutputs } from "@trpc/server";
 import React, { useState } from "react";
-import { DataTable } from "~/components/DataTable";
+import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import { Badge } from "~/components/ui/badge";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { cn } from "~/lib/utils";
@@ -50,7 +50,7 @@ const PassbookPage = () => {
 		setSearchText("");
 	};
 
-	const columns = [
+	const columns: ColumnConfig<Transaction>[] = [
 		{
 			key: "transaction_id",
 			header: "Transaction ID",
@@ -148,7 +148,7 @@ const PassbookPage = () => {
 			id: "payment-status-filter",
 			label: "Payment Status",
 			options: [
-				{ label: "All Types", value: "ALL" },
+				{ label: "All", value: "ALL" },
 				...paymentStatusTypes.map((type) => ({ label: type, value: type })),
 			],
 			selectedValue: filterStatus,
@@ -158,7 +158,7 @@ const PassbookPage = () => {
 			id: "transaction-type-filter",
 			label: "Transaction Type",
 			options: [
-				{ label: "All Types", value: "ALL" },
+				{ label: "All", value: "ALL" },
 				...transactionTypes.map((type) => ({ label: type, value: type })),
 			],
 			selectedValue: filterTxnType,

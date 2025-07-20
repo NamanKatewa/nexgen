@@ -775,7 +775,7 @@ export const shipmentRouter = createTRPCRouter({
 				userId: z.string().optional(),
 			}),
 		)
-		.query(async ({ ctx, input }) => {
+		.query(async ({ input }) => {
 			const { page, pageSize, status, userId } = input;
 			const skip = (page - 1) * pageSize;
 

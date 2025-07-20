@@ -34,6 +34,9 @@ const DataTableFilter: React.FC<DataTableFilterProps> = ({
 	value,
 	onChange,
 }) => {
+	console.log(
+		`Filter: ${label}, Type: ${type}, Options: ${!!options}, SelectedValue: ${selectedValue}, OnValueChange: ${!!onValueChange}`,
+	);
 	return (
 		<div className="flex items-center gap-2">
 			<label htmlFor={id} className="text-blue-950 text-sm">

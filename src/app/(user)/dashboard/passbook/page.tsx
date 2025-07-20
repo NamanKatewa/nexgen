@@ -3,7 +3,7 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import React, { useState, useEffect } from "react";
 import Copyable from "~/components/Copyable";
-import { DataTable } from "~/components/DataTable";
+import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -47,7 +47,7 @@ const PassbookPage = () => {
 		setSearchText("");
 	};
 
-	const columns = [
+	const columns: ColumnConfig<Transaction>[] = [
 		{
 			key: "transaction_id",
 			header: "Transaction ID",

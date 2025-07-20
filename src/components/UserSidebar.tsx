@@ -4,6 +4,7 @@ import clsx from "clsx";
 import {
 	ChevronLeft,
 	ChevronRight,
+	IdCard,
 	LayoutDashboard,
 	NotebookText,
 	Package,
@@ -31,6 +32,11 @@ const sidebarLinks = [
 		href: "/dashboard/shipments",
 		icon: Package,
 		label: "My Shipments",
+	},
+	{
+		href: "/dashboard/support",
+		icon: IdCard,
+		label: "Support",
 	},
 ];
 

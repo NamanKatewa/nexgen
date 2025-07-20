@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
+import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -31,20 +32,18 @@ export default function AdminOrdersPage() {
 		userId: debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
 	});
 
-	const columns = [
+	const columns: ColumnConfig<Shipment>[] = [
 		{
 			key: "human_readable_shipment_id",
 			header: "Shipment ID",
 			className: "w-30 px-4",
-			render: (item: Shipment) => (
-				<Copyable content={item.human_readable_shipment_id} />
-			),
+			render: (item) => <Copyable content={item.human_readable_shipment_id} />,
 		},
 		{
 			key: "user.name",
 			header: "User Name",
 			className: "w-40 px-4 whitespace-normal",
-			render: (item: Shipment) => (
+			render: (item) => (
 				<Link href={`/admin/user/${item.user_id}`}>{item.user.name}</Link>
 			),
 		},
@@ -52,7 +51,7 @@ export default function AdminOrdersPage() {
 			key: "user.email",
 			header: "User Email",
 			className: "w-40 px-4",
-			render: (item: Shipment) => <Copyable content={item.user.email} />,
+			render: (item) => <Copyable content={item.user.email} />,
 		},
 		{
 			key: "shipping_cost",
@@ -113,29 +112,29 @@ export default function AdminOrdersPage() {
 
 	const filters = [
 		{
-			id: "status",
-			label: "Status",
-			type: "select" as const,
-			options: [
-				{ label: "All", value: "" },
-				{ label: "Pending Approval", value: "PendingApproval" },
-				{ label: "Approved", value: "Approved" },
-				{ label: "Rejected", value: "Rejected" },
-			],
-			selectedValue: statusFilter || "",
-			onValueChange: (value: string) =>
-				setStatusFilter(
-					value === ""
-						? undefined
-						: (value as "PendingApproval" | "Approved" | "Rejected"),
-				),
-		},
-		{
 			id: "userId",
 			label: "User ID",
 			type: "text" as const,
 			value: userIdSearchText,
 			onChange: setUserIdSearchText,
+		},
+		{
+			id: "status",
+			label: "Status",
+			type: "select" as const,
+			options: [
+				{ label: "All", value: "all" },
+				{ label: "Pending Approval", value: "PendingApproval" },
+				{ label: "Approved", value: "Approved" },
+				{ label: "Rejected", value: "Rejected" },
+			],
+			selectedValue: statusFilter || "all",
+			onValueChange: (value: string) =>
+				setStatusFilter(
+					value === "all"
+						? undefined
+						: (value as "PendingApproval" | "Approved" | "Rejected"),
+				),
 		},
 	];
 
