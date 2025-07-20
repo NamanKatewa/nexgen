@@ -168,6 +168,70 @@ export default function AdminUserDetailPage() {
 								</>
 							)}
 						</div>
+						<div className="grid grid-cols-2 gap-4 mt-4">
+							<div>
+								<p className="font-medium text-sm mb-2">Aadhar Images:</p>
+								<div className="flex gap-4">
+									{user.kyc.aadhar_image_front && (
+										<Link
+											href={user.kyc.aadhar_image_front}
+											target="_blank"
+											rel="noopener noreferrer"
+										>
+											<img
+												src={user.kyc.aadhar_image_front}
+												alt="Aadhar Front"
+												className="w-48 h-48 object-cover rounded-md"
+											/>
+										</Link>
+									)}
+									{user.kyc.aadhar_image_back && (
+										<Link
+											href={user.kyc.aadhar_image_back}
+											target="_blank"
+											rel="noopener noreferrer"
+										>
+											<img
+												src={user.kyc.aadhar_image_back}
+												alt="Aadhar Back"
+												className="w-48 h-48 object-cover rounded-md"
+											/>
+										</Link>
+									)}
+								</div>
+							</div>
+							<div>
+								<p className="font-medium text-sm mb-2">PAN Images:</p>
+								<div className="flex gap-4">
+									{user.kyc.pan_image_front && (
+										<Link
+											href={user.kyc.pan_image_front}
+											target="_blank"
+											rel="noopener noreferrer"
+										>
+											<img
+												src={user.kyc.pan_image_front}
+												alt="PAN Front"
+												className="w-48 h-48 object-cover rounded-md"
+											/>
+										</Link>
+									)}
+									{user.kyc.pan_image_back && (
+										<Link
+											href={user.kyc.pan_image_back}
+											target="_blank"
+											rel="noopener noreferrer"
+										>
+											<img
+												src={user.kyc.pan_image_back}
+												alt="PAN Back"
+												className="w-48 h-48 object-cover rounded-md"
+											/>
+										</Link>
+									)}
+								</div>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 			)}

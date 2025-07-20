@@ -1,14 +1,13 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
 import type React from "react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "~/components/ui/dialog";
@@ -23,25 +22,10 @@ import {
 } from "~/components/ui/select";
 import { Textarea } from "~/components/ui/textarea";
 import { formatDate } from "~/lib/utils";
-import {
-	type approveShipmentSchema,
-	rejectShipmentSchema,
-} from "~/schemas/shipment";
 import { type RouterOutputs, api } from "~/trpc/react";
-import { FieldError } from "./FieldError";
 
 type ShipmentItemType =
 	RouterOutputs["admin"]["pendingShipments"]["shipments"][number];
-type ShipmentDetailType = ShipmentItemType;
-
-const combinedShipmentSchema = z.object({
-	shipmentId: z.string(),
-	awbNumber: z.string().min(1, "AWB Number is required.").optional(),
-	courierId: z.string().min(1, "Courier is required.").optional(),
-	reason: z.string().min(1, "Rejection Reason is required.").optional(),
-});
-
-type CombinedShipmentFormData = z.infer<typeof combinedShipmentSchema>;
 
 interface ShipmentDetailsModalProps {
 	isOpen: boolean;
@@ -54,109 +38,194 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 	onClose,
 	shipmentItem,
 }) => {
-	const [showShipmentModal, setShowShipmentModal] = useState(false);
-	const [selectedShipment, setSelectedShipment] =
-		useState<ShipmentItemType | null>(null);
-	const approveMutation = api.admin.approveShipment.useMutation();
-	const rejectMutation = api.admin.rejectShipment.useMutation();
+	const [showApproveConfirmModal, setShowApproveConfirmModal] = useState(false);
+	const [showRejectConfirmModal, setShowRejectConfirmModal] = useState(false);
+	const [awbNumber, setAwbNumber] = useState("");
+	const [courierId, setCourierId] = useState("");
+	const [rejectReason, setRejectReason] = useState("");
+
+	const utils = api.useUtils();
+	const approveMutation = api.admin.approveShipment.useMutation({
+		onSuccess: () => {
+			utils.admin.pendingShipments.invalidate();
+			toast.success("Shipment approved successfully!");
+			onClose();
+		},
+		onError: (error) => {
+			toast.error(error.message);
+		},
+	});
+	const rejectMutation = api.admin.rejectShipment.useMutation({
+		onSuccess: () => {
+			utils.admin.pendingShipments.invalidate();
+			toast.success("Shipment rejected successfully!");
+			onClose();
+		},
+		onError: (error) => {
+			toast.error(error.message);
+		},
+	});
 
 	const { data: couriers, isLoading: isLoadingCouriers } =
 		api.tracking.getCouriers.useQuery();
 
-	const utils = api.useUtils();
+	const handleApprove = async () => {
+		if (!shipmentItem) return;
 
-	const {
-		register,
-		handleSubmit,
-		formState: { errors, isSubmitting },
-		setValue,
-		control,
-		setError, // Add setError from useForm
-		clearErrors, // Add clearErrors from useForm
-	} = useForm<CombinedShipmentFormData>({
-		resolver: zodResolver(combinedShipmentSchema), // Use the combined schema
-		defaultValues: {
-			shipmentId: shipmentItem?.shipment_id || "",
-			awbNumber: shipmentItem?.awb_number || "",
-			reason: "",
-		},
-	});
-
-	useEffect(() => {
-		if (shipmentItem) {
-			setValue("shipmentId", shipmentItem.shipment_id);
-			setValue("awbNumber", shipmentItem.awb_number || "");
-			setValue("reason", "");
-			clearErrors();
-		}
-	}, [shipmentItem, setValue, clearErrors]);
-
-	const handleApprove = handleSubmit((data) => {
-		// Custom validation for approval
-		if (!data.awbNumber || data.awbNumber.trim() === "") {
-			setError("awbNumber", {
-				type: "manual",
-				message: "AWB Number is required.",
-			});
-			toast.error("AWB Number is required.");
+		if (!awbNumber.trim() || !courierId.trim()) {
+			toast.error("AWB Number and Courier are required for approval.");
 			return;
 		}
-		if (!data.courierId || data.courierId.trim() === "") {
-			setError("courierId", {
-				type: "manual",
-				message: "Courier is required.",
-			});
-			toast.error("Courier is required.");
-			return;
-		}
-		clearErrors(["awbNumber", "courierId"]);
 
-		approveMutation.mutate(
-			{
-				shipmentId: data.shipmentId,
-				awbNumber: data.awbNumber,
-				courierId: data.courierId,
-			},
-			{
-				onSuccess: () => {
-					utils.admin.pendingShipments.invalidate();
-					onClose();
-				},
-			},
-		);
-	});
-
-	const handleReject = handleSubmit((data) => {
-		// Custom validation for rejection
-		if (!data.reason || data.reason.trim() === "") {
-			setError("reason", {
-				type: "manual",
-				message: "Rejection reason is required.",
-			});
-			toast.error("Rejection reason is required.");
-			return;
-		}
-		clearErrors("reason"); // Clear reason errors if validation passes
-
-		rejectMutation.mutate(
-			{ shipmentId: data.shipmentId, reason: data.reason },
-			{
-				onSuccess: () => {
-					utils.admin.pendingShipments.invalidate();
-					onClose();
-				},
-			},
-		);
-	});
-
-	const handleViewShipment = (shipment: ShipmentItemType) => {
-		setSelectedShipment(shipment);
-		setShowShipmentModal(true);
+		await approveMutation.mutateAsync({
+			shipmentId: shipmentItem.shipment_id,
+			awbNumber,
+			courierId,
+		});
+		setShowApproveConfirmModal(false);
+		onClose();
 	};
+
+	const handleReject = async () => {
+		if (!shipmentItem) return;
+
+		if (!rejectReason.trim()) {
+			toast.error("Rejection reason cannot be empty.");
+			return;
+		}
+
+		await rejectMutation.mutateAsync({
+			shipmentId: shipmentItem.shipment_id,
+			reason: rejectReason,
+		});
+		setShowRejectConfirmModal(false);
+		onClose();
+	};
+
+	if (!shipmentItem) {
+		return null;
+	}
 
 	return (
 		<>
-			<Dialog open={isOpen} onOpenChange={onClose}>
+			<Dialog
+				open={showApproveConfirmModal}
+				onOpenChange={setShowApproveConfirmModal}
+			>
+				<DialogContent className="w-4xl bg-blue-50 text-blue-950">
+					<DialogHeader>
+						<DialogTitle>Confirm Approval</DialogTitle>
+						<DialogDescription className="text-blue-950">
+							Please provide the AWB Number and select a courier to approve this
+							shipment.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="mt-4 space-y-4">
+						<div>
+							<Label htmlFor="awbNumber">AWB Number</Label>
+							<Input
+								id="awbNumber"
+								value={awbNumber}
+								onChange={(e) => setAwbNumber(e.target.value)}
+								placeholder="Enter AWB Number"
+							/>
+						</div>
+						<div>
+							<Label htmlFor="courier">Select Courier</Label>
+							<Select onValueChange={setCourierId} value={courierId}>
+								<SelectTrigger id="courier">
+									<SelectValue placeholder="Select a courier" />
+								</SelectTrigger>
+								<SelectContent>
+									{isLoadingCouriers ? (
+										<SelectItem value="" disabled>
+											Loading couriers...
+										</SelectItem>
+									) : (
+										couriers?.map((courier) => (
+											<SelectItem key={courier.id} value={courier.id}>
+												{courier.name}
+											</SelectItem>
+										))
+									)}
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
+					<DialogFooter className="mt-4 gap-2">
+						<Button
+							variant="outline"
+							onClick={() => setShowApproveConfirmModal(false)}
+							disabled={approveMutation.isPending}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="default"
+							className="cursor-pointer bg-green-600 text-white hover:bg-green-700"
+							onClick={handleApprove}
+							disabled={approveMutation.isPending}
+						>
+							{approveMutation.isPending ? "Approving..." : "Confirm Approve"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog
+				open={showRejectConfirmModal}
+				onOpenChange={setShowRejectConfirmModal}
+			>
+				<DialogContent className="w-4xl bg-blue-50 text-blue-950">
+					<DialogHeader>
+						<DialogTitle>Confirm Rejection</DialogTitle>
+						<DialogDescription className="text-blue-950">
+							Are you sure you want to reject this shipment? This action cannot
+							be undone.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="mt-4">
+						<Label htmlFor="reject-reason">Reason for Rejection</Label>
+						<Textarea
+							id="reject-reason"
+							value={rejectReason}
+							onChange={(e) => setRejectReason(e.target.value)}
+							placeholder="Enter reason for rejection..."
+							className="mt-1"
+						/>
+					</div>
+					<DialogFooter className="mt-4 gap-2">
+						<Button
+							variant="outline"
+							onClick={() => setShowRejectConfirmModal(false)}
+							disabled={rejectMutation.isPending}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="destructive"
+							onClick={handleReject}
+							disabled={rejectMutation.isPending}
+						>
+							{rejectMutation.isPending ? "Rejecting..." : "Confirm Rejection"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog
+				open={isOpen}
+				onOpenChange={(open) => {
+					if (!open) {
+						onClose();
+						setAwbNumber("");
+						setCourierId("");
+						setRejectReason("");
+						setShowApproveConfirmModal(false);
+						setShowRejectConfirmModal(false);
+					}
+				}}
+			>
 				<DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[800px]">
 					<DialogHeader>
 						<DialogTitle>Shipment Details</DialogTitle>
@@ -164,123 +233,93 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 							Details of the selected shipment.
 						</DialogDescription>
 					</DialogHeader>
-					{shipmentItem && (
-						<div className="grid gap-4 overflow-y-auto py-4">
-							<p>
-								<strong>User:</strong> {shipmentItem.user.name}
-							</p>
-							<p>
-								<strong>Email:</strong> {shipmentItem.user.email}
-							</p>
-							<p>
-								<strong>Created At:</strong>{" "}
-								{formatDate(shipmentItem.created_at)}
-							</p>
-							<p>
-								<strong>Shipment ID:</strong>{" "}
-								{shipmentItem.human_readable_shipment_id}
-							</p>
-							<p>
-								<strong>Recipient Name:</strong> {shipmentItem.recipient_name}
-							</p>
-							<p>
-								<strong>Recipient Mobile:</strong>{" "}
-								{shipmentItem.recipient_mobile}
-							</p>
-							<p>
-								<strong>Package Weight:</strong>{" "}
-								{Number(shipmentItem.package_weight).toFixed(2)} Kg
-							</p>
-							<p>
-								<strong>Package Dimensions:</strong>{" "}
-								{shipmentItem.package_dimensions}
-							</p>
-							<p>
-								<strong>Amount:</strong> ₹
-								{Number(shipmentItem.shipping_cost).toFixed(2)}
-							</p>
-							<p>
-								<strong>Payment Status:</strong> {shipmentItem.payment_status}
-							</p>
-							<p>
-								<strong>Approval Status:</strong> {shipmentItem.shipment_status}
-							</p>
-							{shipmentItem.rejection_reason && (
-								<p>
-									<strong>Rejection Reason:</strong>{" "}
-									{shipmentItem.rejection_reason}
-								</p>
-							)}
-							{shipmentItem.shipment_status === "PendingApproval" && (
-								<>
-									<div className="mt-2 w-full">
-										<Label htmlFor={`awbNumber-${shipmentItem.shipment_id}`}>
-											AWB Number
-										</Label>
-										<Input
-											id={`awbNumber-${shipmentItem.shipment_id}`}
-											{...register("awbNumber")}
-											placeholder="Enter AWB Number"
-										/>
-										{errors.awbNumber && (
-											<FieldError message={errors.awbNumber.message} />
-										)}
-									</div>
-									<div className="mt-2 w-full">
-										<Label htmlFor={`courier-${shipmentItem.shipment_id}`}>
-											Select Courier
-										</Label>
-										<Select
-											onValueChange={(value) => setValue("courierId", value)}
-											value={control._formValues.courierId}
-										>
-											<SelectTrigger id={`courier-${shipmentItem.shipment_id}`}>
-												<SelectValue placeholder="Select a courier" />
-											</SelectTrigger>
-											<SelectContent>
-												{isLoadingCouriers && (
-													<SelectItem value="" disabled>
-														Loading couriers...
-													</SelectItem>
-												)}
-												{couriers?.map((courier) => (
-													<SelectItem key={courier.id} value={courier.id}>
-														{courier.name}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-										{errors.courierId && (
-											<FieldError message={errors.courierId.message} />
-										)}
-									</div>
-								</>
-							)}
-							<div className="mt-4 flex justify-end space-x-2">
-								{shipmentItem.shipment_status === "PendingApproval" && (
-									<>
-										<Button
-											onClick={handleApprove}
-											disabled={
-												approveMutation.isPending || rejectMutation.isPending
-											}
-										>
-											{approveMutation.isPending ? "Approving..." : "Approve"}
-										</Button>
-										<Button
-											variant="destructive"
-											onClick={handleReject}
-											disabled={
-												approveMutation.isPending || rejectMutation.isPending
-											}
-										>
-											{rejectMutation.isPending ? "Rejecting..." : "Reject"}
-										</Button>
-									</>
-								)}
+					<div className="grid gap-4 overflow-y-auto py-4">
+						<p>
+							<strong>User:</strong> {shipmentItem.user.name}
+						</p>
+						<p>
+							<strong>Email:</strong> {shipmentItem.user.email}
+						</p>
+						<p>
+							<strong>Created At:</strong> {formatDate(shipmentItem.created_at)}
+						</p>
+						<p>
+							<strong>Shipment ID:</strong>{" "}
+							{shipmentItem.human_readable_shipment_id}
+						</p>
+						<p>
+							<strong>Recipient Name:</strong> {shipmentItem.recipient_name}
+						</p>
+						<p>
+							<strong>Recipient Mobile:</strong> {shipmentItem.recipient_mobile}
+						</p>
+						<p>
+							<strong>Package Weight:</strong>{" "}
+							{Number(shipmentItem.package_weight).toFixed(2)} Kg
+						</p>
+						<p>
+							<strong>Package Dimensions:</strong>{" "}
+							{shipmentItem.package_dimensions}
+						</p>
+						{shipmentItem.package_image_url && (
+							<div className="flex flex-col gap-2">
+								<strong>Package Image:</strong>
+								<a
+									href={shipmentItem.package_image_url}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									<Image
+										src={shipmentItem.package_image_url}
+										alt="Package Image"
+										width={200}
+										height={200}
+										className="h-48 w-48 object-cover"
+									/>
+								</a>
 							</div>
-						</div>
-					)}
+						)}
+						<p>
+							<strong>Amount:</strong> ₹
+							{Number(shipmentItem.shipping_cost).toFixed(2)}
+						</p>
+						<p>
+							<strong>Payment Status:</strong> {shipmentItem.payment_status}
+						</p>
+						<p>
+							<strong>Approval Status:</strong> {shipmentItem.shipment_status}
+						</p>
+						{shipmentItem.rejection_reason && (
+							<p>
+								<strong>Rejection Reason:</strong>{" "}
+								{shipmentItem.rejection_reason}
+							</p>
+						)}
+					</div>
+					<DialogFooter className="mt-4 flex justify-end space-x-2">
+						{shipmentItem.shipment_status === "PendingApproval" && (
+							<>
+								<Button
+									variant="destructive"
+									onClick={() => setShowRejectConfirmModal(true)}
+									disabled={
+										approveMutation.isPending || rejectMutation.isPending
+									}
+								>
+									Reject
+								</Button>
+								<Button
+									className="bg-green-600 text-white hover:bg-green-700"
+									onClick={() => setShowApproveConfirmModal(true)}
+									disabled={
+										approveMutation.isPending || rejectMutation.isPending
+									}
+								>
+									{approveMutation.isPending ? "Approving..." : "Approve"}
+								</Button>
+							</>
+						)}
+					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 		</>

@@ -130,6 +130,23 @@ export default function AdminOrderDetailPage() {
 						<p className="text-sm">{shipment.package_dimensions}</p>
 					</div>
 
+					{shipment.package_image_url && (
+						<div className="mt-4">
+							<p className="font-medium text-sm mb-2">Package Image:</p>
+							<Link
+								href={shipment.package_image_url}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<img
+									src={shipment.package_image_url}
+									alt="Package"
+									className="w-48 h-48 object-cover rounded-md"
+								/>
+							</Link>
+						</div>
+					)}
+
 					<Separator className="my-4" />
 
 					<h3 className="mb-2 font-semibold text-lg">Addresses</h3>
