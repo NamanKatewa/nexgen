@@ -129,9 +129,13 @@ export default function SupportPage() {
 			header: "Actions",
 			className: "w-30 px-4",
 			render: (item: SupportTicket) => (
-				<Button className="cursor-pointer">
-					<Link href={`/dashboard/support/${item.ticket_id}`}>View Ticket</Link>
-				</Button>
+				<div className="flex flex-col gap-2">
+					<Button className="cursor-pointer">
+						<Link href={`/dashboard/support/${item.ticket_id}`}>
+							View Ticket
+						</Link>
+					</Button>
+				</div>
 			),
 		},
 	];
@@ -177,23 +181,6 @@ export default function SupportPage() {
 
 	return (
 		<>
-			<>
-				<DataTable
-					title="My Support Tickets"
-					data={data?.tickets || []}
-					columns={columns}
-					isLoading={isLoading}
-					idKey="ticket_id"
-					filters={filters}
-					onClearFilters={handleClearFilters}
-				/>
-				<PaginationButtons
-					page={page}
-					totalPages={Math.ceil((data?.totalTickets ?? 0) / pageSize)}
-					setPage={setPage}
-				/>
-			</>
-
 			<div className="flex items-center justify-center p-6">
 				<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
 					<DialogTrigger asChild>
@@ -237,6 +224,20 @@ export default function SupportPage() {
 					</DialogContent>
 				</Dialog>
 			</div>
+			<DataTable
+				title="My Support Tickets"
+				data={data?.tickets || []}
+				columns={columns}
+				isLoading={isLoading}
+				idKey="ticket_id"
+				filters={filters}
+				onClearFilters={handleClearFilters}
+			/>
+			<PaginationButtons
+				page={page}
+				totalPages={Math.ceil((data?.totalTickets ?? 0) / pageSize)}
+				setPage={setPage}
+			/>
 		</>
 	);
 }

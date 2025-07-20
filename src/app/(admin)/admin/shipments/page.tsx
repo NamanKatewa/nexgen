@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
@@ -104,14 +105,46 @@ function AdminOrdersContent() {
 			header: "Actions",
 			className: "w-30 px-4",
 			render: (item: Shipment) => (
-				<Button className="cursor-pointer">
-					<Link href={`/admin/shipments/${item.shipment_id}`}>
-						View Shipment
-					</Link>
-				</Button>
+				<div className="flex flex-col gap-2">
+					<Button className="cursor-pointer">
+						<Link href={`/admin/shipments/${item.shipment_id}`}>
+							View Shipment
+						</Link>
+					</Button>
+					{item.shipment_status === "Approved" && (
+						<Button
+							className="cursor-pointer"
+							onClick={() => handleGetLabel(item.shipment_id)}
+							disabled={isGettingLabel}
+						>
+							{isGettingLabel ? "Getting Label..." : "Get Label"}
+						</Button>
+					)}
+				</div>
 			),
 		},
 	];
+
+	const { mutate: getLabel, isPending: isGettingLabel } =
+		api.label.generateLabel.useMutation({
+			onSuccess: (data) => {
+				const pdfWindow = window.open("");
+				if (pdfWindow) {
+					pdfWindow.document.write(
+						`<iframe src="data:application/pdf;base64,${data.pdf}" width="100%" height="100%"></iframe>`,
+					);
+				} else {
+					toast.error("Failed to open PDF. Please allow pop-ups.");
+				}
+			},
+			onError: (error) => {
+				toast.error(error.message);
+			},
+		});
+
+	const handleGetLabel = (shipmentId: string) => {
+		getLabel({ shipmentId });
+	};
 
 	const filters = [
 		{

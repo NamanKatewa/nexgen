@@ -108,7 +108,7 @@ function PendingAddressesContent() {
 			header: "Actions",
 			className: "w-60",
 			render: (row: PendingAddress) => (
-				<div className="flex gap-2">
+				<div className="flex flex-col gap-2">
 					<Button
 						onClick={() =>
 							approveMutation.mutate({

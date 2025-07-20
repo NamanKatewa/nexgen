@@ -86,17 +86,19 @@ const VerifyKycPage = () => {
 			header: "Actions",
 			className: "w-50 px-4 text-blue-950",
 			render: (item: KycItem) => (
-				<Button
-					size="sm"
-					variant="default"
-					onClick={() => {
-						setSelectedKycItem(item);
-						setShowKycDetailsModal(true);
-					}}
-					className="cursor-pointer"
-				>
-					View Details
-				</Button>
+				<div className="flex flex-col gap-2">
+					<Button
+						size="sm"
+						variant="default"
+						onClick={() => {
+							setSelectedKycItem(item);
+							setShowKycDetailsModal(true);
+						}}
+						className="cursor-pointer"
+					>
+						View Details
+					</Button>
+				</div>
 			),
 		},
 	];

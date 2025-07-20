@@ -128,11 +128,13 @@ function PassbookContent() {
 			key: "actions",
 			header: "Actions",
 			className: "w-50 px-4 text-blue-950",
-			render: (item: Transaction) => {
+							render: (item: Transaction) => {
 				return item.shipment_id ? (
-					<Button>
-						<Link href={`/shipments/${item.shipment_id}`}>View Shipment</Link>
-					</Button>
+					<div className="flex flex-col gap-2">
+						<Button>
+							<Link href={`/shipments/${item.shipment_id}`}>View Shipment</Link>
+						</Button>
+					</div>
 				) : null;
 			},
 		},

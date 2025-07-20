@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -65,7 +66,14 @@ export default function UserShipmentDetailPage() {
 			<h1 className="mb-6 font-bold text-3xl">
 				Shipment Details - {shipment.human_readable_shipment_id}
 			</h1>
-
+			{shipment.awb_number && shipment.shipment_status === "Approved" && (
+				<Button
+					onClick={() => handleDownloadLabel(shipment.shipment_id)}
+					className="my-4 w-full"
+				>
+					Download Label
+				</Button>
+			)}
 			<Card className="mb-6">
 				<CardHeader>
 					<CardTitle>Shipment Summary</CardTitle>
@@ -130,7 +138,22 @@ export default function UserShipmentDetailPage() {
 						<p className="font-medium text-sm">Package Dimensions:</p>
 						<p className="text-sm">{shipment.package_dimensions}</p>
 					</div>
-
+					{shipment.package_image_url && (
+						<div className="mt-4">
+							<p className="mb-2 font-medium text-sm">Package Image:</p>
+							<Link
+								href={shipment.package_image_url}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<img
+									src={shipment.package_image_url}
+									alt="Package"
+									className="h-48 w-48 rounded-md object-cover"
+								/>
+							</Link>
+						</div>
+					)}
 					<Separator className="my-4" />
 
 					<h3 className="mb-2 font-semibold text-lg">Addresses</h3>
@@ -153,16 +176,6 @@ export default function UserShipmentDetailPage() {
 							</p>
 						</div>
 					</div>
-
-					{shipment.awb_number && shipment.shipment_status === "Approved" && (
-						<Button
-							variant="outline"
-							onClick={() => handleDownloadLabel(shipment.shipment_id)}
-							className="mt-4"
-						>
-							Download Label
-						</Button>
-					)}
 				</CardContent>
 			</Card>
 		</div>

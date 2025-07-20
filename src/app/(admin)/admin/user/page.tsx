@@ -127,9 +127,11 @@ export default function AdminUsersPage() {
 			header: "Actions",
 			className: "w-30 px-4",
 			render: (item: User) => (
-				<Button className="cursor-pointer">
-					<Link href={`/admin/user/${item.user_id}`}>View User</Link>
-				</Button>
+				<div className="flex flex-col gap-2">
+					<Button className="cursor-pointer">
+						<Link href={`/admin/user/${item.user_id}`}>View User</Link>
+					</Button>
+				</div>
 			),
 		},
 	];

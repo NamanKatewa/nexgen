@@ -63,6 +63,14 @@ export default function AdminOrderDetailPage() {
 				Shipment Details - {shipment.human_readable_shipment_id}
 			</h1>
 
+			{shipment.awb_number && shipment.shipment_status === "Approved" && (
+				<Button
+					onClick={() => handleDownloadLabel(shipment.shipment_id)}
+					className="my-4 w-full"
+				>
+					Download Label
+				</Button>
+			)}
 			<Card className="mb-6">
 				<CardHeader>
 					<CardTitle>Shipment Summary</CardTitle>
@@ -169,16 +177,6 @@ export default function AdminOrderDetailPage() {
 							</p>
 						</div>
 					</div>
-
-					{shipment.awb_number && shipment.shipment_status === "Approved" && (
-						<Button
-							variant="outline"
-							onClick={() => handleDownloadLabel(shipment.shipment_id)}
-							className="mt-4"
-						>
-							Download Label
-						</Button>
-					)}
 				</CardContent>
 			</Card>
 		</div>

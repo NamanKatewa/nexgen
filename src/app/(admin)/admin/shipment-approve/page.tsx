@@ -85,18 +85,20 @@ const ApproveOrderPage = () => {
 			header: "Actions",
 			className: "w-50 px-4",
 			render: (item: ShipmentListItem) => (
-				<Button
-					type="button"
-					size="sm"
-					variant="default"
-					onClick={() => {
-						setSelectedShipmentItem(item);
-						setShowOrderDetailsModal(true);
-					}}
-					className="cursor-pointer"
-				>
-					View Details
-				</Button>
+				<div className="flex flex-col gap-2">
+					<Button
+						type="button"
+						size="sm"
+						variant="default"
+						onClick={() => {
+							setSelectedShipmentItem(item);
+							setShowOrderDetailsModal(true);
+						}}
+						className="cursor-pointer"
+					>
+						View Details
+					</Button>
+				</div>
 			),
 		},
 	];

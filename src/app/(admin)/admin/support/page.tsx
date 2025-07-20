@@ -115,9 +115,11 @@ function AdminSupportContent() {
 			header: "Actions",
 			className: "w-30 px-4",
 			render: (item: SupportTicket) => (
-				<Button className="cursor-pointer">
-					<Link href={`/admin/support/${item.ticket_id}`}>View Ticket</Link>
-				</Button>
+				<div className="flex flex-col gap-2">
+					<Button className="cursor-pointer">
+						<Link href={`/admin/support/${item.ticket_id}`}>View Ticket</Link>
+					</Button>
+				</div>
 			),
 		},
 	];
