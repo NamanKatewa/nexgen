@@ -2,7 +2,7 @@
 
 import type { inferRouterOutputs } from "@trpc/server";
 import { useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import { Badge } from "~/components/ui/badge";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -21,14 +21,14 @@ import Copyable from "~/components/Copyable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
 
-const PassbookPage = () => {
+function PassbookContent() {
+	const searchParams = useSearchParams();
+	const initialUserId = searchParams.get("userId") || "";
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
 	const [filterStatus, setFilterStatus] = useState("ALL");
 	const [filterTxnType, setFilterTxnType] = useState("ALL");
-	const searchParams = useSearchParams();
-	const initialUserId = searchParams.get("userId") || "";
 	const [searchText, setSearchText] = useState(initialUserId);
 	const debouncedSearchFilter = useDebounce(searchText, 500);
 
@@ -186,6 +186,12 @@ const PassbookPage = () => {
 			/>
 		</>
 	);
-};
+}
 
-export default PassbookPage;
+export default function PassbookPage() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<PassbookContent />
+		</Suspense>
+	);
+}

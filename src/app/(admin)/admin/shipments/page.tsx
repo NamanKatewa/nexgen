@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
@@ -17,7 +17,7 @@ import { type RouterOutputs, api } from "~/trpc/react";
 type Shipment =
 	RouterOutputs["shipment"]["getAllShipments"]["shipments"][number];
 
-export default function AdminOrdersPage() {
+function AdminOrdersContent() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [statusFilter, setStatusFilter] = useState<
@@ -163,5 +163,13 @@ export default function AdminOrdersPage() {
 				setPage={setPage}
 			/>
 		</>
+	);
+}
+
+export default function AdminOrdersPage() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<AdminOrdersContent />
+		</Suspense>
 	);
 }

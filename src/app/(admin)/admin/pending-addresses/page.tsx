@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
@@ -14,7 +14,7 @@ import { type RouterOutputs, api } from "~/trpc/react";
 type PendingAddress =
 	RouterOutputs["admin"]["pendingAddresses"]["pendingAddresses"][number];
 
-export default function PendingAddressesPage() {
+function PendingAddressesContent() {
 	const searchParams = useSearchParams();
 	const initialUserId = searchParams.get("userId") || "";
 	const [searchText, setSearchText] = useState(initialUserId);
@@ -166,5 +166,13 @@ export default function PendingAddressesPage() {
 				setPage={setPage}
 			/>
 		</>
+	);
+}
+
+export default function PendingAddressesPage() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<PendingAddressesContent />
+		</Suspense>
 	);
 }

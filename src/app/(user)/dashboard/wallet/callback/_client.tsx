@@ -2,11 +2,11 @@
 
 import { CheckCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 
-export default function WalletCallbackClient() {
+function WalletCallbackClientContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const transaction_id = searchParams.get("id");
@@ -60,5 +60,13 @@ export default function WalletCallbackClient() {
 				Go to Dashboard
 			</Button>
 		</div>
+	);
+}
+
+export default function WalletCallbackClient() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<WalletCallbackClientContent />
+		</Suspense>
 	);
 }

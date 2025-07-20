@@ -3,7 +3,7 @@
 import type { SupportTicket } from "@prisma/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
@@ -15,7 +15,7 @@ import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
-export default function AdminSupportPage() {
+function AdminSupportContent() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [statusFilter, setStatusFilter] = useState<
@@ -186,5 +186,13 @@ export default function AdminSupportPage() {
 				setPage={setPage}
 			/>
 		</>
+	);
+}
+
+export default function AdminSupportPage() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<AdminSupportContent />
+		</Suspense>
 	);
 }
