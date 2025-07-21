@@ -39,7 +39,9 @@ export default function AdminUserDetailPage() {
 	return (
 		<div className="p-8">
 			<h1 className="mb-6 font-bold text-3xl">User Details - {user.name}</h1>
-
+			<Button className="my-4 w-full">
+				<Link href={`/admin/rates/${user.user_id}`}>Edit Rates</Link>
+			</Button>
 			<Card className="mb-6">
 				<CardHeader>
 					<CardTitle>User Profile</CardTitle>

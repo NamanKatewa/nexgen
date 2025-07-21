@@ -218,4 +218,61 @@ export const rateRouter = createTRPCRouter({
 				data: { rate: rate },
 			});
 		}),
+
+	getUserRates: adminProcedure
+		.input(z.object({ userId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const { userId } = input;
+			const defaultRates = await ctx.db.defaultRate.findMany();
+			const userRates = await ctx.db.userRate.findMany({
+				where: { user_id: userId },
+			});
+
+			const userRatesMap = new Map(
+				userRates.map((rate) => [
+					`${rate.zone_from}-${rate.zone_to}-${rate.weight_slab}`,
+					rate,
+				]),
+			);
+
+			const combinedRates = defaultRates.map((defaultRate) => {
+				const key = `${defaultRate.zone_from}-${defaultRate.zone_to}-${defaultRate.weight_slab}`;
+				const userRate = userRatesMap.get(key);
+				return userRate || { ...defaultRate, default_rate_id: undefined, user_rate_id: undefined, user_id: userId };
+			});
+
+			return combinedRates;
+		}),
+
+	updateUserRate: adminProcedure
+		.input(
+			z.object({
+				userId: z.string(),
+				zone_from: z.string(),
+				zone_to: z.string(),
+				weight_slab: z.number(),
+				rate: z.number(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { userId, zone_from, zone_to, weight_slab, rate } = input;
+			return ctx.db.userRate.upsert({
+				where: {
+					user_id_zone_from_zone_to_weight_slab: {
+						user_id: userId,
+						zone_from: zone_from,
+						zone_to: zone_to,
+						weight_slab: weight_slab,
+					},
+				},
+				update: { rate: rate },
+				create: {
+					user_id: userId,
+					zone_from: zone_from,
+					zone_to: zone_to,
+					weight_slab: weight_slab,
+					rate: rate,
+				},
+			});
+		}),
 });
