@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ADDRESS_TYPE } from "@prisma/client";
-import { PlusCircle } from "lucide-react";
+import { ArrowDown, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -320,28 +320,30 @@ export default function CreateShipmentPage() {
 	};
 
 	return (
-		<div className="flex min-h-screen items-center justify-center p-4">
-			<Card className="w-full bg-blue-100/20">
-				<AddAddressModal
-					isOpen={showOriginAddressModal}
-					onClose={() => setShowOriginAddressModal(false)}
-					onAddressAdded={() => refetchWarehouseAddresses()}
-					addressType={ADDRESS_TYPE.Warehouse}
-				/>
-				<CardHeader>
-					<h1 className="text-center font-semibold text-2xl text-blue-950">
-						Create Shipment
-					</h1>
-					<p className="text-center text-blue-900 text-sm">
-						Enter the shipment details.
-					</p>
-				</CardHeader>
-				<CardContent>
-					<form
-						onSubmit={handleSubmit(onSubmit)}
-						className="space-y-4 text-blue-950"
-					>
-						<div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+		<div className="flex min-h-screen flex-col items-center justify-center p-4">
+			<AddAddressModal
+				isOpen={showOriginAddressModal}
+				onClose={() => setShowOriginAddressModal(false)}
+				onAddressAdded={() => refetchWarehouseAddresses()}
+				addressType={ADDRESS_TYPE.Warehouse}
+			/>
+			<h1 className="mb-4 text-center font-semibold text-2xl text-blue-950">
+				Create Shipment
+			</h1>
+			<p className="mb-8 text-center text-blue-900 text-sm">
+				Enter the shipment details step by step.
+			</p>
+			<form
+				onSubmit={handleSubmit(onSubmit)}
+				className="w-full space-y-20 text-blue-950"
+			>
+				{/* Recipient Details Card */}
+				<Card className="w-full bg-blue-100/20">
+					<CardHeader>
+						<h2 className="font-semibold text-xl">1. Recipient Details</h2>
+					</CardHeader>
+					<CardContent>
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-4">
 								<Label>Recipient Name</Label>
 								<Input {...register("recipientName")} disabled={isLoading} />
@@ -366,255 +368,286 @@ export default function CreateShipmentPage() {
 								<FieldError message={errors.recipientMobile?.message} />
 							</div>
 						</div>
+					</CardContent>
+				</Card>
 
-						<div className="space-y-4">
-							<Label className="font-bold">Destination Address</Label>
-							<div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-								<div className="space-y-2">
-									<Label>Zip Code</Label>
-									<Input
-										value={destinationAddress.zipCode}
-										onChange={(e) =>
-											setDestinationAddress((prev) => ({
-												...prev,
-												zipCode: e.target.value,
-											}))
-										}
-										disabled={isLoading}
-									/>
-									<FieldError message={errors.destinationAddressId?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>Address Line</Label>
-									<Input
-										value={destinationAddress.addressLine}
-										onChange={(e) =>
-											setDestinationAddress((prev) => ({
-												...prev,
-												addressLine: e.target.value,
-											}))
-										}
-										disabled={isLoading}
-									/>
-									<FieldError message={errors.destinationAddressId?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>City</Label>
-									<Input
-										value={destinationAddress.city}
-										onChange={(e) =>
-											setDestinationAddress((prev) => ({
-												...prev,
-												city: e.target.value,
-											}))
-										}
-										disabled={isLoading}
-									/>
-									<FieldError message={errors.destinationAddressId?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>State</Label>
-									<Input
-										value={destinationAddress.state}
-										onChange={(e) =>
-											setDestinationAddress((prev) => ({
-												...prev,
-												state: e.target.value,
-											}))
-										}
-										disabled={isLoading}
-									/>
-									<FieldError message={errors.destinationAddressId?.message} />
-								</div>
+				<div className="flex justify-center py-4">
+					<ArrowDown className="h-10 w-10 text-blue-950" />
+				</div>
+
+				{/* Destination Address Card */}
+				<Card className="w-full bg-blue-100/20">
+					<CardHeader>
+						<h2 className="font-semibold text-xl">2. Destination Address</h2>
+					</CardHeader>
+					<CardContent>
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<div className="space-y-2">
+								<Label>Zip Code</Label>
+								<Input
+									value={destinationAddress.zipCode}
+									onChange={(e) =>
+										setDestinationAddress((prev) => ({
+											...prev,
+											zipCode: e.target.value,
+										}))
+									}
+									disabled={isLoading}
+								/>
+								<FieldError message={errors.destinationAddressId?.message} />
 							</div>
-							<FieldError message={errors.destinationAddressId?.message} />
+							<div className="space-y-2">
+								<Label>Address Line</Label>
+								<Input
+									value={destinationAddress.addressLine}
+									onChange={(e) =>
+										setDestinationAddress((prev) => ({
+											...prev,
+											addressLine: e.target.value,
+										}))
+									}
+									disabled={isLoading}
+								/>
+								<FieldError message={errors.destinationAddressId?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label>City</Label>
+								<Input
+									value={destinationAddress.city}
+									onChange={(e) =>
+										setDestinationAddress((prev) => ({
+											...prev,
+											city: e.target.value,
+										}))
+									}
+									disabled={isLoading}
+								/>
+								<FieldError message={errors.destinationAddressId?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label>State</Label>
+								<Input
+									value={destinationAddress.state}
+									onChange={(e) =>
+										setDestinationAddress((prev) => ({
+											...prev,
+											state: e.target.value,
+										}))
+									}
+									disabled={isLoading}
+								/>
+								<FieldError message={errors.destinationAddressId?.message} />
+							</div>
 						</div>
+						<FieldError message={errors.destinationAddressId?.message} />
+					</CardContent>
+				</Card>
 
-						<div className="space-y-4">
-							<Label className="font-bold">Origin Address</Label>
-							<Input
-								placeholder="Search by Pin Code"
-								onChange={(e) => setOriginZipCodeFilter(e.target.value)}
-								className="mb-2"
-							/>
-							{isLoadingWarehouseAddresses ? (
-								<p>Loading origin addresses...</p>
-							) : (
-								<div className="flex gap-4 overflow-x-auto p-4">
-									{filteredWarehouseAddresses?.map((address) => (
-										<Card
-											key={address.address_id}
-											className={`h-48 w-96 flex-shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 ${
-												watch("originAddressId") === address.address_id
-													? "border-blue-500 ring-1 ring-blue-500"
-													: ""
-											}`}
-											onClick={() =>
-												setValue("originAddressId", address.address_id)
-											}
-										>
-											<CardHeader>
-												<h3 className="font-semibold">{address.name}</h3>
-											</CardHeader>
-											<CardContent>
-												<p>{address.address_line}</p>
-												<p>
-													{address.city}, {address.state} - {address.zip_code}
-												</p>
-											</CardContent>
-										</Card>
-									))}
-									<Button
-										type="button"
-										variant="outline"
-										className="h-48 w-96 bg-blue-200 hover:bg-blue-300"
-										onClick={() => setShowOriginAddressModal(true)}
+				<div className="flex justify-center py-4">
+					<ArrowDown className="h-10 w-10 text-blue-950" />
+				</div>
+
+				{/* Origin Address Card */}
+				<Card className="w-full bg-blue-100/20">
+					<CardHeader>
+						<h2 className="font-semibold text-xl">3. Warehouse</h2>
+					</CardHeader>
+					<CardContent>
+						<Input
+							placeholder="Search by Pin Code"
+							onChange={(e) => setOriginZipCodeFilter(e.target.value)}
+							className="mb-2"
+						/>
+						{isLoadingWarehouseAddresses ? (
+							<p>Loading warehouses...</p>
+						) : (
+							<div className="flex gap-4 overflow-x-auto p-4">
+								{filteredWarehouseAddresses?.map((address) => (
+									<Card
+										key={address.address_id}
+										className={`h-48 w-96 flex-shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 ${
+											watch("originAddressId") === address.address_id
+												? "border-blue-500 ring-1 ring-blue-500"
+												: ""
+										}`}
+										onClick={() =>
+											setValue("originAddressId", address.address_id)
+										}
 									>
-										<PlusCircle className="mr-2 h-4 w-4" /> Add New Origin
-										Address
-									</Button>
-								</div>
-							)}
-							<FieldError message={errors.originAddressId?.message} />
-						</div>
+										<CardHeader>
+											<h3 className="font-semibold">{address.name}</h3>
+										</CardHeader>
+										<CardContent>
+											<p>{address.address_line}</p>
+											<p>
+												{address.city}, {address.state} - {address.zip_code}
+											</p>
+										</CardContent>
+									</Card>
+								))}
+								<Button
+									type="button"
+									variant="outline"
+									className="h-48 w-96 bg-blue-200 hover:bg-blue-300"
+									onClick={() => setShowOriginAddressModal(true)}
+								>
+									<PlusCircle className="mr-2 h-4 w-4" /> Add New Warehouse
+								</Button>
+							</div>
+						)}
+						<FieldError message={errors.originAddressId?.message} />
+					</CardContent>
+				</Card>
 
-						<div className="space-y-4">
-							<Label className="font-bold">Package Details</Label>
-							<div className="mb-10 grid grid-cols-1 gap-10 p-4 sm:grid-cols-2">
-								<div className="space-y-2">
-									<Label>Package Weight</Label>
-									<Input
-										placeholder="Package Weight (in kg)"
-										type="number"
-										step="any"
-										{...register("packageWeight", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.packageWeight?.message} />
+				<div className="flex justify-center py-4">
+					<ArrowDown className="h-10 w-10 text-blue-950" />
+				</div>
+
+				{/* Package Details Card */}
+				<Card className="w-full bg-blue-100/20">
+					<CardHeader>
+						<h2 className="font-semibold text-xl">4. Package Details</h2>
+					</CardHeader>
+					<CardContent>
+						<div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
+							<div className="space-y-2">
+								<Label>Package Weight (KG)</Label>
+								<Input
+									placeholder="Package Weight (in kg)"
+									type="number"
+									step="any"
+									{...register("packageWeight", {
+										valueAsNumber: true,
+									})}
+								/>
+								<FieldError message={errors.packageWeight?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label>Package Height (CM)</Label>
+								<Input
+									placeholder="Package Height (in cm)"
+									type="number"
+									step="any"
+									{...register("packageHeight", {
+										valueAsNumber: true,
+									})}
+								/>
+								<FieldError message={errors.packageHeight?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label>Package Breadth (CM)</Label>
+								<Input
+									placeholder="Package Breadth (in cm)"
+									type="number"
+									step="any"
+									{...register("packageBreadth", {
+										valueAsNumber: true,
+									})}
+								/>
+								<FieldError message={errors.packageBreadth?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label>Package Length (CM)</Label>
+								<Input
+									placeholder="Package Length (in cm)"
+									type="number"
+									step="any"
+									{...register("packageLength", {
+										valueAsNumber: true,
+									})}
+								/>
+								<FieldError message={errors.packageLength?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label>Package Weight Image</Label>
+								<div className="relative flex h-32 w-32 items-center justify-center rounded border bg-gray-100">
+									{packageImagePreview ? (
+										<Image
+											src={packageImagePreview}
+											alt="Package Image Preview"
+											className="h-full w-full object-cover"
+											width={200}
+											height={200}
+										/>
+									) : (
+										<Image
+											src="/sample_package_image.jpeg"
+											alt="Sample Package Image"
+											className="h-full w-full object-cover"
+											width={200}
+											height={200}
+										/>
+									)}
 								</div>
-								<div className="space-y-2">
-									<Label>Package Height</Label>
+								<Input
+									type="file"
+									accept="image/*"
+									onChange={(e) => {
+										handleFileChange(e, "packageImage", setPackageImagePreview);
+									}}
+								/>
+								<FieldError message={errors.packageImage?.message as string} />
+							</div>
+							<div className="space-y-2">
+								<Label>Declared Value (₹)</Label>
+								<Input
+									placeholder="Declared Value"
+									type="number"
+									step="1"
+									{...register("declaredValue", {
+										valueAsNumber: true,
+									})}
+								/>
+								<FieldError message={errors.declaredValue?.message} />
+								<div className="flex items-center space-x-2">
 									<Input
-										placeholder="Package Height (in cm)"
-										type="number"
-										step="any"
-										{...register("packageHeight", {
-											valueAsNumber: true,
-										})}
+										id="isInsuranceSelected"
+										type="checkbox"
+										{...register("isInsuranceSelected")}
+										className="h-4 w-4"
 									/>
-									<FieldError message={errors.packageHeight?.message} />
+									<Label htmlFor="isInsuranceSelected">Opt for Insurance</Label>
+									<Link
+										href="/insurance-rates"
+										className="text-blue-500 text-sm hover:underline"
+										target="_blank"
+									>
+										(View Rates)
+									</Link>
 								</div>
-								<div className="space-y-2">
-									<Label>Package Breadth</Label>
-									<Input
-										placeholder="Package Breadth (in cm)"
-										type="number"
-										step="any"
-										{...register("packageBreadth", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.packageBreadth?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>Package Length</Label>
-									<Input
-										placeholder="Package Length (in cm)"
-										type="number"
-										step="any"
-										{...register("packageLength", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.packageLength?.message} />
-								</div>
-								<div className="space-y-2">
-									<Label>Package Weight Image</Label>
-									<div className="relative flex h-32 w-32 items-center justify-center rounded border bg-gray-100">
-										{packageImagePreview ? (
-											<Image
-												src={packageImagePreview}
-												alt="Package Image Preview"
-												className="h-full w-full object-cover"
-												width={200}
-												height={200}
-											/>
-										) : (
-											<Image
-												src="/sample_package_image.jpeg"
-												alt="Sample Package Image"
-												className="h-full w-full object-cover"
-												width={200}
-												height={200}
-											/>
-										)}
-									</div>
+								<div
+									className={`space-y-2 ${!watch("isInsuranceSelected") ? "invisible h-0" : ""}`}
+								>
+									<Label>Invoice</Label>
 									<Input
 										type="file"
-										accept="image/*"
+										accept="application/pdf,image/*"
 										onChange={(e) => {
-											handleFileChange(
-												e,
-												"packageImage",
-												setPackageImagePreview,
-											);
+											handleFileChange(e, "invoice", setInvoicePreview);
 										}}
 									/>
-									<FieldError
-										message={errors.packageImage?.message as string}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label>Declared Value (₹)</Label>
-									<Input
-										placeholder="Declared Value"
-										type="number"
-										step="1"
-										{...register("declaredValue", {
-											valueAsNumber: true,
-										})}
-									/>
-									<FieldError message={errors.declaredValue?.message} />
-									<div className="flex items-center space-x-2">
-										<Input
-											id="isInsuranceSelected"
-											type="checkbox"
-											{...register("isInsuranceSelected")}
-											className="h-4 w-4"
-										/>
-										<Label htmlFor="isInsuranceSelected">
-											Opt for Insurance
-										</Label>
-										<Link
-											href="/insurance-rates"
-											className="text-blue-500 text-sm hover:underline"
-											target="_blank"
-										>
-											(View Rates)
-										</Link>
-									</div>
-									<div
-										className={`space-y-2 ${!watch("isInsuranceSelected") ? "invisible h-0" : ""}`}
-									>
-										<Label>Invoice</Label>
-										<Input
-											type="file"
-											accept="application/pdf,image/*"
-											onChange={(e) => {
-												handleFileChange(e, "invoice", setInvoicePreview);
-											}}
-										/>
-										{invoicePreview && (
-											<p className="text-muted-foreground text-sm">
-												File selected: {invoicePreview.split("/").pop()}
-											</p>
-										)}
-										<FieldError message={errors.invoice?.message as string} />
-									</div>
+									{invoicePreview && (
+										<p className="text-muted-foreground text-sm">
+											File selected: {invoicePreview.split("/").pop()}
+										</p>
+									)}
+									<FieldError message={errors.invoice?.message as string} />
 								</div>
 							</div>
 						</div>
+					</CardContent>
+				</Card>
+
+				<div className="flex justify-center py-4">
+					<ArrowDown className="h-10 w-10 text-blue-950" />
+				</div>
+
+				{/* Rate Calculation and Submission Card */}
+				<Card className="w-full bg-blue-100/20">
+					<CardHeader>
+						<h2 className="font-semibold text-xl">5. Review and Confirm</h2>
+					</CardHeader>
+					<CardContent className="space-y-4">
 						<Button
 							type="button"
 							onClick={handleCalculateRate}
@@ -635,7 +668,6 @@ export default function CreateShipmentPage() {
 											`, Compensation: ₹${calculatedRate.compensationAmount.toFixed(
 												2,
 											)}`}
-										)
 									</p>
 								)}
 							{origin && destination && (
@@ -655,20 +687,20 @@ export default function CreateShipmentPage() {
 						>
 							{isLoading ? "Creating..." : "Create Shipment"}
 						</Button>
-					</form>
-				</CardContent>
-				<CardFooter className="justify-center">
-					<p className="text-muted-foreground text-sm">
-						Need help?{" "}
-						<Link
-							href="/dashboard/support"
-							className="text-primary hover:underline"
-						>
-							Contact Support
-						</Link>
-					</p>
-				</CardFooter>
-			</Card>
+					</CardContent>
+					<CardFooter className="justify-center">
+						<p className="text-muted-foreground text-sm">
+							Need help?{" "}
+							<Link
+								href="/dashboard/support"
+								className="text-primary hover:underline"
+							>
+								Contact Support
+							</Link>
+						</p>
+					</CardFooter>
+				</Card>
+			</form>
 		</div>
 	);
 }
