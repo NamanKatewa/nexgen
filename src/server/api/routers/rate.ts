@@ -6,6 +6,7 @@ import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { rateSchema } from "~/schemas/rate";
 import {
+	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
@@ -202,5 +203,19 @@ export const rateRouter = createTRPCRouter({
 				logger.error("Failed to calculate bulk rates", { ...logData, error });
 				throw error;
 			}
+		}),
+
+	getDefaultRates: adminProcedure.query(async ({ ctx }) => {
+		return ctx.db.defaultRate.findMany();
+	}),
+
+	updateDefaultRate: adminProcedure
+		.input(z.object({ id: z.string(), rate: z.number() }))
+		.mutation(async ({ ctx, input }) => {
+			const { id, rate } = input;
+			return ctx.db.defaultRate.update({
+				where: { default_rate_id: id },
+				data: { rate: rate },
+			});
 		}),
 });
