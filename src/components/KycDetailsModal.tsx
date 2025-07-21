@@ -361,19 +361,6 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 										tabIndex={-1}
 									/>
 								)}
-								{kycItem.pan_image_back && (
-									<Image
-										src={kycItem.pan_image_back as string}
-										alt="PAN Back"
-										width={100}
-										height={70}
-										className="h-14 w-24 cursor-pointer rounded border"
-										onClick={() =>
-											previewImage(kycItem.pan_image_back as string)
-										}
-										tabIndex={-1}
-									/>
-								)}
 							</div>
 						</div>
 					</div>

@@ -218,7 +218,6 @@ model Kyc {
   aadhar_image_back   String?
   pan_number          String?
   pan_image_front     String?
-  pan_image_back      String?
   gst                 Boolean     @default(false)
   kyc_status          KYC_STATUS  @default(Pending)
   submission_date     DateTime?

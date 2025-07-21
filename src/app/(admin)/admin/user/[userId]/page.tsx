@@ -7,7 +7,6 @@ import Copyable from "~/components/Copyable";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Separator } from "~/components/ui/separator";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -214,19 +213,6 @@ export default function AdminUserDetailPage() {
 											<img
 												src={user.kyc.pan_image_front}
 												alt="PAN Front"
-												className="h-48 w-48 rounded-md object-cover"
-											/>
-										</Link>
-									)}
-									{user.kyc.pan_image_back && (
-										<Link
-											href={user.kyc.pan_image_back}
-											target="_blank"
-											rel="noopener noreferrer"
-										>
-											<img
-												src={user.kyc.pan_image_back}
-												alt="PAN Back"
 												className="h-48 w-48 rounded-md object-cover"
 											/>
 										</Link>

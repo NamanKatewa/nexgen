@@ -39,7 +39,6 @@ export const submitKycSchema = z
 				"PAN number must be in the format: 5 letters, 4 digits, 1 letter",
 			),
 		panImageFront: base64ImageSchema,
-		panImageBack: base64ImageSchema,
 		gst: z.boolean(),
 		submission_date: z.date(),
 	})
@@ -64,13 +63,6 @@ export const submitKycSchema = z
 				code: z.ZodIssueCode.custom,
 				message: "PAN Front Image is required.",
 				path: ["panImageFront"],
-			});
-		}
-		if (!data.panImageBack) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "PAN Back Image is required.",
-				path: ["panImageBack"],
 			});
 		}
 	});

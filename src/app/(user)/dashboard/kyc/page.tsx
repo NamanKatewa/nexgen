@@ -47,7 +47,6 @@ export default function KycFormPage() {
 		null,
 	);
 	const [panFrontPreview, setPanFrontPreview] = useState<string | null>(null);
-	const [panBackPreview, setPanBackPreview] = useState<string | null>(null);
 
 	const kycSubmitMutation = api.kyc.kycSubmit.useMutation({
 		onSuccess: () => {
@@ -148,7 +147,6 @@ export default function KycFormPage() {
 				"aadharImageBack",
 				"panNumber",
 				"panImageFront",
-				"panImageBack",
 			]);
 		}
 
@@ -504,30 +502,6 @@ export default function KycFormPage() {
 											message={errors.panImageFront?.message as string}
 										/>
 									</div>
-
-									<div className="space-y-2">
-										<Label htmlFor="panImageBack">PAN Back Image</Label>
-										<Input
-											id="panImageBack"
-											type="file"
-											accept="image/*"
-											onChange={(e) => {
-												handleFileChange(e, "panImageBack", setPanBackPreview);
-											}}
-										/>
-										<div className="mt-2 flex h-32 w-32 items-center justify-center overflow-hidden rounded border bg-gray-100">
-											{panBackPreview && (
-												<img
-													src={panBackPreview}
-													alt="PAN Back Preview"
-													className="h-full w-full object-cover"
-												/>
-											)}
-										</div>
-										<FieldError
-											message={errors.panImageBack?.message as string}
-										/>
-									</div>
 								</div>
 							</TabsContent>
 
@@ -685,20 +659,6 @@ export default function KycFormPage() {
 														<img
 															src={panFrontPreview}
 															alt="PAN Front"
-															className="inline-block h-20 w-20 object-cover"
-														/>
-													</p>
-												)}
-												{panBackPreview && (
-													<p className="col-span-1">
-														<strong className="text-blue-950">PAN Back:</strong>
-													</p>
-												)}
-												{panBackPreview && (
-													<p className="col-span-1">
-														<img
-															src={panBackPreview}
-															alt="PAN Back"
 															className="inline-block h-20 w-20 object-cover"
 														/>
 													</p>

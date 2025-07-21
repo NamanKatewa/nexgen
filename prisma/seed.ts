@@ -686,7 +686,6 @@ async function main() {
 						aadhar_image_back: generateBase64Image().data,
 						pan_number: faker.string.alphanumeric(10).toUpperCase(),
 						pan_image_front: generateBase64Image().data,
-						pan_image_back: generateBase64Image().data,
 						gst: faker.datatype.boolean(),
 						kyc_status: kycStatus,
 						submission_date: faker.date.past(),

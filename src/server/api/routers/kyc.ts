@@ -13,13 +13,11 @@ export const kycRouter = createTRPCRouter({
 			logger.info("KYC submission attempt", logData);
 
 			try {
-				const [aadharFrontUrl, aadharBackUrl, panFrontUrl, panBackUrl] =
-					await Promise.all([
-						uploadFileToS3(input.aadharImageFront, "kyc/aadhar/front"),
-						uploadFileToS3(input.aadharImageBack, "kyc/aadhar/back"),
-						uploadFileToS3(input.panImageFront, "kyc/pan/front"),
-						uploadFileToS3(input.panImageBack, "kyc/pan/back"),
-					]);
+				const [aadharFrontUrl, aadharBackUrl, panFrontUrl] = await Promise.all([
+					uploadFileToS3(input.aadharImageFront, "kyc/aadhar/front"),
+					uploadFileToS3(input.aadharImageBack, "kyc/aadhar/back"),
+					uploadFileToS3(input.panImageFront, "kyc/pan/front"),
+				]);
 				logger.info("Successfully uploaded KYC documents to S3", logData);
 
 				const address = await db.address.create({
@@ -51,7 +49,6 @@ export const kycRouter = createTRPCRouter({
 						aadhar_image_back: aadharBackUrl,
 						pan_number: input.panNumber,
 						pan_image_front: panFrontUrl,
-						pan_image_back: panBackUrl,
 						gst: input.gst,
 						kyc_status: "Submitted",
 						submission_date: new Date(),
