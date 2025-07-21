@@ -13,7 +13,7 @@ const sections = [
 	{
 		title: "Information We Collect",
 		content:
-			"We collect personal information (name, address, phone number, email), transaction information (delivery addresses, payment details), and usage data (IP addresses, browser types, pages visited).",
+			"We collect personal information (name, address, landmark, phone number, email), transaction information (delivery addresses, payment details), and usage data (IP addresses, browser types, pages visited).",
 	},
 	{
 		title: "How We Use Your Information",

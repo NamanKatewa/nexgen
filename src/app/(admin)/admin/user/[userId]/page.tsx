@@ -289,6 +289,13 @@ export default function AdminUserDetailPage() {
 									<p className="font-medium text-sm">Address Line:</p>
 									<p className="text-sm">{address.address_line}</p>
 
+									{address.landmark && (
+										<>
+											<p className="font-medium text-sm">Landmark:</p>
+											<p className="text-sm">{address.landmark}</p>
+										</>
+									)}
+
 									<p className="font-medium text-sm">City:</p>
 									<p className="text-sm">{address.city}</p>
 
@@ -561,6 +568,13 @@ export default function AdminUserDetailPage() {
 
 									<p className="font-medium text-sm">Address Line:</p>
 									<p className="text-sm">{pAddress.address_line}</p>
+
+									{pAddress.landmark && (
+										<>
+											<p className="font-medium text-sm">Landmark:</p>
+											<p className="text-sm">{pAddress.landmark}</p>
+										</>
+									)}
 
 									<p className="font-medium text-sm">City:</p>
 									<p className="text-sm">{pAddress.city}</p>

@@ -169,6 +169,9 @@ export default function UserShipmentDetailPage() {
 							<p className="font-medium text-sm">Origin Address:</p>
 							<p className="text-sm">
 								{shipment.origin_address.address_line},{" "}
+								{shipment.origin_address.landmark && (
+									<>{shipment.origin_address.landmark}, </>
+								)}
 								{shipment.origin_address.city},{shipment.origin_address.state} -{" "}
 								{shipment.origin_address.zip_code}
 							</p>
@@ -177,6 +180,9 @@ export default function UserShipmentDetailPage() {
 							<p className="font-medium text-sm">Destination Address:</p>
 							<p className="text-sm">
 								{shipment.destination_address.address_line},
+								{shipment.destination_address.landmark && (
+									<>{shipment.destination_address.landmark},</>
+								)}
 								{shipment.destination_address.city},
 								{shipment.destination_address.state} -{" "}
 								{shipment.destination_address.zip_code}

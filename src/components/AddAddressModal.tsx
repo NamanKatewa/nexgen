@@ -86,6 +86,15 @@ export function AddAddressModal({
 						<FieldError message={errors.addressLine?.message} />
 					</div>
 					<div className="space-y-2">
+						<Label htmlFor="landmark">Landmark (Optional)</Label>
+						<Input
+							id="landmark"
+							{...register("landmark")}
+							disabled={isLoading}
+						/>
+						<FieldError message={errors.landmark?.message} />
+					</div>
+					<div className="space-y-2">
 						<Label htmlFor="city">City</Label>
 						<Input id="city" {...register("city")} disabled={isLoading} />
 						<FieldError message={errors.city?.message} />

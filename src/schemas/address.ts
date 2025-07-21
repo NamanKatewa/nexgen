@@ -11,6 +11,7 @@ export const addressSchema = z.object({
 	city: z.string().min(1, "City is required"),
 	state: z.string().min(1, "State is required"),
 	addressLine: z.string().min(1, "Address is required"),
+	landmark: z.string().optional(),
 	name: z.string().min(1, "Name is required"),
 });
 

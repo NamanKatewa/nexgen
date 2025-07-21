@@ -29,6 +29,7 @@ export const kycRouter = createTRPCRouter({
 						city: input.billingAddress.city,
 						state: input.billingAddress.state,
 						address_line: input.billingAddress.addressLine,
+						landmark: input.billingAddress.landmark || null,
 						user: { connect: { user_id: ctx.user.user_id } },
 						name: "KYC",
 					},

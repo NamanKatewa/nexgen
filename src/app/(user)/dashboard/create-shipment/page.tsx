@@ -129,6 +129,7 @@ export default function CreateShipmentPage() {
 		addressLine: "",
 		city: "",
 		state: "",
+		landmark: "",
 	});
 	const recipientName = watch("recipientName");
 
@@ -147,6 +148,7 @@ export default function CreateShipmentPage() {
 						addressLine: matchedAddress.address_line,
 						city: matchedAddress.city,
 						state: matchedAddress.state,
+						landmark: matchedAddress.landmark || "",
 					});
 					setAutofilledAddressDetails(matchedAddress);
 				}
@@ -162,6 +164,7 @@ export default function CreateShipmentPage() {
 				addressLine: "",
 				city: "",
 				state: "",
+				landmark: "",
 			});
 		}
 	}, [userAddresses, recipientName, setValue]);
@@ -404,6 +407,20 @@ export default function CreateShipmentPage() {
 										setDestinationAddress((prev) => ({
 											...prev,
 											addressLine: e.target.value,
+										}))
+									}
+									disabled={isLoading}
+								/>
+								<FieldError message={errors.destinationAddressId?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label>Landmark</Label>
+								<Input
+									value={destinationAddress.landmark}
+									onChange={(e) =>
+										setDestinationAddress((prev) => ({
+											...prev,
+											landmark: e.target.value,
 										}))
 									}
 									disabled={isLoading}

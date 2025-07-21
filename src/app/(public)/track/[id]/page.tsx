@@ -192,12 +192,18 @@ export default function TrackingPage() {
 							</p>
 							<p>
 								<strong>Origin:</strong> {shipment.origin_address.address_line},{" "}
+								{shipment.origin_address.landmark && (
+									<>{shipment.origin_address.landmark}, </>
+								)}
 								{shipment.origin_address.city}, {shipment.origin_address.state}{" "}
 								- {shipment.origin_address.zip_code}
 							</p>
 							<p>
 								<strong>Destination:</strong>{" "}
 								{shipment.destination_address.address_line},{" "}
+								{shipment.destination_address.landmark && (
+									<>{shipment.destination_address.landmark}, </>
+								)}
 								{shipment.destination_address.city},{" "}
 								{shipment.destination_address.state} -{" "}
 								{shipment.destination_address.zip_code}

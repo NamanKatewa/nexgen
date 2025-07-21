@@ -25,6 +25,7 @@ export const submitKycSchema = z
 			city: z.string().min(1, "City is required"),
 			state: z.string().min(1, "State is required"),
 			addressLine: z.string().min(1, "Address is required"),
+			landmark: z.string().optional(),
 		}),
 		aadharNumber: z
 			.string()

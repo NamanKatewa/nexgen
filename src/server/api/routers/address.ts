@@ -63,6 +63,7 @@ export const addressRouter = createTRPCRouter({
 							city: input.city,
 							state: input.state,
 							address_line: input.addressLine,
+							landmark: input.landmark || null,
 							name: input.name,
 							user: {
 								connect: { user_id: ctx.user.user_id as string },
@@ -81,6 +82,7 @@ export const addressRouter = createTRPCRouter({
 						city: input.city,
 						state: input.state,
 						address_line: input.addressLine,
+						landmark: input.landmark || null,
 						name: input.name,
 						type: input.type,
 						user: {

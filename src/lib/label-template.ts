@@ -135,6 +135,7 @@ export const getLabelHTML = (
             <p class="font-bold text-sm">${shipment.recipient_name}</p>
             <p>
               ${shipment.destination_address?.address_line},
+              ${shipment.destination_address?.landmark ? `${shipment.destination_address.landmark},` : ""}
               ${shipment.destination_address?.city},
               ${shipment.destination_address?.state}, PIN: 
               ${shipment.destination_address?.zip_code}
@@ -157,6 +158,7 @@ export const getLabelHTML = (
               <h3 class="mb-1 font-bold">RETURN ADDRESS:</h3>
               <p>
                 ${shipment.origin_address?.address_line},
+                ${shipment.origin_address?.landmark ? `${shipment.origin_address.landmark},` : ""}
                 ${shipment.origin_address?.city},${shipment.origin_address?.state},
                 ${shipment.origin_address?.zip_code}
               </p>

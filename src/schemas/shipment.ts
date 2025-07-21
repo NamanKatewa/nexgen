@@ -161,6 +161,7 @@ export const bulkShipmentItemSchema = z
 		originZipCode: z.string().length(6, "Origin Zip Code must be 6 digits"),
 		originCity: z.string().min(1, "Origin City is Required"),
 		originState: z.string().min(1, "Origin State is Required"),
+		originLandmark: z.string().optional(),
 		destinationAddressLine: z
 			.string()
 			.min(1, "Destination Address Line is Required"),
@@ -169,6 +170,7 @@ export const bulkShipmentItemSchema = z
 			.length(6, "Destination Zip Code must be 6 digits"),
 		destinationCity: z.string().min(1, "Destination City is Required"),
 		destinationState: z.string().min(1, "Destination State is Required"),
+		destinationLandmark: z.string().optional(),
 		packageImage: base64ImageSchema.refine((data) => data.data.length > 0, {
 			message: "Package image is required",
 		}),

@@ -120,6 +120,9 @@ const RefundPage = () => {
 								<p>
 									<strong>Origin:</strong>{" "}
 									{shipmentDetails.origin_address.address_line},{" "}
+									{shipmentDetails.origin_address.landmark && (
+										<>{shipmentDetails.origin_address.landmark}, </>
+									)}
 									{shipmentDetails.origin_address.city},{" "}
 									{shipmentDetails.origin_address.state} -{" "}
 									{shipmentDetails.origin_address.zip_code}
@@ -127,6 +130,9 @@ const RefundPage = () => {
 								<p>
 									<strong>Destination:</strong>{" "}
 									{shipmentDetails.destination_address.address_line},{" "}
+									{shipmentDetails.destination_address.landmark && (
+										<>{shipmentDetails.destination_address.landmark}, </>
+									)}
 									{shipmentDetails.destination_address.city},{" "}
 									{shipmentDetails.destination_address.state} -{" "}
 									{shipmentDetails.destination_address.zip_code}

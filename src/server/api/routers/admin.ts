@@ -687,6 +687,7 @@ export const adminRouter = createTRPCRouter({
 							city: pendingAddress.city,
 							state: pendingAddress.state,
 							address_line: pendingAddress.address_line,
+							landmark: pendingAddress.landmark,
 							name: pendingAddress.name,
 							type: "Warehouse",
 							user_id: pendingAddress.user_id,

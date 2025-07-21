@@ -43,6 +43,7 @@ interface NewPendingAddress {
 	user_id: string;
 	name: string;
 	address_line: string;
+	landmark: string | null;
 	city: string;
 	state: string;
 	zip_code: number;
@@ -52,6 +53,7 @@ interface NewDestinationAddress {
 	user_id: string;
 	name: string;
 	address_line: string;
+	landmark: string | null;
 	city: string;
 	state: string;
 	zip_code: number;
@@ -386,6 +388,7 @@ export const shipmentRouter = createTRPCRouter({
 							user_id: user.user_id as string,
 							name: `Origin for ${shipment.recipientName}`,
 							address_line: shipment.originAddressLine,
+							landmark: shipment.originLandmark || null,
 							city: shipment.originCity,
 							state: shipment.originState,
 							zip_code: Number(shipment.originZipCode),
@@ -434,6 +437,7 @@ export const shipmentRouter = createTRPCRouter({
 						user_id: user.user_id as string,
 						name: shipment.recipientName,
 						address_line: shipment.destinationAddressLine,
+						landmark: shipment.destinationLandmark || null,
 						city: shipment.destinationCity,
 						state: shipment.destinationState,
 						zip_code: Number(shipment.destinationZipCode),

@@ -139,6 +139,7 @@ export default function KycFormPage() {
 				"billingAddress.city",
 				"billingAddress.state",
 				"billingAddress.addressLine",
+				"billingAddress.landmark",
 			]);
 		} else if (currentStep === 2) {
 			isValid = await trigger([
@@ -340,6 +341,22 @@ export default function KycFormPage() {
 											/>
 											<FieldError
 												message={errors.billingAddress?.addressLine?.message}
+											/>
+										</div>
+										<div className="space-y-2 md:col-span-2">
+											<Label htmlFor="billingAddress.landmark">
+												Landmark (Optional)
+											</Label>
+											<Input
+												id="billingAddress.landmark"
+												placeholder="Landmark"
+												{...register("billingAddress.landmark", {
+													onChange: () =>
+														clearErrors("billingAddress.landmark"),
+												})}
+											/>
+											<FieldError
+												message={errors.billingAddress?.landmark?.message}
 											/>
 										</div>
 									</div>
@@ -560,6 +577,26 @@ export default function KycFormPage() {
 												<p className="col-span-1">
 													{watch("billingAddress.addressLine")}
 												</p>
+												{watch("billingAddress.landmark") && (
+													<p className="col-span-1">
+														<strong className="text-blue-950">Landmark:</strong>
+													</p>
+												)}
+												{watch("billingAddress.landmark") && (
+													<p className="col-span-1">
+														{watch("billingAddress.landmark")}
+													</p>
+												)}
+												{watch("billingAddress.landmark") && (
+													<p className="col-span-1">
+														<strong className="text-blue-950">Landmark:</strong>
+													</p>
+												)}
+												{watch("billingAddress.landmark") && (
+													<p className="col-span-1">
+														{watch("billingAddress.landmark")}
+													</p>
+												)}
 												<p className="col-span-1">
 													<strong className="text-blue-950">City:</strong>
 												</p>

@@ -26,6 +26,7 @@ type KycItemType = KycListOutput["kycList"][number];
 
 type BillingAddress = {
 	address_line: string;
+	landmark?: string;
 	city: string;
 	state: string;
 	zip_code: number;
@@ -293,6 +294,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 									tabIndex={-1}
 								>
 									{address.address_line}
+									{address.landmark && <>, {address.landmark}</>}
 									<br />
 									{address.city}, {address.state} - {address.zip_code}
 								</div>

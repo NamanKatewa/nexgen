@@ -195,6 +195,7 @@ model Address {
   city                  String
   state                 String
   address_line          String
+  landmark              String?
   name                  String
   type                  ADDRESS_TYPE
   user_id               String
@@ -349,6 +350,7 @@ model PendingAddress {
   zip_code           Int
   city               String
   state              String
+  landmark              String?
   address_line       String
   name               String
   user_id            String
