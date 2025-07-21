@@ -99,7 +99,7 @@ function PendingAddressesContent() {
 		{
 			key: "landmark",
 			header: "Landmark",
-			className: "w-50 px-4 whitespace-normal",
+			className: "w-30 px-4 whitespace-normal",
 			render: (item: PendingAddress) => item.landmark || "N/A",
 		},
 		{ key: "city", header: "City", className: "w-30 px-4 whitespace-normal" },
@@ -112,7 +112,7 @@ function PendingAddressesContent() {
 		{
 			key: "actions",
 			header: "Actions",
-			className: "w-60",
+			className: "w-30",
 			render: (row: PendingAddress) => (
 				<div className="flex flex-col gap-2">
 					<Button
