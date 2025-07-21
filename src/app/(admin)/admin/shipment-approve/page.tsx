@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
@@ -17,12 +18,14 @@ type ShipmentListItem = ShipmentListOutput["shipments"][number];
 const ApproveOrderPage = () => {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
+	const searchParams = useSearchParams();
+	const initialUserId = searchParams.get("userId") || "";
 
 	const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
 	const [selectedShipmentItem, setSelectedShipmentItem] =
 		useState<ShipmentListItem | null>(null);
 
-	const [searchText, setSearchText] = useState("");
+	const [searchText, setSearchText] = useState(initialUserId);
 	const debouncedSearchFilter = useDebounce(searchText, 500);
 
 	const { data, isLoading } = api.admin.pendingShipments.useQuery(
@@ -52,20 +55,14 @@ const ApproveOrderPage = () => {
 			),
 		},
 		{
-			key: "user_name",
-			header: "User Name",
-			className: "w-40 px-4 whitespace-normal",
-			render: (item: ShipmentListItem) => (
-				<Link href={`/admin/user/${item.user_id}`}>{item.user.name}</Link>
-			),
+			key: "package_weight",
+			header: "Package Weight",
+			className: "w-40 px-4 whitespace-normal text-center",
 		},
 		{
-			key: "user_email",
-			header: "User Email",
-			className: "w-40 px-4",
-			render: (item: ShipmentListItem) => (
-				<Copyable content={item.user.email} />
-			),
+			key: "package_dimensions",
+			header: "Package Dimensions",
+			className: "w-40 px-4 text-center",
 		},
 		{
 			key: "shipping_cost",

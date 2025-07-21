@@ -885,4 +885,92 @@ export const adminRouter = createTRPCRouter({
 				});
 			}
 		}),
+
+	getUsersWithPendingShipments: adminProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+				searchFilter: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { page, pageSize, searchFilter } = input;
+			const skip = (page - 1) * pageSize;
+			logger.info("Fetching users with pending shipments", { page, pageSize });
+
+			const whereClause: Prisma.UserWhereInput = {};
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{ name: { contains: searchFilter, mode: "insensitive" } },
+					{ email: { contains: searchFilter, mode: "insensitive" } },
+					{ mobile_number: { contains: searchFilter, mode: "insensitive" } },
+					{ company_name: { contains: searchFilter, mode: "insensitive" } },
+					{ user_id: { contains: searchFilter, mode: "insensitive" } },
+				];
+			}
+
+			const userWhere: Prisma.UserWhereInput = {
+				...whereClause,
+				shipments: {
+					some: {
+						shipment_status: "PendingApproval",
+					},
+				},
+			};
+
+			try {
+				const [users, totalUsers] = await db.$transaction([
+					db.user.findMany({
+						where: userWhere,
+						select: {
+							user_id: true,
+							name: true,
+							email: true,
+							mobile_number: true,
+							company_name: true,
+							_count: {
+								select: {
+									shipments: {
+										where: { shipment_status: "PendingApproval" },
+									},
+								},
+							},
+						},
+						orderBy: { created_at: "desc" },
+						skip,
+						take: pageSize,
+					}),
+					db.user.count({
+						where: userWhere,
+					}),
+				]);
+
+				const usersWithPendingCount = users.map((user) => ({
+					...user,
+					pendingShipmentCount: user._count.shipments,
+				}));
+
+				logger.info("Successfully fetched users with pending shipments", {
+					count: users.length,
+					totalUsers,
+					page,
+					pageSize,
+				});
+				return {
+					users: usersWithPendingCount,
+					totalUsers,
+					page,
+					pageSize,
+					totalPages: Math.ceil(totalUsers / pageSize),
+				};
+			} catch (error) {
+				logger.error("Failed to fetch users with pending shipments", { error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
 });

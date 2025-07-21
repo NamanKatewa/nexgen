@@ -28,7 +28,7 @@ const sidebarLinks = [
 	{ href: "/admin/wallet", icon: Wallet, label: "Wallet Top-Ups" },
 	{ href: "/admin/passbook", icon: NotebookText, label: "Passbook" },
 	{
-		href: "/admin/shipment-approve",
+		href: "/admin/shipment-users-approve",
 		icon: PackageCheck,
 		label: "Approve Shipments",
 	},
