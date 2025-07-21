@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import Copyable from "~/components/Copyable";
@@ -15,7 +14,7 @@ import { type RouterOutputs, api } from "~/trpc/react";
 type ShipmentListOutput = RouterOutputs["admin"]["pendingShipments"];
 type ShipmentListItem = ShipmentListOutput["shipments"][number];
 
-const ApproveOrderPage = () => {
+function ApproveOrderContent() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const searchParams = useSearchParams();
@@ -137,6 +136,12 @@ const ApproveOrderPage = () => {
 			/>
 		</>
 	);
-};
+}
 
-export default ApproveOrderPage;
+export default function ApproveOrderPage() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<ApproveOrderContent />
+		</Suspense>
+	);
+}
