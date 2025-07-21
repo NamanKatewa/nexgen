@@ -46,15 +46,27 @@ export default function AdminOrderDetailPage() {
 	};
 
 	if (isLoading) {
-		return <div className="p-8">Loading shipment details...</div>;
+		return (
+			<div className="flex h-screen w-full items-center justify-center p-8">
+				<p className="text-2xl">Loading shipment details...</p>
+			</div>
+		);
 	}
 
 	if (error) {
-		return <div className="p-8 text-red-500">Error: {error.message}</div>;
+		return (
+			<div className="flex h-screen w-full items-center justify-center p-8">
+				<p className="p-8 text-2xl text-red-500">Error: {error.message}</p>
+			</div>
+		);
 	}
 
 	if (!shipment) {
-		return <div className="p-8">Shipment not found.</div>;
+		return (
+			<div className="flex h-screen w-full items-center justify-center p-8">
+				<p className="text-2xl">Shipment Not Found for ID: {shipmentId}</p>
+			</div>
+		);
 	}
 
 	return (
@@ -64,12 +76,19 @@ export default function AdminOrderDetailPage() {
 			</h1>
 
 			{shipment.awb_number && shipment.shipment_status === "Approved" && (
-				<Button
-					onClick={() => handleDownloadLabel(shipment.shipment_id)}
-					className="my-4 w-full"
-				>
-					Download Label
-				</Button>
+				<>
+					<Button
+						onClick={() => handleDownloadLabel(shipment.shipment_id)}
+						className="my-4 w-full"
+					>
+						Download Label
+					</Button>
+					<Button className="my-4 w-full">
+						<Link href={`/track/${shipment.human_readable_shipment_id}`}>
+							Track Shipment
+						</Link>
+					</Button>
+				</>
 			)}
 			<Card className="mb-6">
 				<CardHeader>

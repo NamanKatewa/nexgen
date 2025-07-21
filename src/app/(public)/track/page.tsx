@@ -17,10 +17,10 @@ const Tracking = () => {
 	};
 
 	return (
-		<div className="flex items-center justify-center pt-16 pb-8">
+		<div className="flex h-screen w-full items-center justify-center pt-16 pb-8">
 			<Input
 				type="text"
-				placeholder="Enter Tracking Num"
+				placeholder="Enter AWB / Shipment ID"
 				className=" w-1/2 rounded-r-none border-2 border-blue-200 border-r-0 focus:ring-blue-100/50 focus-visible:ring-blue-100/50"
 				value={trackingId}
 				onChange={(e) => setTrackingId(e.target.value)}

@@ -23,11 +23,11 @@ const sidebarLinks = [
 		icon: PackagePlus,
 		label: "Create Shipment",
 	},
-	{
-		href: "/dashboard/create-bulk-shipment",
-		icon: PackagePlus,
-		label: "Create Bulk Shipment",
-	},
+	// {
+	// 	href: "/dashboard/create-bulk-shipment",
+	// 	icon: PackagePlus,
+	// 	label: "Create Bulk Shipment",
+	// },
 	{
 		href: "/dashboard/shipments",
 		icon: Package,

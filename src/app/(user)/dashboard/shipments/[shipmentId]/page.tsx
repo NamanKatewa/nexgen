@@ -67,12 +67,19 @@ export default function UserShipmentDetailPage() {
 				Shipment Details - {shipment.human_readable_shipment_id}
 			</h1>
 			{shipment.awb_number && shipment.shipment_status === "Approved" && (
-				<Button
-					onClick={() => handleDownloadLabel(shipment.shipment_id)}
-					className="my-4 w-full"
-				>
-					Download Label
-				</Button>
+				<>
+					<Button
+						onClick={() => handleDownloadLabel(shipment.shipment_id)}
+						className="my-4 w-full"
+					>
+						Download Label
+					</Button>
+					<Button className="my-4 w-full">
+						<Link href={`/track/${shipment.human_readable_shipment_id}`}>
+							Track Shipment
+						</Link>
+					</Button>
+				</>
 			)}
 			<Card className="mb-6">
 				<CardHeader>

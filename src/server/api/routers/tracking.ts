@@ -1,12 +1,46 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import logger from "~/lib/logger";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
 import { env } from "~/env";
+import { shipwayStatusMap } from "~/lib/shipment-status-map";
 import { webhookSchema } from "~/schemas/webhook";
 
 export const trackingRouter = createTRPCRouter({
+	getTrackingData: publicProcedure
+		.input(z.object({ identifier: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const { identifier } = input;
+
+			const shipment = await ctx.db.shipment.findFirst({
+				where: {
+					OR: [
+						{ awb_number: identifier },
+						{ shipment_id: identifier },
+						{ human_readable_shipment_id: identifier },
+					],
+				},
+				include: {
+					origin_address: true,
+					destination_address: true,
+					tracking: {
+						orderBy: { timestamp: "desc" },
+					},
+				},
+			});
+
+			if (!shipment) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Shipment not found.",
+				});
+			}
+
+			return { shipment, trackingEvents: shipment.tracking };
+		}),
+
 	getCouriers: publicProcedure.query(async ({ ctx }) => {
 		const couriers = await db.courier.findMany();
 		return couriers;
@@ -94,40 +128,29 @@ export const trackingRouter = createTRPCRouter({
 								});
 							}
 						}
-					} else {
-						// If no scans, create a single tracking entry from the main update details
-						const timestamp = new Date(status_time || new Date().toISOString()); // Ensure status_time is string
-						const location = update.from || update.to || "";
-						const status_description = current_status || "";
+					}
 
-						const existingTracking = await tx.tracking.findFirst({
-							where: {
-								shipment_id: shipment.shipment_id,
-								courier_id: courier.id,
-								timestamp: timestamp,
-								location: location,
-								status_description: status_description,
-							},
+					if (!current_status) {
+						continue;
+					}
+
+					// Update shipment current_status
+					const newShipmentStatus = shipwayStatusMap[current_status];
+					if (newShipmentStatus) {
+						logger.info("Updating shipment status", {
+							awbno,
+							oldStatus: shipment.current_status,
+							newStatus: newShipmentStatus,
 						});
-
-						if (!existingTracking) {
-							logger.info("Creating new tracking record (no scans)", {
-								shipment_id: shipment.shipment_id,
-								courier_id: courier.id,
-								timestamp: timestamp,
-								location: location,
-								status_description: status_description,
-							});
-							await tx.tracking.create({
-								data: {
-									shipment_id: shipment.shipment_id,
-									courier_id: courier.id,
-									timestamp: timestamp,
-									location: location,
-									status_description: status_description,
-								},
-							});
-						}
+						await tx.shipment.update({
+							where: { awb_number: awbno },
+							data: { current_status: newShipmentStatus },
+						});
+					} else {
+						logger.warn("Unknown Shipway status code received", {
+							awbno,
+							current_status,
+						});
 					}
 				}
 			});

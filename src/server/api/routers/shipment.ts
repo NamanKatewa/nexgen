@@ -224,7 +224,6 @@ export const shipmentRouter = createTRPCRouter({
 							user_id: userId,
 							payment_status: "Pending",
 							shipment_status: "PendingApproval",
-							current_status: "Booked",
 							origin_address_id: originAddress?.address_id,
 							destination_address_id: destinationAddress?.address_id,
 							recipient_name: input.recipientName,
@@ -706,7 +705,6 @@ export const shipmentRouter = createTRPCRouter({
 								data: {
 									human_readable_shipment_id,
 									user_id: userId,
-									current_status: "Booked",
 									payment_status: "Paid",
 									shipment_status: "PendingApproval",
 									origin_address_id: s.originAddressId,

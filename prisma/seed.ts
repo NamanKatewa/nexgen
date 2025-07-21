@@ -802,7 +802,6 @@ async function main() {
 						human_readable_shipment_id: generateShipmentId(user.user_id),
 						user_id: user.user_id,
 						awb_number: faker.string.numeric(12),
-						current_status: SHIPMENT_STATUS.Booked,
 						payment_status: SHIPMENT_PAYMENT_STATUS.Paid,
 						shipment_status: SHIPMENT_APPROVAL_STATUS.PendingApproval,
 						origin_address_id: originAddress.address_id,

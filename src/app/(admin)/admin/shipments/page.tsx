@@ -107,18 +107,23 @@ function AdminOrdersContent() {
 			render: (item: Shipment) => (
 				<div className="flex flex-col gap-2">
 					<Button className="cursor-pointer">
-						<Link href={`/admin/shipments/${item.shipment_id}`}>
-							View Shipment
-						</Link>
+						<Link href={`/admin/shipments/${item.shipment_id}`}>View</Link>
 					</Button>
 					{item.shipment_status === "Approved" && (
-						<Button
-							className="cursor-pointer"
-							onClick={() => handleGetLabel(item.shipment_id)}
-							disabled={isGettingLabel}
-						>
-							{isGettingLabel ? "Getting Label..." : "Get Label"}
-						</Button>
+						<>
+							<Button
+								className="cursor-pointer"
+								onClick={() => handleGetLabel(item.shipment_id)}
+								disabled={isGettingLabel}
+							>
+								{isGettingLabel ? "Label..." : "Label"}
+							</Button>
+							<Button>
+								<Link href={`/track/${item.human_readable_shipment_id}`}>
+									Track
+								</Link>
+							</Button>
+						</>
 					)}
 				</div>
 			),

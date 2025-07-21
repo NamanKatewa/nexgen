@@ -37,300 +37,301 @@ type ShipmentResult = {
 };
 
 export default function CreateBulkShipmentPage() {
-	const router = useRouter();
+	// const router = useRouter();
 
-	const [isLoading, setIsLoading] = useState(false);
-	const [shipments, setShipments] = useState<ShipmentWithStatus[]>([]);
-	const [shipmentResults, setShipmentResults] = useState<ShipmentResult[]>([]);
-	const [calculatedRates, setCalculatedRates] = useState<
-		({ rate: number | null; insurancePremium: number } | null)[]
-	>([]);
-	const [totalCalculatedRate, setTotalCalculatedRate] = useState<number | null>(
-		null,
-	);
-	const [totalInsurancePremium, setTotalInsurancePremium] = useState<
-		number | null
-	>(null);
-	const [isSubmitted, setIsSubmitted] = useState(false);
+	// const [isLoading, setIsLoading] = useState(false);
+	// const [shipments, setShipments] = useState<ShipmentWithStatus[]>([]);
+	// const [shipmentResults, setShipmentResults] = useState<ShipmentResult[]>([]);
+	// const [calculatedRates, setCalculatedRates] = useState<
+	// 	({ rate: number | null; insurancePremium: number } | null)[]
+	// >([]);
+	// const [totalCalculatedRate, setTotalCalculatedRate] = useState<number | null>(
+	// 	null,
+	// );
+	// const [totalInsurancePremium, setTotalInsurancePremium] = useState<
+	// 	number | null
+	// >(null);
+	// const [isSubmitted, setIsSubmitted] = useState(false);
 
-	const {
-		data: bulkRatesData,
-		error: bulkRatesError,
-		isFetching: isCalculatingBulkRates,
-		refetch: refetchBulkRates,
-	} = api.rate.calculateBulkRates.useQuery(
-		shipments.map((s) => ({
-			originZipCode: s.originZipCode,
-			destinationZipCode: s.destinationZipCode,
-			packageWeight: s.packageWeight,
-			isInsuranceSelected: s.isInsuranceSelected,
-		})),
-		{
-			enabled: false, // Only fetch on demand
-			refetchOnWindowFocus: false,
-		},
-	);
+	// const {
+	// 	data: bulkRatesData,
+	// 	error: bulkRatesError,
+	// 	isFetching: isCalculatingBulkRates,
+	// 	refetch: refetchBulkRates,
+	// } = api.rate.calculateBulkRates.useQuery(
+	// 	shipments.map((s) => ({
+	// 		originZipCode: s.originZipCode,
+	// 		destinationZipCode: s.destinationZipCode,
+	// 		packageWeight: s.packageWeight,
+	// 		isInsuranceSelected: s.isInsuranceSelected,
+	// 	})),
+	// 	{
+	// 		enabled: false, // Only fetch on demand
+	// 		refetchOnWindowFocus: false,
+	// 	},
+	// );
 
-	const {
-		handleSubmit,
-		formState: { errors },
-		setValue,
-		trigger,
-		clearErrors,
-	} = useForm<TBulkShipmentsSchema>({
-		resolver: zodResolver(bulkShipmentsSchema),
-		defaultValues: {
-			shipments: [],
-		},
-	});
+	// const {
+	// 	handleSubmit,
+	// 	formState: { errors },
+	// 	setValue,
+	// 	trigger,
+	// 	clearErrors,
+	// } = useForm<TBulkShipmentsSchema>({
+	// 	resolver: zodResolver(bulkShipmentsSchema),
+	// 	defaultValues: {
+	// 		shipments: [],
+	// 	},
+	// });
 
-	useEffect(() => {
-		if (bulkRatesData) {
-			setShipments((prevShipments) => {
-				return prevShipments.map((shipment, index) => ({
-					...shipment,
-					calculatedRate: bulkRatesData[index]?.rate ?? null,
-				}));
-			});
-			setCalculatedRates(bulkRatesData);
-			setTotalCalculatedRate(
-				bulkRatesData.reduce(
-					(sum: number, result) => sum + (result?.rate ?? 0),
-					0,
-				),
-			);
-			setTotalInsurancePremium(
-				bulkRatesData.reduce(
-					(sum: number, result) => sum + (result?.insurancePremium ?? 0),
-					0,
-				),
-			);
-		}
-	}, [bulkRatesData]);
+	// useEffect(() => {
+	// 	if (bulkRatesData) {
+	// 		setShipments((prevShipments) => {
+	// 			return prevShipments.map((shipment, index) => ({
+	// 				...shipment,
+	// 				calculatedRate: bulkRatesData[index]?.rate ?? null,
+	// 			}));
+	// 		});
+	// 		setCalculatedRates(bulkRatesData);
+	// 		setTotalCalculatedRate(
+	// 			bulkRatesData.reduce(
+	// 				(sum: number, result) => sum + (result?.rate ?? 0),
+	// 				0,
+	// 			),
+	// 		);
+	// 		setTotalInsurancePremium(
+	// 			bulkRatesData.reduce(
+	// 				(sum: number, result) => sum + (result?.insurancePremium ?? 0),
+	// 				0,
+	// 			),
+	// 		);
+	// 	}
+	// }, [bulkRatesData]);
 
-	useEffect(() => {
-		if (bulkRatesError) {
-			toast.error(bulkRatesError.message);
-			setCalculatedRates([]);
-			setTotalCalculatedRate(null);
-		}
-	}, [bulkRatesError]);
+	// useEffect(() => {
+	// 	if (bulkRatesError) {
+	// 		toast.error(bulkRatesError.message);
+	// 		setCalculatedRates([]);
+	// 		setTotalCalculatedRate(null);
+	// 	}
+	// }, [bulkRatesError]);
 
-	const handleCalculateRates = useCallback(async () => {
-		clearErrors();
-		const isValid = await trigger("shipments");
-		if (!isValid) {
-			toast.error("Please correct the errors in the shipment details.");
-			return;
-		}
-		const canCalculate = shipments.every(
-			(s) => s.originZipCode && s.destinationZipCode && s.packageWeight > 0,
-		);
-		if (!canCalculate) {
-			toast.error(
-				"Please ensure all shipments have valid origin/destination zip codes and package weights.",
-			);
-			return;
-		}
-		try {
-			await refetchBulkRates();
-		} catch (error) {
-			console.error("Error calculating bulk rates:", error);
-			toast.error("Failed to calculate rates. Please try again.");
-		}
-	}, [shipments, refetchBulkRates, trigger, clearErrors]);
+	// const handleCalculateRates = useCallback(async () => {
+	// 	clearErrors();
+	// 	const isValid = await trigger("shipments");
+	// 	if (!isValid) {
+	// 		toast.error("Please correct the errors in the shipment details.");
+	// 		return;
+	// 	}
+	// 	const canCalculate = shipments.every(
+	// 		(s) => s.originZipCode && s.destinationZipCode && s.packageWeight > 0,
+	// 	);
+	// 	if (!canCalculate) {
+	// 		toast.error(
+	// 			"Please ensure all shipments have valid origin/destination zip codes and package weights.",
+	// 		);
+	// 		return;
+	// 	}
+	// 	try {
+	// 		await refetchBulkRates();
+	// 	} catch (error) {
+	// 		console.error("Error calculating bulk rates:", error);
+	// 		toast.error("Failed to calculate rates. Please try again.");
+	// 	}
+	// }, [shipments, refetchBulkRates, trigger, clearErrors]);
 
-	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		if (file) {
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const data = e.target?.result;
-				const workbook = XLSX.read(data, { type: "array" });
-				if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-					toast.error("The uploaded Excel file does not contain any sheets.");
-					return;
-				}
-				const sheetName = workbook.SheetNames[0];
-				if (!sheetName) {
-					toast.error(
-						"The first sheet name could not be read from the Excel file.",
-					);
-					return;
-				}
-				const worksheet = workbook.Sheets[sheetName];
-				if (!worksheet) {
-					toast.error("Could not find the specified sheet in the Excel file.");
-					return;
-				}
-				const json = XLSX.utils.sheet_to_json(worksheet) as Record<
-					string,
-					unknown
-				>[];
+	// const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+	// 	const file = event.target.files?.[0];
+	// 	if (file) {
+	// 		const reader = new FileReader();
+	// 		reader.onload = (e) => {
+	// 			const data = e.target?.result;
+	// 			const workbook = XLSX.read(data, { type: "array" });
+	// 			if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+	// 				toast.error("The uploaded Excel file does not contain any sheets.");
+	// 				return;
+	// 			}
+	// 			const sheetName = workbook.SheetNames[0];
+	// 			if (!sheetName) {
+	// 				toast.error(
+	// 					"The first sheet name could not be read from the Excel file.",
+	// 				);
+	// 				return;
+	// 			}
+	// 			const worksheet = workbook.Sheets[sheetName];
+	// 			if (!worksheet) {
+	// 				toast.error("Could not find the specified sheet in the Excel file.");
+	// 				return;
+	// 			}
+	// 			const json = XLSX.utils.sheet_to_json(worksheet) as Record<
+	// 				string,
+	// 				unknown
+	// 			>[];
 
-				const parsedShipments: ShipmentWithStatus[] = json
-					.filter(
-						(r): r is Record<string, unknown> => r !== undefined && r !== null,
-					)
-					.map((row: Record<string, unknown>) => ({
-						recipientName: String(row["Recipient Name"]) || "",
-						recipientMobile: String(row["Recipient Mobile Number"] || ""),
-						packageWeight: Number(row["Package Weight (kg)"]) || 0,
-						packageHeight: Number(row["Package Height (cm)"]) || 0,
-						packageLength: Number(row["Package Length (cm)"]) || 0,
-						packageBreadth: Number(row["Package Breadth (cm)"]) || 0,
-						originAddressLine: String(row["Origin Address Line"]) || "",
-						originZipCode: String(row["Origin Zip Code"] || ""),
-						originCity: String(row["Origin City"]) || "",
-						originState: String(row["Origin State"]) || "",
-						destinationAddressLine:
-							String(row["Destination Address Line"]) || "",
-						destinationZipCode: String(row["Destination Zip Code"] || ""),
-						destinationCity: String(row["Destination City"]) || "",
-						destinationState: String(row["Destination State"]) || "",
-						packageImage: { data: "", name: "", type: "", size: 0 },
-						declaredValue: Number(row["Declared Value"]) || 0,
-						isInsuranceSelected:
-							String(row.Insurance ?? "")
-								.trim()
-								.toLowerCase() === "yes",
-						status: undefined,
-						message: undefined,
-					}));
+	// 			const parsedShipments: ShipmentWithStatus[] = json
+	// 				.filter(
+	// 					(r): r is Record<string, unknown> => r !== undefined && r !== null,
+	// 				)
+	// 				.map((row: Record<string, unknown>) => ({
+	// 					recipientName: String(row["Recipient Name"]) || "",
+	// 					recipientMobile: String(row["Recipient Mobile Number"] || ""),
+	// 					packageWeight: Number(row["Package Weight (kg)"]) || 0,
+	// 					packageHeight: Number(row["Package Height (cm)"]) || 0,
+	// 					packageLength: Number(row["Package Length (cm)"]) || 0,
+	// 					packageBreadth: Number(row["Package Breadth (cm)"]) || 0,
+	// 					originAddressLine: String(row["Origin Address Line"]) || "",
+	// 					originZipCode: String(row["Origin Zip Code"] || ""),
+	// 					originCity: String(row["Origin City"]) || "",
+	// 					originState: String(row["Origin State"]) || "",
+	// 					destinationAddressLine:
+	// 						String(row["Destination Address Line"]) || "",
+	// 					destinationZipCode: String(row["Destination Zip Code"] || ""),
+	// 					destinationCity: String(row["Destination City"]) || "",
+	// 					destinationState: String(row["Destination State"]) || "",
+	// 					packageImage: { data: "", name: "", type: "", size: 0 },
+	// 					declaredValue: Number(row["Declared Value"]) || 0,
+	// 					isInsuranceSelected:
+	// 						String(row.Insurance ?? "")
+	// 							.trim()
+	// 							.toLowerCase() === "yes",
+	// 					status: undefined,
+	// 					message: undefined,
+	// 				}));
 
-				setShipments(parsedShipments);
-				setValue("shipments", parsedShipments);
-				setCalculatedRates([]);
-				setTotalCalculatedRate(null);
-				setShipmentResults([]);
-				setIsSubmitted(false); // Reset submission status on new file upload
-				trigger("shipments");
-			};
-			reader.readAsArrayBuffer(file);
-		}
-	};
+	// 			setShipments(parsedShipments);
+	// 			setValue("shipments", parsedShipments);
+	// 			setCalculatedRates([]);
+	// 			setTotalCalculatedRate(null);
+	// 			setShipmentResults([]);
+	// 			setIsSubmitted(false); // Reset submission status on new file upload
+	// 			trigger("shipments");
+	// 		};
+	// 		reader.readAsArrayBuffer(file);
+	// 	}
+	// };
 
-	const handleImageFileChange = async (
-		event: React.ChangeEvent<HTMLInputElement>,
-		index: number,
-	) => {
-		const file = event.target.files?.[0];
-		if (file) {
-			try {
-				const base64Data = await fileToBase64(file);
-				const newShipments = [...shipments];
-				if (newShipments[index]) {
-					newShipments[index].packageImage = {
-						data: base64Data,
-						name: file.name,
-						type: file.type,
-						size: file.size,
-					};
-				}
-				setShipments(newShipments);
-				setValue(`shipments.${index}.packageImage`, {
-					data: base64Data,
-					name: file.name,
-					type: file.type,
-					size: file.size,
-				});
-				trigger(`shipments.${index}.packageImage`);
-			} catch (error) {
-				console.error("Error converting file to Base64:", error);
-				toast.error(`Failed to process image file for shipment ${index + 1}`);
-			}
-		}
-	};
+	// const handleImageFileChange = async (
+	// 	event: React.ChangeEvent<HTMLInputElement>,
+	// 	index: number,
+	// ) => {
+	// 	const file = event.target.files?.[0];
+	// 	if (file) {
+	// 		try {
+	// 			const base64Data = await fileToBase64(file);
+	// 			const newShipments = [...shipments];
+	// 			if (newShipments[index]) {
+	// 				newShipments[index].packageImage = {
+	// 					data: base64Data,
+	// 					name: file.name,
+	// 					type: file.type,
+	// 					size: file.size,
+	// 				};
+	// 			}
+	// 			setShipments(newShipments);
+	// 			setValue(`shipments.${index}.packageImage`, {
+	// 				data: base64Data,
+	// 				name: file.name,
+	// 				type: file.type,
+	// 				size: file.size,
+	// 			});
+	// 			trigger(`shipments.${index}.packageImage`);
+	// 		} catch (error) {
+	// 			console.error("Error converting file to Base64:", error);
+	// 			toast.error(`Failed to process image file for shipment ${index + 1}`);
+	// 		}
+	// 	}
+	// };
 
-	const handleInvoiceFileChange = async (
-		event: React.ChangeEvent<HTMLInputElement>,
-		index: number,
-	) => {
-		const file = event.target.files?.[0];
-		if (file) {
-			try {
-				const base64Data = await fileToBase64(file);
-				const newShipments = [...shipments];
-				if (newShipments[index]) {
-					newShipments[index].invoice = {
-						data: base64Data,
-						name: file.name,
-						type: file.type,
-						size: file.size,
-					};
-					newShipments[index].invoicePreview = URL.createObjectURL(file);
-				}
-				setShipments(newShipments);
-				setValue(`shipments.${index}.invoice`, {
-					data: base64Data,
-					name: file.name,
-					type: file.type,
-					size: file.size,
-				});
-				trigger(`shipments.${index}.invoice`);
-			} catch (error) {
-				console.error("Error converting file to Base64:", error);
-				toast.error(`Failed to process invoice file for shipment ${index + 1}`);
-			}
-		} else {
-			const newShipments = [...shipments];
-			if (newShipments[index]) {
-				newShipments[index].invoice = undefined;
-				newShipments[index].invoicePreview = undefined;
-			}
-			setShipments(newShipments);
-			setValue(`shipments.${index}.invoice`, undefined);
-			trigger(`shipments.${index}.invoice`);
-		}
-	};
+	// const handleInvoiceFileChange = async (
+	// 	event: React.ChangeEvent<HTMLInputElement>,
+	// 	index: number,
+	// ) => {
+	// 	const file = event.target.files?.[0];
+	// 	if (file) {
+	// 		try {
+	// 			const base64Data = await fileToBase64(file);
+	// 			const newShipments = [...shipments];
+	// 			if (newShipments[index]) {
+	// 				newShipments[index].invoice = {
+	// 					data: base64Data,
+	// 					name: file.name,
+	// 					type: file.type,
+	// 					size: file.size,
+	// 				};
+	// 				newShipments[index].invoicePreview = URL.createObjectURL(file);
+	// 			}
+	// 			setShipments(newShipments);
+	// 			setValue(`shipments.${index}.invoice`, {
+	// 				data: base64Data,
+	// 				name: file.name,
+	// 				type: file.type,
+	// 				size: file.size,
+	// 			});
+	// 			trigger(`shipments.${index}.invoice`);
+	// 		} catch (error) {
+	// 			console.error("Error converting file to Base64:", error);
+	// 			toast.error(`Failed to process invoice file for shipment ${index + 1}`);
+	// 		}
+	// 	} else {
+	// 		const newShipments = [...shipments];
+	// 		if (newShipments[index]) {
+	// 			newShipments[index].invoice = undefined;
+	// 			newShipments[index].invoicePreview = undefined;
+	// 		}
+	// 		setShipments(newShipments);
+	// 		setValue(`shipments.${index}.invoice`, undefined);
+	// 		trigger(`shipments.${index}.invoice`);
+	// 	}
+	// };
 
-	const createBulkShipmentMutation =
-		api.shipment.createBulkShipments.useMutation({
-			onSuccess: (data) => {
-				setIsLoading(false);
-				setShipmentResults(data);
-				setIsSubmitted(true); // Set isSubmitted to true on success
+	// const createBulkShipmentMutation =
+	// 	api.shipment.createBulkShipments.useMutation({
+	// 		onSuccess: (data) => {
+	// 			setIsLoading(false);
+	// 			setShipmentResults(data);
+	// 			setIsSubmitted(true); // Set isSubmitted to true on success
 
-				const updatedShipments = shipments.map((s) => {
-					const result = data.find((r) => r.recipientName === s.recipientName);
-					return result ? { ...s, ...result } : s;
-				});
-				setShipments(updatedShipments);
+	// 			const updatedShipments = shipments.map((s) => {
+	// 				const result = data.find((r) => r.recipientName === s.recipientName);
+	// 				return result ? { ...s, ...result } : s;
+	// 			});
+	// 			setShipments(updatedShipments);
 
-				const successCount = data.filter((r) => r.status === "success").length;
-				const pendingCount = data.filter((r) => r.status === "pending").length;
-				const errorCount = data.filter((r) => r.status === "error").length;
+	// 			const successCount = data.filter((r) => r.status === "success").length;
+	// 			const pendingCount = data.filter((r) => r.status === "pending").length;
+	// 			const errorCount = data.filter((r) => r.status === "error").length;
 
-				toast.info(
-					`Processing complete: ${successCount} created, ${pendingCount} pending, ${errorCount} failed.`,
-				);
-			},
-			onError: (err) => {
-				toast.error(err.message);
-				setIsLoading(false);
-			},
-		});
+	// 			toast.info(
+	// 				`Processing complete: ${successCount} created, ${pendingCount} pending, ${errorCount} failed.`,
+	// 			);
+	// 		},
+	// 		onError: (err) => {
+	// 			toast.error(err.message);
+	// 			setIsLoading(false);
+	// 		},
+	// 	});
 
-	const onSubmit = async (data: TBulkShipmentsSchema) => {
-		setIsLoading(true);
-		clearErrors();
-		setShipmentResults([]);
+	// const onSubmit = async (data: TBulkShipmentsSchema) => {
+	// 	setIsLoading(true);
+	// 	clearErrors();
+	// 	setShipmentResults([]);
 
-		const isValid = await trigger("shipments");
-		if (!isValid) {
-			toast.error(
-				"Please correct the errors in the shipment details before submitting.",
-			);
-			setIsLoading(false);
-			return;
-		}
+	// 	const isValid = await trigger("shipments");
+	// 	if (!isValid) {
+	// 		toast.error(
+	// 			"Please correct the errors in the shipment details before submitting.",
+	// 		);
+	// 		setIsLoading(false);
+	// 		return;
+	// 	}
 
-		createBulkShipmentMutation.mutate({ shipments: data.shipments });
-	};
+	// 	createBulkShipmentMutation.mutate({ shipments: data.shipments });
+	// };
 
 	return (
 		<div className="flex min-h-screen items-center justify-center p-4">
-			<Card className="w-full bg-blue-100/20">
+			<h1 className="text-6xl">Coming Soon</h1>
+			{/* <Card className="w-full bg-blue-100/20">
 				<CardHeader>
 					<h1 className="text-center font-semibold text-2xl text-blue-950">
 						Create Bulk Shipments
@@ -1050,7 +1051,7 @@ export default function CreateBulkShipmentPage() {
 						</Button>
 					</form>
 				</CardContent>
-			</Card>
+			</Card> */}
 		</div>
 	);
 }
