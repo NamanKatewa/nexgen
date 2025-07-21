@@ -13,6 +13,35 @@ import {
 } from "~/server/api/trpc";
 
 export const rateRouter = createTRPCRouter({
+	getMyRates: protectedProcedure.query(async ({ ctx }) => {
+		const userId = ctx.user.user_id;
+		const defaultRates = await ctx.db.defaultRate.findMany();
+		const userRates = await ctx.db.userRate.findMany({
+			where: { user_id: userId },
+		});
+
+		const userRatesMap = new Map(
+			userRates.map((rate) => [
+				`${rate.zone_from}-${rate.zone_to}-${rate.weight_slab}`,
+				rate,
+			]),
+		);
+
+		const combinedRates = defaultRates.map((defaultRate) => {
+			const key = `${defaultRate.zone_from}-${defaultRate.zone_to}-${defaultRate.weight_slab}`;
+			const userRate = userRatesMap.get(key);
+			return (
+				userRate || {
+					...defaultRate,
+					default_rate_id: undefined,
+					user_rate_id: undefined,
+					user_id: userId,
+				}
+			);
+		});
+
+		return combinedRates;
+	}),
 	calculateRate: publicProcedure
 		.input(rateSchema)
 		.query(async ({ input, ctx }) => {
@@ -238,7 +267,14 @@ export const rateRouter = createTRPCRouter({
 			const combinedRates = defaultRates.map((defaultRate) => {
 				const key = `${defaultRate.zone_from}-${defaultRate.zone_to}-${defaultRate.weight_slab}`;
 				const userRate = userRatesMap.get(key);
-				return userRate || { ...defaultRate, default_rate_id: undefined, user_rate_id: undefined, user_id: userId };
+				return (
+					userRate || {
+						...defaultRate,
+						default_rate_id: undefined,
+						user_rate_id: undefined,
+						user_id: userId,
+					}
+				);
 			});
 
 			return combinedRates;

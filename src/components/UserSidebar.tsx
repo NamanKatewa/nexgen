@@ -2,9 +2,11 @@
 
 import clsx from "clsx";
 import {
+	Calculator,
 	ChevronLeft,
 	ChevronRight,
 	IdCard,
+	IndianRupee,
 	LayoutDashboard,
 	NotebookText,
 	Package,
@@ -37,6 +39,16 @@ const sidebarLinks = [
 		href: "/dashboard/support",
 		icon: IdCard,
 		label: "Support",
+	},
+	{
+		href: "/dashboard/rates",
+		icon: IndianRupee,
+		label: "Rates",
+	},
+	{
+		href: "/dashboard/rate-calculator",
+		icon: Calculator,
+		label: "Rate Calculator",
 	},
 ];
 

@@ -74,7 +74,7 @@ const Navbar = () => {
 		localStorage.removeItem("token");
 		document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 		setIsMobileMenuOpen(false);
-		window.location.href = "/"; // Force a full page reload to clear all state
+		window.location.href = "/";
 	};
 
 	const getDashboardRoute = () => {

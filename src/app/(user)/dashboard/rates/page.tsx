@@ -1,9 +1,7 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Input } from "~/components/ui/input";
 import {
 	Table,
 	TableBody,
@@ -25,59 +23,14 @@ interface Rate {
 }
 
 export default function UserRatesPage() {
-	const params = useParams();
-	const userId = params.userId as string;
-
 	const [rates, setRates] = useState<Rate[]>([]);
-	const { data, isLoading, refetch } = api.rate.getUserRates.useQuery({
-		userId,
-	});
-	const updateRateMutation = api.rate.updateUserRate.useMutation({
-		onSuccess: () => {
-			toast.success("Rate updated successfully!");
-			void refetch();
-		},
-		onError: (error) => {
-			toast.error("Failed to update rate.", {
-				description: error.message,
-			});
-		},
-	});
+	const { data, isLoading } = api.rate.getMyRates.useQuery();
 
 	useEffect(() => {
 		if (data) {
 			setRates(data);
 		}
 	}, [data]);
-
-	const handleRateChange = (
-		zone_from: string,
-		zone_to: string,
-		weight_slab: number,
-		value: string,
-	) => {
-		setRates((prevRates) =>
-			prevRates.map((rate) =>
-				rate.zone_from === zone_from &&
-				rate.zone_to === zone_to &&
-				rate.weight_slab === weight_slab
-					? { ...rate, rate: Number.parseFloat(value) || 0 }
-					: rate,
-			),
-		);
-	};
-
-	const handleRateBlur = (rate: Rate) => {
-		if (rate.user_id) {
-			updateRateMutation.mutate({
-				userId: rate.user_id,
-				zone_from: rate.zone_from,
-				zone_to: rate.zone_to,
-				weight_slab: rate.weight_slab,
-				rate: rate.rate,
-			});
-		}
-	};
 
 	const { uniqueWeightSlabs, uniqueZoneTos, ratesMatrix } = useMemo(() => {
 		const weightSlabs = Array.from(
@@ -105,7 +58,7 @@ export default function UserRatesPage() {
 	if (isLoading) {
 		return (
 			<div className="flex h-screen items-center justify-center text-blue-950">
-				Loading user rates...
+				Loading your rates...
 			</div>
 		);
 	}
@@ -113,7 +66,7 @@ export default function UserRatesPage() {
 	return (
 		<div className="container mx-auto py-10">
 			<h1 className="mb-6 font-semibold text-2xl text-blue-950">
-				User Shipping Rates Matrix : {userId}
+				My Shipping Rates Matrix
 			</h1>
 			<div className="overflow-x-auto">
 				<Table className="min-w-full table-auto text-blue-950">
@@ -141,20 +94,9 @@ export default function UserRatesPage() {
 											className="text-center"
 										>
 											{rate ? (
-												<Input
-													type="number"
-													value={rate.rate}
-													onChange={(e) =>
-														handleRateChange(
-															rate.zone_from,
-															rate.zone_to,
-															rate.weight_slab,
-															e.target.value,
-														)
-													}
-													onBlur={() => handleRateBlur(rate)}
-													className="mx-auto w-24 text-center"
-												/>
+												<span className="block text-center">
+													{rate.rate.toFixed(2)}
+												</span>
 											) : (
 												<span className="block text-center text-gray-500">
 													N/A
