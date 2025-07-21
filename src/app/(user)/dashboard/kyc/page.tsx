@@ -540,7 +540,7 @@ export default function KycFormPage() {
 
 										<div className="space-y-2 rounded-md border bg-white/50 p-4">
 											<h3 className="font-medium text-blue-950 text-lg">
-												Billing Address
+												Pickup Address
 											</h3>
 											<div className="grid grid-cols-2 gap-2">
 												<p className="col-span-1">
