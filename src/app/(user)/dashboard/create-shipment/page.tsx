@@ -183,30 +183,33 @@ export default function CreateShipmentPage() {
 		},
 	});
 
-	const { data: rateData, error: rateError, isFetching: isCalculatingRate } =
-		api.rate.calculateRate.useQuery(
-			{
-				originZipCode: watch("originAddressId")
-					? String(
-							warehouseAddresses?.find(
-								(address) => address.address_id === watch("originAddressId"),
-							)?.zip_code,
-					  )
-					: "",
-				destinationZipCode: destinationAddress.zipCode,
-				packageWeight: watch("packageWeight"),
-				isInsuranceSelected: watch("isInsuranceSelected"),
-				declaredValue: watch("declaredValue"),
-			},
-			{
-				enabled:
-					!!watch("originAddressId") &&
-					!!destinationAddress.zipCode &&
-					!!watch("packageWeight") &&
-					!!watch("declaredValue"),
-				staleTime: 0, // Allow refetching on every change
-			},
-		);
+	const {
+		data: rateData,
+		error: rateError,
+		isFetching: isCalculatingRate,
+	} = api.rate.calculateRate.useQuery(
+		{
+			originZipCode: watch("originAddressId")
+				? String(
+						warehouseAddresses?.find(
+							(address) => address.address_id === watch("originAddressId"),
+						)?.zip_code,
+					)
+				: "",
+			destinationZipCode: destinationAddress.zipCode,
+			packageWeight: watch("packageWeight"),
+			isInsuranceSelected: watch("isInsuranceSelected"),
+			declaredValue: watch("declaredValue"),
+		},
+		{
+			enabled:
+				!!watch("originAddressId") &&
+				!!destinationAddress.zipCode &&
+				!!watch("packageWeight") &&
+				!!watch("declaredValue"),
+			staleTime: 0, // Allow refetching on every change
+		},
+	);
 
 	useEffect(() => {
 		if (rateData) {
