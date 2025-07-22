@@ -23,8 +23,7 @@ export const trackingRouter = createTRPCRouter({
 					],
 				},
 				include: {
-					origin_address: true,
-					destination_address: true,
+					courier: true,
 					tracking: {
 						orderBy: { timestamp: "desc" },
 					},

@@ -13,6 +13,14 @@ import {
 } from "~/components/ui/table";
 import { api } from "~/trpc/react";
 
+const ZONE_DESCRIPTIONS: Record<string, string> = {
+	a: "Local",
+	b: "State",
+	c: "Metro",
+	d: "National",
+	e: "Special",
+};
+
 interface DefaultRate {
 	default_rate_id: string;
 	zone_from: string;
@@ -106,7 +114,8 @@ export default function AdminRatesPage() {
 							<TableHead className="w-32">Weight Slab (kg)</TableHead>
 							{uniqueZoneTos.map((zoneTo) => (
 								<TableHead key={zoneTo} className="text-center">
-									Zone {zoneTo.toUpperCase()}
+									Zone {zoneTo.toUpperCase()} (
+									{ZONE_DESCRIPTIONS[zoneTo.toLowerCase()]})
 								</TableHead>
 							))}
 						</TableRow>

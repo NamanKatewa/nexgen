@@ -182,38 +182,13 @@ export default function TrackingPage() {
 					<Separator />
 
 					<div>
-						<h3 className="mb-2 font-semibold text-lg">Shipment Details</h3>
+						<h3 className="my-4 font-semibold text-lg">Shipment Details</h3>
 						<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 							<p>
-								<strong>Recipient:</strong> {shipment.recipient_name}
+								<strong>AWB:</strong> {shipment.awb_number}
 							</p>
 							<p>
-								<strong>Mobile:</strong> {shipment.recipient_mobile}
-							</p>
-							<p>
-								<strong>Origin:</strong> {shipment.origin_address.address_line},{" "}
-								{shipment.origin_address.landmark && (
-									<>{shipment.origin_address.landmark}, </>
-								)}
-								{shipment.origin_address.city}, {shipment.origin_address.state}{" "}
-								- {shipment.origin_address.zip_code}
-							</p>
-							<p>
-								<strong>Destination:</strong>{" "}
-								{shipment.destination_address.address_line},{" "}
-								{shipment.destination_address.landmark && (
-									<>{shipment.destination_address.landmark}, </>
-								)}
-								{shipment.destination_address.city},{" "}
-								{shipment.destination_address.state} -{" "}
-								{shipment.destination_address.zip_code}
-							</p>
-							<p>
-								<strong>Weight:</strong>{" "}
-								{Number(shipment.package_weight).toFixed(2)} kg
-							</p>
-							<p>
-								<strong>Dimensions:</strong> {shipment.package_dimensions} cm
+								<strong>Courier:</strong> {shipment.courier?.name}
 							</p>
 							<p>
 								<strong>Booked On:</strong>{" "}
@@ -225,7 +200,7 @@ export default function TrackingPage() {
 					<Separator />
 
 					<div>
-						<h3 className="mb-2 font-semibold text-lg">Tracking History</h3>
+						<h3 className="my-4 font-semibold text-lg">Tracking History</h3>
 						{trackingEvents.length > 0 ? (
 							<div className="space-y-4">
 								{trackingEvents.map((event) => (
