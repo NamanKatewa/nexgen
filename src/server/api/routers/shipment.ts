@@ -1,4 +1,4 @@
-import { ADDRESS_TYPE, type Prisma } from "@prisma/client";
+import { ADDRESS_TYPE, type Prisma, SHIPMENT_STATUS } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -813,6 +813,85 @@ export const shipmentRouter = createTRPCRouter({
 				totalPages: Math.ceil(totalShipments / pageSize),
 			};
 		}),
+	getAllTrackingShipments: adminProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+				userId: z.string().optional(),
+				currentStatus: z
+					.union([z.nativeEnum(SHIPMENT_STATUS), z.literal("ALL")])
+					.optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { page, pageSize, userId, currentStatus } = input;
+			const skip = (page - 1) * pageSize;
+
+			const whereClause: Prisma.ShipmentWhereInput = {
+				shipment_status: "Approved",
+				user_id: userId,
+			};
+
+			if (currentStatus && currentStatus !== "ALL") {
+				whereClause.current_status = currentStatus;
+			}
+
+			const [shipments, totalShipments] = await db.$transaction([
+				db.shipment.findMany({
+					where: whereClause,
+					include: {
+						user: {
+							select: {
+								name: true,
+								email: true,
+							},
+						},
+					},
+					skip,
+					take: pageSize,
+					orderBy: {
+						created_at: "desc",
+					},
+				}),
+				db.shipment.count({
+					where: whereClause,
+				}),
+			]);
+
+			return {
+				shipments,
+				totalShipments,
+				page,
+				pageSize,
+				totalPages: Math.ceil(totalShipments / pageSize),
+			};
+		}),
+
+	getShipmentStatusCounts: adminProcedure.query(async () => {
+		const statusCounts = await db.shipment.groupBy({
+			by: ["current_status"],
+			_count: {
+				current_status: true,
+			},
+			where: { shipment_status: "Approved" },
+		});
+
+		const counts: Record<string, number> = {};
+		let totalCount = 0;
+		for (const statusKey of Object.values(SHIPMENT_STATUS)) {
+			counts[statusKey] = 0;
+		}
+
+		for (const item of statusCounts) {
+			if (item.current_status) {
+				counts[item.current_status] = item._count.current_status;
+				totalCount += item._count.current_status;
+			}
+		}
+		counts.ALL = totalCount;
+		return counts;
+	}),
 
 	getUserShipments: protectedProcedure
 		.input(
@@ -878,6 +957,103 @@ export const shipmentRouter = createTRPCRouter({
 				totalPages: Math.ceil(totalShipments / pageSize),
 			};
 		}),
+	getUserTrackingShipments: protectedProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+				searchFilter: z.string().optional(),
+				currentStatus: z
+					.union([z.nativeEnum(SHIPMENT_STATUS), z.literal("ALL")])
+					.optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { user } = ctx;
+			const { page, pageSize, searchFilter, currentStatus } = input;
+			const skip = (page - 1) * pageSize;
+
+			const whereClause: Prisma.ShipmentWhereInput = {
+				user_id: user.user_id,
+				shipment_status: "Approved",
+			};
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{
+						human_readable_shipment_id: {
+							contains: searchFilter,
+							mode: "insensitive",
+						},
+					},
+					{ recipient_name: { contains: searchFilter, mode: "insensitive" } },
+					{ recipient_mobile: { contains: searchFilter, mode: "insensitive" } },
+				];
+			}
+
+			if (currentStatus && currentStatus !== "ALL") {
+				whereClause.current_status = currentStatus;
+			}
+
+			const [shipments, totalShipments] = await db.$transaction([
+				db.shipment.findMany({
+					where: whereClause,
+					include: {
+						user: {
+							select: {
+								name: true,
+								email: true,
+							},
+						},
+						origin_address: true,
+						destination_address: true,
+					},
+					skip,
+					take: pageSize,
+					orderBy: {
+						created_at: "desc",
+					},
+				}),
+				db.shipment.count({
+					where: whereClause,
+				}),
+			]);
+
+			return {
+				shipments,
+				totalShipments,
+				page,
+				pageSize,
+				totalPages: Math.ceil(totalShipments / pageSize),
+			};
+		}),
+
+	getUserShipmentStatusCounts: protectedProcedure.query(async ({ ctx }) => {
+		const { user } = ctx;
+		const statusCounts = await db.shipment.groupBy({
+			by: ["current_status"],
+			_count: {
+				current_status: true,
+			},
+			where: { user_id: user.user_id, shipment_status: "Approved" },
+		});
+
+		const counts: Record<string, number> = {};
+		let totalCount = 0;
+		for (const statusKey of Object.values(SHIPMENT_STATUS)) {
+			counts[statusKey] = 0;
+		}
+
+		for (const item of statusCounts) {
+			if (item.current_status) {
+				counts[item.current_status] = item._count.current_status;
+				totalCount += item._count.current_status;
+			}
+		}
+		counts.ALL = totalCount;
+		return counts;
+	}),
 
 	getShipmentById: protectedProcedure
 		.input(z.object({ shipmentId: z.string() }))

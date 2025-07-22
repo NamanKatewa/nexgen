@@ -13,6 +13,7 @@ import {
 	Package,
 	PackageCheck,
 	Tag,
+	Truck,
 	User,
 	UserCog,
 	Wallet,
@@ -33,9 +34,14 @@ const sidebarLinks = [
 		label: "Approve Shipments",
 	},
 	{
+		href: "/admin/tracking",
+		icon: Truck,
+		label: "Tracking",
+	},
+	{
 		href: "/admin/shipments",
 		icon: Package,
-		label: "Shipments",
+		label: "All Shipments",
 	},
 	{
 		href: "/admin/pending-addresses",

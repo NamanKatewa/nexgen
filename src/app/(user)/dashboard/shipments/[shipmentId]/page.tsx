@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "~/components/ui/badge";
@@ -13,9 +12,6 @@ import { Separator } from "~/components/ui/separator";
 import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn, formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import type { RouterOutputs } from "~/trpc/react";
-
-type ShipmentItemType = RouterOutputs["shipment"]["getShipmentById"];
 
 export default function UserShipmentDetailPage() {
 	const params = useParams();
@@ -117,6 +113,26 @@ export default function UserShipmentDetailPage() {
 						)}
 						<p className="font-medium text-sm">AWB Number:</p>
 						<p className="text-sm">{shipment.awb_number || "N/A"}</p>
+						<p className="font-medium text-sm">Insurance:</p>
+						<p className="text-sm">
+							<Badge>{shipment.is_insurance_selected ? "Yes" : "No"}</Badge>
+						</p>
+						{shipment.invoiceUrl && (
+							<div className="mt-4">
+								<p className="mb-2 font-medium text-sm">Invoice:</p>
+								<Link
+									href={shipment.invoiceUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									<img
+										src={shipment.invoiceUrl}
+										alt="Package"
+										className="h-48 w-48 rounded-md object-cover"
+									/>
+								</Link>
+							</div>
+						)}
 					</div>
 
 					<Separator className="my-4" />

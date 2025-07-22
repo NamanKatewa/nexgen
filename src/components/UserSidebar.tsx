@@ -11,6 +11,7 @@ import {
 	NotebookText,
 	Package,
 	PackagePlus,
+	Truck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,6 +31,11 @@ const sidebarLinks = [
 	// 	icon: PackagePlus,
 	// 	label: "Create Bulk Shipment",
 	// },
+	{
+		href: "/dashboard/tracking",
+		icon: Truck,
+		label: "Tracking",
+	},
 	{
 		href: "/dashboard/shipments",
 		icon: Package,
