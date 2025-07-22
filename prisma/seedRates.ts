@@ -3,10 +3,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-	const weightSlabs = [
-		0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75,
-		80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145,
-	];
+	const weightSlabs = [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 	const zones = ["a", "b", "c", "d", "e"];
 
 	const defaultRates = [];

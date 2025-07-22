@@ -11,7 +11,7 @@ import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { SHIPMENT_STATUS_MAP } from "~/constants";
+import { DISPLAY_SHIPMENT_STATUSES, SHIPMENT_STATUS_MAP } from "~/constants";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
@@ -24,9 +24,9 @@ type Shipment =
 function AdminOrdersContent() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
-	const [statusFilter, setStatusFilter] = useState<
-		SHIPMENT_STATUS | "ALL" | undefined
-	>(undefined);
+	const [statusFilter, setStatusFilter] = useState<SHIPMENT_STATUS | undefined>(
+		undefined,
+	);
 	const searchParams = useSearchParams();
 	const initialUserId = searchParams.get("userId") || "";
 	const [userIdSearchText, setUserIdSearchText] = useState(initialUserId);
@@ -36,7 +36,7 @@ function AdminOrdersContent() {
 		page,
 		pageSize,
 		userId: debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
-		currentStatus: statusFilter === "ALL" ? undefined : statusFilter,
+		currentStatus: statusFilter,
 	});
 
 	const { data: shipmentCounts } =
@@ -74,13 +74,15 @@ function AdminOrdersContent() {
 			header: "Status",
 			className: "px-4 w-30 text-center",
 			render: (item) => {
-				const statusInfo =
-					SHIPMENT_STATUS_MAP[
-						item.current_status as keyof typeof SHIPMENT_STATUS_MAP
-					] || SHIPMENT_STATUS_MAP.NA;
+				const statusInfo = SHIPMENT_STATUS_MAP[
+					item.current_status as keyof typeof SHIPMENT_STATUS_MAP
+				] || {
+					displayName: item.current_status,
+					color: "bg-gray-200 text-gray-800",
+				};
 				return (
 					<Badge className={cn("w-fit text-md capitalize", statusInfo.color)}>
-						{statusInfo.displayName}
+						{statusInfo.displayName ? statusInfo.displayName : "N/A"}
 					</Badge>
 				);
 			},
@@ -144,11 +146,13 @@ function AdminOrdersContent() {
 			id: "current_status",
 			label: "Status",
 			type: "select" as const,
-			value: statusFilter,
-			onChange: (value: string) =>
-				setStatusFilter(value as SHIPMENT_STATUS | "ALL"),
+			selectedValue: statusFilter || "all",
+			onValueChange: (value: string) =>
+				setStatusFilter(
+					value === "all" ? undefined : (value as SHIPMENT_STATUS),
+				),
 			options: [
-				{ label: "All", value: "ALL" },
+				{ label: "All", value: "all" },
 				...Object.entries(SHIPMENT_STATUS_MAP).map(([key, value]) => ({
 					label: value.displayName,
 					value: key,
@@ -164,17 +168,33 @@ function AdminOrdersContent() {
 
 	return (
 		<>
-			<div className="mb-4 flex flex-wrap gap-2">
+			<div className="flex w-full flex-nowrap justify-evenly gap-0 p-4">
+				<div
+					onMouseDown={() => setStatusFilter(undefined)}
+					className="flex min-w-0 flex-auto cursor-pointer flex-col items-center justify-between bg-blue-100 p-2 text-center"
+				>
+					<p>All</p>
+					<p className="text-md">({data?.totalShipments})</p>
+				</div>
 				{shipmentCounts &&
-					Object.entries(shipmentCounts).map(([status, count]) => {
-						const statusInfo =
-							SHIPMENT_STATUS_MAP[status as keyof typeof SHIPMENT_STATUS_MAP] ||
-							SHIPMENT_STATUS_MAP.NA;
+					DISPLAY_SHIPMENT_STATUSES.map((status) => {
+						const count =
+							shipmentCounts[status as keyof typeof shipmentCounts] || 0;
+						const statusInfo = SHIPMENT_STATUS_MAP[
+							status as keyof typeof SHIPMENT_STATUS_MAP
+						] || { displayName: status, color: "bg-gray-200 text-gray-800" };
 						return (
-							<Badge
+							<div
 								key={status}
-								className={cn("text-md", statusInfo.color)}
-							>{`${statusInfo.displayName}: ${count}`}</Badge>
+								onMouseDown={() => setStatusFilter(status as SHIPMENT_STATUS)}
+								className={cn(
+									"flex min-w-0 flex-auto cursor-pointer flex-col items-center justify-between bg-blue-100 p-2 text-center",
+									statusInfo.color,
+								)}
+							>
+								<p>{statusInfo.displayName}</p>
+								<p className="text-md">({count})</p>
+							</div>
 						);
 					})}
 			</div>

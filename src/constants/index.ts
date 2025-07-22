@@ -11,6 +11,20 @@ export const entityTypes = [
 export const paymentStatusTypes = ["Pending", "Completed", "Failed"];
 export const transactionTypes = ["Credit", "Debit"];
 
+export const DISPLAY_SHIPMENT_STATUSES = [
+	"DELIVERED",
+	"IN_TRANSIT",
+	"UNDELIVERED",
+	"RTO",
+	"RTO_DELIVERED",
+	"CANCELLED",
+	"SHIPMENT_BOOKED",
+	"PICKED_UP",
+	"OUT_FOR_DELIVERY",
+	"OUT_OF_DELIVERY_AREA",
+	"DELIVERY_DELAYED",
+];
+
 export const SHIPMENT_STATUS_MAP = {
 	DELIVERED: {
 		displayName: "Delivered",
@@ -132,44 +146,52 @@ export const SHIPMENT_STATUS_MAP = {
 		displayName: "Out For Pickup",
 		color: "bg-yellow-200 text-yellow-800",
 	},
+	RETURN_REQUEST_CANCELLED: {
+		displayName: "Return Request Cancelled",
+		color: "bg-orange-200 text-orange-800",
+	},
+	RETURN_REQUEST_CLOSED: {
+		displayName: "Return Request Closed",
+		color: "bg-orange-200 text-orange-800",
+	},
+	RETURN_DELIVERED: {
+		displayName: "Return Delivered",
+		color: "bg-orange-200 text-orange-800",
+	},
 	RETURN_IN_TRANSIT: {
 		displayName: "Return In Transit",
-		color: "bg-yellow-200 text-yellow-800",
+		color: "bg-orange-200 text-orange-800",
 	},
 	RETURN_OUT_FOR_PICKUP: {
 		displayName: "Return Out For Pickup",
-		color: "bg-yellow-200 text-yellow-800",
+		color: "bg-orange-200 text-orange-800",
 	},
 	RETURN_SHIPMENT_PICKED_UP: {
 		displayName: "Return Shipment Picked Up",
-		color: "bg-yellow-200 text-yellow-800",
+		color: "bg-orange-200 text-orange-800",
 	},
 	RETURN_PICKUP_RESCHEDULED: {
 		displayName: "Return Pickup Rescheduled",
-		color: "bg-yellow-200 text-yellow-800",
+		color: "bg-orange-200 text-orange-800",
 	},
 	RETURN_PICKUP_DELAYED: {
 		displayName: "Return Pickup Delayed",
-		color: "bg-yellow-200 text-yellow-800",
+		color: "bg-orange-200 text-orange-800",
 	},
 	RETURN_PICKUP_SCHEDULED: {
 		displayName: "Return Pickup Scheduled",
-		color: "bg-yellow-200 text-yellow-800",
+		color: "bg-orange-200 text-orange-800",
 	},
 	RETURN_OUT_FOR_DELIVERY: {
 		displayName: "Return Out For Delivery",
-		color: "bg-yellow-200 text-yellow-800",
+		color: "bg-orange-200 text-orange-800",
 	},
 	RETURN_UNDELIVERED: {
 		displayName: "Return Undelivered",
-		color: "bg-yellow-200 text-yellow-800",
+		color: "bg-red-200 text-red-800",
 	},
 	REVERSE_PICKUP_EXCEPTION: {
 		displayName: "Reverse Pickup Exception",
-		color: "bg-yellow-200 text-yellow-800",
-	},
-	NA: {
-		displayName: "N/A",
-		color: "bg-gray-200 text-gray-800",
+		color: "bg-red-200 text-red-800",
 	},
 };

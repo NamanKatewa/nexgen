@@ -467,36 +467,11 @@ function generateShipmentId(userId: string): string {
 }
 
 // --- Main Seeding Function ---
-async function seedCouriers() {
-	console.log("Seeding couriers...");
-	const filePath = path.join(process.cwd(), "data", "couriers.json");
-	try {
-		const fileContent = await fs.readFile(filePath, "utf-8");
-		const couriers = JSON.parse(fileContent);
-
-		for (const courier of couriers) {
-			await prisma.courier.upsert({
-				where: { shipway_id: String(courier.id) },
-				update: {},
-				create: {
-					shipway_id: String(courier.id),
-					name: courier.courier_name,
-					image_url: courier.image,
-				},
-			});
-		}
-		console.log("Couriers seeded successfully.");
-	} catch (error) {
-		console.error("Error seeding couriers:", error);
-		throw error;
-	}
-}
 
 async function main() {
 	console.log("Start seeding...");
 
 	await loadPincodeMap();
-	await seedCouriers(); // Call the new function
 	const allPincodes = Array.from(pincodeMap.keys());
 
 	const password = "Tarzan678$";

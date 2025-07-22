@@ -58,6 +58,8 @@ const RefundPage = () => {
 
 	const processRefundMutation = api.refund.processRefund.useMutation({
 		onSuccess: (data: { message: string }) => {
+			api.useUtils().shipment.getAllShipments.invalidate();
+			api.useUtils().shipment.getAllTrackingShipments.invalidate();
 			toast.success(data.message);
 			setShipmentDetails(null);
 			setValue("id", "");
