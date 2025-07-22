@@ -4,7 +4,9 @@ import logger from "~/lib/logger";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
+import { SHIPMENT_STATUS, USER_ROLE } from "@prisma/client";
 import { env } from "~/env";
+import { sendEmail } from "~/lib/email";
 import { shipwayStatusMap } from "~/lib/shipment-status-map";
 import { webhookSchema } from "~/schemas/webhook";
 
@@ -151,9 +153,87 @@ export const trackingRouter = createTRPCRouter({
 							current_status,
 						});
 					}
-				}
-			});
 
-			return { status: "success", message: "Webhook received and processed" };
+					const nonDeliveryStatuses: SHIPMENT_STATUS[] = [
+						SHIPMENT_STATUS.UNDELIVERED,
+						SHIPMENT_STATUS.RTO,
+						SHIPMENT_STATUS.ON_HOLD,
+						SHIPMENT_STATUS.NETWORK_ISSUE,
+						SHIPMENT_STATUS.NOT_FOUND_INCORRECT,
+						SHIPMENT_STATUS.OUT_OF_DELIVERY_AREA,
+						SHIPMENT_STATUS.OTHERS,
+						SHIPMENT_STATUS.DELIVERY_DELAYED,
+						SHIPMENT_STATUS.CUSTOMER_REFUSED,
+						SHIPMENT_STATUS.CONSIGNEE_UNAVAILABLE,
+						SHIPMENT_STATUS.DELIVERY_EXCEPTION,
+						SHIPMENT_STATUS.DELIVERY_RESCHEDULED,
+						SHIPMENT_STATUS.COD_PAYMENT_NOT_READY,
+						SHIPMENT_STATUS.SHIPMENT_LOST,
+						SHIPMENT_STATUS.PICKUP_FAILED,
+						SHIPMENT_STATUS.PICKUP_CANCELLED,
+						SHIPMENT_STATUS.ADDRESS_INCORRECT,
+						SHIPMENT_STATUS.DELIVERY_ATTEMPTED,
+						SHIPMENT_STATUS.PENDING_UNDELIVERED,
+						SHIPMENT_STATUS.DELIVERY_ATTEMPTED_PREMISES_CLOSED,
+					];
+
+					if (
+						newShipmentStatus &&
+						nonDeliveryStatuses.includes(newShipmentStatus)
+					) {
+						logger.info("Non-delivery status detected, sending email", {
+							awbno,
+							newShipmentStatus,
+						});
+
+						const user = await tx.user.findUnique({
+							where: { user_id: shipment.user_id },
+						});
+
+						const admins = await tx.user.findMany({
+							where: { role: USER_ROLE.Admin },
+						});
+
+						if (user?.email) {
+							await sendEmail({
+								to: user.email,
+								subject: `Shipment ${shipment.human_readable_shipment_id} - Non-Delivery Update`,
+								html: `
+									<p>Dear ${user.name || "User"},</p>
+									<p>Your shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has an important update.</p>
+									<p>The current status is: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
+									<p>Please visit our tracking page for more details: <a href="${env.BASE_URL}/track?id=${awbno}">${env.BASE_URL}/track?id=${awbno}</a></p>
+									<p>If you have any concerns, please contact our support team.</p>
+									<p>Thank you,</p>
+									<p>Nexgen Courier Services</p>
+								`,
+							});
+						}
+
+						for (const admin of admins) {
+							if (admin.email) {
+								await sendEmail({
+									to: admin.email,
+									subject: `ADMIN ALERT: Shipment ${shipment.human_readable_shipment_id} - Non-Delivery Update`,
+									html: `
+										<p>Dear Admin,</p>
+										<p>Shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has a non-delivery status update.</p>
+										<p>User Email: ${user?.email || "N/A"}</p>
+										<p>Current Status: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
+										<p>Please investigate and take necessary action.</p>
+										<p>Thank you,</p>
+										<p>Nexgen Courier Services</p>
+									`,
+								});
+							}
+						}
+					}
+				}
+
+				return {
+					status: "success",
+					message: "Webhook received and processed",
+				};
+			});
 		}),
 });

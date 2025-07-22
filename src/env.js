@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const env = createEnv({
 	server: {
+		BASE_URL: z.string().url(),
 		JWT_SECRET:
 			process.env.NODE_ENV === "production"
 				? z.string()
@@ -28,6 +29,7 @@ export const env = createEnv({
 	client: {},
 
 	runtimeEnv: {
+		BASE_URL: process.env.BASE_URL,
 		JWT_SECRET: process.env.JWT_SECRET,
 		DATABASE_URL: process.env.DATABASE_URL,
 		DIRECT_URL: process.env.DIRECT_URL,
