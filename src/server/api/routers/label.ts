@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import bwipjs from "bwip-js";
-import puppeteer from "puppeteer";
+
 import QRCode from "qrcode";
 import { z } from "zod";
 import { getLabelHTML } from "~/lib/label-template";
@@ -72,20 +72,16 @@ export const labelRouter = createTRPCRouter({
 				qrCodeDataUrl = await QRCode.toDataURL(shipment.awb_number);
 			}
 
-			const htmlContent = getLabelHTML(
-				shipment,
+			return {
+				shipment: {
+					...shipment,
+					created_at: shipment.created_at.toISOString(), // Convert Date to string for serialization
+					// Ensure other Date objects are also converted if they exist in the shipment object
+				},
 				companyName,
-				shipment.courier?.image_url || "",
-				barcodeImageBase64,
+				courierImage: shipment.courier?.image_url || "",
+				barcodeSvg: barcodeImageBase64,
 				qrCodeDataUrl,
-			);
-
-			const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
-			const page = await browser.newPage();
-			await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-			const pdf = await page.pdf({ format: "A4" });
-			await browser.close();
-
-			return { pdf: Buffer.from(pdf).toString("base64") };
+			};
 		}),
 });

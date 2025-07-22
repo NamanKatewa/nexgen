@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
 import { FieldError } from "~/components/FieldError";
@@ -10,6 +10,7 @@ import { FormWrapper } from "~/components/FormWrapper";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { api } from "~/trpc/react";
 
 const formSchema = z.object({
@@ -17,6 +18,7 @@ const formSchema = z.object({
 });
 
 const LabelMakerPage = () => {
+	const [isLoading, setIsLoading] = useState(false);
 	const {
 		register,
 		handleSubmit,
@@ -29,21 +31,13 @@ const LabelMakerPage = () => {
 		},
 	});
 
-	const generateLabelMutation = api.label.generateLabel.useMutation({
-		onSuccess: (data) => {
-			const link = document.createElement("a");
-			link.href = `data:application/pdf;base64,${data.pdf}`;
-			link.download = `label-${getValues("shipmentId")}.pdf`;
-			link.click();
-			toast.success("Label generated successfully");
-		},
-		onError: (error) => {
-			toast.error(error.message);
-		},
-	});
+	const { mutateAsync: generateLabelMutation } =
+		api.label.generateLabel.useMutation();
 
-	const onSubmit = (values: z.infer<typeof formSchema>) => {
-		generateLabelMutation.mutate(values);
+	const onSubmit = async (values: z.infer<typeof formSchema>) => {
+		setIsLoading(true);
+		await generateAndDownloadLabel(values.shipmentId, generateLabelMutation);
+		setIsLoading(false);
 	};
 
 	return (
@@ -59,18 +53,12 @@ const LabelMakerPage = () => {
 							id="shipmentId"
 							placeholder="Enter ID"
 							{...register("shipmentId")}
-							disabled={generateLabelMutation.isPending}
+							disabled={isLoading}
 						/>
 						<FieldError message={errors.shipmentId?.message} />
 					</div>
-					<Button
-						type="submit"
-						className="w-full"
-						disabled={generateLabelMutation.isPending}
-					>
-						{generateLabelMutation.isPending
-							? "Generating..."
-							: "Generate Label"}
+					<Button type="submit" className="w-full" disabled={isLoading}>
+						{isLoading ? "Generating..." : "Generate Label"}
 					</Button>
 				</form>
 			</FormWrapper>

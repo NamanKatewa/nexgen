@@ -22,5 +22,17 @@
 			},
 			"recommended": true
 		}
-	}
+	},
+	"overrides": [
+		{
+			"include": ["src/lib/pdf-generator.ts"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "off"
+					}
+				}
+			}
+		}
+	]
 }

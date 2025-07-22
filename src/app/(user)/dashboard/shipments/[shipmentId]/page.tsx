@@ -10,6 +10,7 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 
+import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn, formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import type { RouterOutputs } from "~/trpc/react";
@@ -26,24 +27,12 @@ export default function UserShipmentDetailPage() {
 		error,
 	} = api.shipment.getShipmentById.useQuery({ shipmentId });
 
-	const generateLabelMutation = api.label.generateLabel.useMutation();
+	const { mutateAsync: generateLabelMutation } =
+		api.label.generateLabel.useMutation();
 
 	const handleDownloadLabel = async (shipmentId: string) => {
 		try {
-			const result = await generateLabelMutation.mutateAsync({ shipmentId });
-			const byteCharacters = atob(result.pdf);
-			const byteNumbers = new Array(byteCharacters.length);
-			for (let i = 0; i < byteCharacters.length; i++) {
-				byteNumbers[i] = byteCharacters.charCodeAt(i);
-			}
-			const byteArray = new Uint8Array(byteNumbers);
-			const blob = new Blob([byteArray], { type: "application/pdf" });
-			const link = document.createElement("a");
-			link.href = URL.createObjectURL(blob);
-			link.download = `shipment-label-${shipmentId}.pdf`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
+			await generateAndDownloadLabel(shipmentId, generateLabelMutation);
 		} catch (error) {
 			toast.error("Failed to generate label");
 		}

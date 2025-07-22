@@ -1,7 +1,11 @@
 import type { Address, Shipment } from "@prisma/client";
 
+interface ClientSideShipment extends Omit<Shipment, "created_at"> {
+	created_at: string;
+}
+
 export const getLabelHTML = (
-	shipment: Shipment & {
+	shipment: ClientSideShipment & {
 		destination_address: Address | null;
 		origin_address: Address | null;
 	},
@@ -11,7 +15,7 @@ export const getLabelHTML = (
 	qrCodeDataUrl: string,
 ) => {
 	const declaredValue = shipment.declared_value
-		? `INR ${shipment.declared_value.toFixed(2)}`
+		? `INR ${Number(shipment.declared_value).toFixed(2)}`
 		: "N/A";
 
 	const createdAt = shipment.created_at
@@ -26,7 +30,7 @@ export const getLabelHTML = (
         <style>
           body {
             font-family: sans-serif;
-            font-size: 10px;
+            font-size: 8px; /* Reduced base font size */
             line-height: 1.2;
             color: #000000;
             background-color: #ffffff;
@@ -35,69 +39,98 @@ export const getLabelHTML = (
             width: 80mm;
             min-height: 100mm;
             border: 1px solid black;
-            padding: 1rem;
+            padding: 0.5rem; /* Reduced padding */
+            box-sizing: border-box; /* Include padding in width/height */
           }
           .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
+            width: 100%;
+            margin-bottom: 0.2rem; /* Reduced margin */
+          }
+          .header-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .header-table td {
+            padding: 0;
+            vertical-align: middle;
+          }
+          .header-table .text-right {
+            text-align: right;
           }
           .awb-section {
             text-align: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.2rem; /* Reduced margin */
           }
-          .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 0.5rem;
+          .awb-section img {
+            max-width: 100%;
+            height: auto; /* Ensure image scales */
+          }
+          .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.2rem; /* Reduced margin */
+          }
+          .details-table td {
+            padding: 0;
+            width: 50%; /* Two columns */
           }
           .address-section {
             border-top: 1px solid black;
             border-bottom: 1px solid black;
-            padding: 0.5rem 0;
-            margin-bottom: 0.5rem;
+            padding: 0.2rem 0; /* Reduced padding */
+            margin-bottom: 0.2rem; /* Reduced margin */
           }
           .seller-section {
             border-bottom: 1px solid black;
-            padding-bottom: 0.5rem;
-            margin-bottom: 0.5rem;
+            padding-bottom: 0.2rem; /* Reduced padding */
+            margin-bottom: 0.2rem; /* Reduced margin */
           }
-          .return-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+          .return-section-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .return-section-table td {
+            padding: 0;
+            vertical-align: bottom;
+          }
+          .return-section-table .text-right {
+            text-align: right;
+          }
+          .qr-barcode-section img {
+            max-width: 100%;
+            height: auto; /* Ensure image scales */
           }
           .font-bold {
             font-weight: bold;
           }
           .text-lg {
-            font-size: 1.125rem;
+            font-size: 10px; /* Adjusted from 1.125rem */
           }
           .text-xl {
-            font-size: 1.25rem;
+            font-size: 12px; /* Adjusted from 1.25rem */
           }
           .text-sm {
-            font-size: 0.875rem;
+            font-size: 8px; /* Adjusted from 0.875rem */
           }
           .text-xs {
-            font-size: 0.75rem;
+            font-size: 7px; /* Adjusted from 0.75rem */
           }
           .h-8 {
-            height: 2rem;
+            height: 50px; /* Fixed height for courier image */
+            width: 100px; /* Fixed width for courier image */
+            object-fit: contain;
           }
           .mb-1 {
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.1rem;
           }
           .mb-2 {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.2rem;
           }
           .mt-1 {
-            margin-top: 0.25rem;
+            margin-top: 0.1rem;
           }
           .p-4 {
-            padding: 1rem;
+            padding: 0.5rem;
           }
           .text-right {
             text-align: right;
@@ -107,8 +140,12 @@ export const getLabelHTML = (
       <body>
         <div class="label-container">
           <div class="header">
-            <h2 class="font-bold text-lg">SHIPMENT LABEL</h2>
-            <img src="${courierImage}" alt="Company Logo" class="h-8" />
+            <table class="header-table">
+              <tr>
+                <td><h2 class="font-bold text-lg">SHIPMENT LABEL</h2></td>
+                <td class="text-right"><img src="${courierImage}" alt="Company Logo" class="h-8" /></td>
+              </tr>
+            </table>
           </div>
 
           <div class="awb-section">
@@ -116,19 +153,21 @@ export const getLabelHTML = (
             <p class="font-bold text-xl">${shipment.awb_number || "N/A"}</p>
           </div>
 
-          <div class="details-grid">
-            <div>
-              <strong>Shipment ID:</strong> ${
-								shipment.human_readable_shipment_id
-							}
-            </div>
-            <div>
-              <strong>Declared Value:</strong>
-              <span class="font-bold" style="color: #dc2626">
-                ${declaredValue}
-              </span>
-            </div>
-          </div>
+          <table class="details-table">
+            <tr>
+              <td>
+                <strong>Shipment ID:</strong> ${
+									shipment.human_readable_shipment_id
+								}
+              </td>
+              <td>
+                <strong>Declared Value:</strong>
+                <span class="font-bold" style="color: #dc2626">
+                  ${declaredValue}
+                </span>
+              </td>
+            </tr>
+          </table>
 
           <div class="address-section">
             <h3 class="mb-1 font-bold">RECIPIENT:</h3>
@@ -149,21 +188,27 @@ export const getLabelHTML = (
             <p>Shipment Date: ${createdAt}</p>
           </div>
 
-          <div class="return-section">
-            <div class="qr-barcode-section text-center">
-              <img src="${qrCodeDataUrl}" alt="QR Code" style="width: 60px; height: 60px;" />
-              <p class="mt-1 text-xs">AWB: ${shipment.awb_number || "N/A"}</p>
-            </div>
-            <div class="return-address text-right">
-              <h3 class="mb-1 font-bold">RETURN ADDRESS:</h3>
-              <p>
-                ${shipment.origin_address?.address_line},
-                ${shipment.origin_address?.landmark ? `${shipment.origin_address.landmark},` : ""}
-                ${shipment.origin_address?.city},${shipment.origin_address?.state},
-                ${shipment.origin_address?.zip_code}
-              </p>
-            </div>
-          </div>
+          <table class="return-section-table">
+            <tr>
+              <td>
+                <div class="qr-barcode-section text-center">
+                  <img src="${qrCodeDataUrl}" alt="QR Code" style="width: 60px; height: 60px;" />
+                  <p class="mt-1 text-xs">AWB: ${shipment.awb_number || "N/A"}</p>
+                </div>
+              </td>
+              <td class="text-right">
+                <div class="return-address">
+                  <h3 class="mb-1 font-bold">RETURN ADDRESS:</h3>
+                  <p>
+                    ${shipment.origin_address?.address_line},
+                    ${shipment.origin_address?.landmark ? `${shipment.origin_address.landmark},` : ""}
+                    ${shipment.origin_address?.city},${shipment.origin_address?.state},
+                    ${shipment.origin_address?.zip_code}
+                  </p>
+                </div>
+              </td>
+            </tr>
+          </table>
         </div>
       </body>
     </html>

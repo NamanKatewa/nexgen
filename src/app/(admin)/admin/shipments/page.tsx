@@ -11,6 +11,7 @@ import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
+import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
@@ -130,25 +131,15 @@ function AdminOrdersContent() {
 		},
 	];
 
-	const { mutate: getLabel, isPending: isGettingLabel } =
-		api.label.generateLabel.useMutation({
-			onSuccess: (data) => {
-				const pdfWindow = window.open("");
-				if (pdfWindow) {
-					pdfWindow.document.write(
-						`<iframe src="data:application/pdf;base64,${data.pdf}" width="100%" height="100%"></iframe>`,
-					);
-				} else {
-					toast.error("Failed to open PDF. Please allow pop-ups.");
-				}
-			},
-			onError: (error) => {
-				toast.error(error.message);
-			},
-		});
+	const { mutateAsync: getLabel, isPending: isGettingLabel } =
+		api.label.generateLabel.useMutation();
 
-	const handleGetLabel = (shipmentId: string) => {
-		getLabel({ shipmentId });
+	const handleGetLabel = async (shipmentId: string) => {
+		try {
+			await generateAndDownloadLabel(shipmentId, getLabel);
+		} catch (error) {
+			toast.error("Failed to generate label");
+		}
 	};
 
 	const filters = [
