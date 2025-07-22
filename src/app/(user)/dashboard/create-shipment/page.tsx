@@ -183,29 +183,30 @@ export default function CreateShipmentPage() {
 		},
 	});
 
-	const [queryInput, setQueryInput] = useState<{
-		originZipCode: string;
-		destinationZipCode: string;
-		packageWeight: number;
-		isInsuranceSelected?: boolean;
-		declaredValue?: number;
-	} | null>(null);
-
-	const {
-		data: rateData,
-		error: rateError,
-		isFetching: isCalculatingRate,
-	} = api.rate.calculateRate.useQuery(
-		queryInput ?? {
-			originZipCode: "",
-			destinationZipCode: "",
-			packageWeight: 0,
-		},
-		{
-			enabled: !!queryInput,
-			staleTime: Number.POSITIVE_INFINITY, // Prevent refetching on focus
-		},
-	);
+	const { data: rateData, error: rateError, isFetching: isCalculatingRate } =
+		api.rate.calculateRate.useQuery(
+			{
+				originZipCode: watch("originAddressId")
+					? String(
+							warehouseAddresses?.find(
+								(address) => address.address_id === watch("originAddressId"),
+							)?.zip_code,
+					  )
+					: "",
+				destinationZipCode: destinationAddress.zipCode,
+				packageWeight: watch("packageWeight"),
+				isInsuranceSelected: watch("isInsuranceSelected"),
+				declaredValue: watch("declaredValue"),
+			},
+			{
+				enabled:
+					!!watch("originAddressId") &&
+					!!destinationAddress.zipCode &&
+					!!watch("packageWeight") &&
+					!!watch("declaredValue"),
+				staleTime: 0, // Allow refetching on every change
+			},
+		);
 
 	useEffect(() => {
 		if (rateData) {
@@ -216,8 +217,7 @@ export default function CreateShipmentPage() {
 			});
 			setOrigin(rateData.origin);
 			setDestination(rateData.destination);
-			setQueryInput(null);
-			toast.success("Rate calculated successfully!");
+			toast.success("Shipping fee calculated successfully!");
 		}
 	}, [rateData]);
 
@@ -225,47 +225,8 @@ export default function CreateShipmentPage() {
 		if (rateError) {
 			toast.error(rateError.message);
 			setCalculatedRate(null);
-			setQueryInput(null);
 		}
 	}, [rateError]);
-
-	const handleCalculateRate = async () => {
-		const isValid = await trigger([
-			"originAddressId",
-			"packageWeight",
-			"declaredValue",
-		]);
-
-		if (!isValid) {
-			toast.error("Please fill in all required fields correctly.");
-			return;
-		}
-
-		const data = getValues();
-		const originAddress = warehouseAddresses?.find(
-			(address) => address.address_id === data.originAddressId,
-		);
-
-		if (
-			!originAddress ||
-			!destinationAddress.zipCode ||
-			!data.packageWeight ||
-			!data.declaredValue
-		) {
-			toast.error(
-				"Please select origin, destination, and enter package weight and declared value.",
-			);
-			return;
-		}
-
-		setQueryInput({
-			originZipCode: String(originAddress.zip_code),
-			destinationZipCode: destinationAddress.zipCode,
-			packageWeight: data.packageWeight,
-			isInsuranceSelected: data.isInsuranceSelected,
-			declaredValue: data.declaredValue,
-		});
-	};
 
 	const onSubmit = async (data: TShipmentSchema) => {
 		setIsLoading(true);
@@ -665,17 +626,10 @@ export default function CreateShipmentPage() {
 						<h2 className="font-semibold text-xl">5. Review and Confirm</h2>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<Button
-							type="button"
-							onClick={handleCalculateRate}
-							disabled={isCalculatingRate}
-						>
-							{isCalculatingRate ? "Calculating..." : "Calculate Rate"}
-						</Button>
 						<div
 							className={`font-semibold text-lg ${!calculatedRate ? "invisible h-0" : ""}`}
 						>
-							Calculated Rate: ₹{calculatedRate?.rate.toFixed(2)}
+							Shipping Fee: ₹{calculatedRate?.rate.toFixed(2)}
 							{calculatedRate?.insurancePremium &&
 								calculatedRate.insurancePremium > 0 && (
 									<p className="font-normal text-green-600 text-sm">
