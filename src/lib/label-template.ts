@@ -150,7 +150,6 @@ export const getLabelHTML = (
 
           <div class="awb-section">
             <img src="${barcodeSvg}" alt="Barcode" style="width: 100%; height: 50px;" />
-            <p class="font-bold text-xl">${shipment.awb_number || "N/A"}</p>
           </div>
 
           <table class="details-table">
