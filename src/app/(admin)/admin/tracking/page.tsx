@@ -19,7 +19,7 @@ import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 
 type Shipment =
-	RouterOutputs["shipment"]["getAllShipments"]["shipments"][number];
+	RouterOutputs["shipment"]["getAllTrackingShipments"]["shipments"][number];
 
 function AdminOrdersContent() {
 	const [page, setPage] = useState(1);
@@ -47,27 +47,41 @@ function AdminOrdersContent() {
 			key: "human_readable_shipment_id",
 			header: "Shipment ID",
 			className: "w-30 px-4",
-			render: (item) => <Copyable content={item.human_readable_shipment_id} />,
+			render: (item: Shipment) => (
+				<Copyable content={item.human_readable_shipment_id} />
+			),
 		},
 		{
 			key: "user.name",
 			header: "User Name",
 			className: "w-40 px-4 whitespace-normal",
-			render: (item) => (
+			render: (item: Shipment) => (
 				<Link href={`/admin/user/${item.user_id}`}>{item.user.name}</Link>
 			),
 		},
 		{
-			key: "user.email",
-			header: "User Email",
+			key: "user.company_name",
+			header: "Company Name",
 			className: "w-40 px-4",
-			render: (item) => <Copyable content={item.user.email} />,
+			render: (item: Shipment) => item.user.company_name,
 		},
 		{
-			key: "shipping_cost",
-			header: "Shipping Cost",
+			key: "recipient_name",
+			header: "Customer Name",
 			className: "w-30 px-4 text-center",
-			render: (item: Shipment) => `₹${Number(item.shipping_cost).toFixed(2)}`,
+			render: (item: Shipment) => item.recipient_name,
+		},
+		{
+			key: "awb_number",
+			header: "AWB",
+			className: "w-30 px-4 text-center",
+			render: (item: Shipment) => <Copyable content={item.awb_number || ""} />,
+		},
+		{
+			key: "item.courier.name",
+			header: "Courier",
+			className: "w-30 px-4 text-center",
+			render: (item: Shipment) => (item.courier ? item.courier.name : ""),
 		},
 		{
 			key: "shipment_status",

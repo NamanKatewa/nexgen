@@ -845,8 +845,10 @@ export const shipmentRouter = createTRPCRouter({
 							select: {
 								name: true,
 								email: true,
+								company_name: true,
 							},
 						},
+						courier: { select: { name: true } },
 					},
 					skip,
 					take: pageSize,
