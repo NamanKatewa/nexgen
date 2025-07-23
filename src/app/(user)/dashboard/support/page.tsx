@@ -5,6 +5,7 @@ import type { SupportTicket } from "@prisma/client";
 import { SUPPORT_PRIORITY, type SUPPORT_STATUS } from "@prisma/client";
 import Link from "next/link";
 import { useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
@@ -39,6 +40,10 @@ export default function SupportPage() {
 	const [priorityFilter, setPriorityFilter] = useState<
 		"Low" | "Medium" | "High" | undefined
 	>(undefined);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	const { data, isLoading, refetch } = api.support.getUserTickets.useQuery({
@@ -46,6 +51,8 @@ export default function SupportPage() {
 		pageSize,
 		status: statusFilter,
 		priority: priorityFilter,
+		startDate: dateRange?.from?.toISOString(),
+		endDate: dateRange?.to?.toISOString(),
 	});
 
 	const {
@@ -177,6 +184,7 @@ export default function SupportPage() {
 	const handleClearFilters = () => {
 		setStatusFilter(undefined);
 		setPriorityFilter(undefined);
+		setDateRange({ from: undefined, to: undefined });
 	};
 
 	return (
@@ -232,6 +240,8 @@ export default function SupportPage() {
 				idKey="ticket_id"
 				filters={filters}
 				onClearFilters={handleClearFilters}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

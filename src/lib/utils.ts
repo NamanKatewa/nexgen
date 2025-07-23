@@ -6,6 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+export function getEndOfDay(date: Date): Date {
+	const endOfDay = new Date(date);
+	endOfDay.setHours(23, 59, 59, 999);
+	return endOfDay;
+}
+
 export function generateOTP(): string {
 	const otp = Math.floor(100000 + Math.random() * 900000).toString();
 	logger.info("Generated OTP", { otp });
@@ -42,6 +48,16 @@ export function formatDate(date: Date): string {
 	const timePart = `${formattedHours}:${formattedMinutes} ${ampm}`;
 
 	return `${datePart} ${timePart}`;
+}
+export function formatDateOnly(date: Date): string {
+	const options: Intl.DateTimeFormatOptions = {
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+	};
+	const datePart = new Intl.DateTimeFormat("en-US", options).format(date);
+
+	return `${datePart}`;
 }
 
 export async function imageUrlToBase64(url: string): Promise<string> {

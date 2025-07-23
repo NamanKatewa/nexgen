@@ -14,6 +14,7 @@ import { paymentStatusTypes } from "~/constants";
 
 import type { inferRouterOutputs } from "@trpc/server";
 import Link from "next/link";
+import type { DateRange } from "react-day-picker";
 import PaginationButtons from "~/components/PaginationButtons";
 import type { AppRouter } from "~/server/api/root";
 
@@ -29,6 +30,16 @@ const WalletTopupPage = () => {
 
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
+
+	const handleClearFilters = () => {
+		setFilterType("ALL");
+		setSearchText("");
+		setDateRange({ from: undefined, to: undefined });
+	};
 
 	const { data: transactions, isLoading } = api.admin.getTransactions.useQuery(
 		{
@@ -37,17 +48,14 @@ const WalletTopupPage = () => {
 			filterType: filterType === "ALL" ? undefined : filterType,
 			searchFilter:
 				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
 		},
 		{
 			retry: 3,
 			refetchOnWindowFocus: false,
 		},
 	);
-
-	const handleClearFilters = () => {
-		setFilterType("ALL");
-		setSearchText("");
-	};
 
 	const columns: ColumnConfig<Transaction>[] = [
 		{
@@ -131,6 +139,8 @@ const WalletTopupPage = () => {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="transaction_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

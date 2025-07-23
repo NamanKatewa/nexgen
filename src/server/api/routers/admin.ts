@@ -4,6 +4,7 @@ import { z } from "zod";
 import { sendEmail } from "~/lib/email";
 import logger from "~/lib/logger";
 import { pushOrderToShipway } from "~/lib/shipway";
+import { getEndOfDay } from "~/lib/utils";
 import {
 	approvePendingAddressSchema,
 	rejectPendingAddressSchema,
@@ -25,10 +26,20 @@ export const adminRouter = createTRPCRouter({
 				filterGST: z.string().optional(),
 				filterType: z.string().optional(),
 				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, filterGST, filterType, searchFilter } = input;
+			const {
+				page,
+				pageSize,
+				filterGST,
+				filterType,
+				searchFilter,
+				startDate,
+				endDate,
+			} = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching pending KYC submissions", { page, pageSize });
 
@@ -56,6 +67,13 @@ export const adminRouter = createTRPCRouter({
 						},
 					},
 				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.submission_date = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			try {
@@ -196,10 +214,13 @@ export const adminRouter = createTRPCRouter({
 				pageSize: z.number().min(1).max(100).default(10),
 				filterType: z.string().optional(),
 				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, filterType, searchFilter } = input;
+			const { page, pageSize, filterType, searchFilter, startDate, endDate } =
+				input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching all credit transactions", { page, pageSize });
 
@@ -219,6 +240,13 @@ export const adminRouter = createTRPCRouter({
 					{ user_id: { contains: searchFilter, mode: "insensitive" } },
 					{ transaction_id: { contains: searchFilter, mode: "insensitive" } },
 				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			try {
@@ -275,11 +303,20 @@ export const adminRouter = createTRPCRouter({
 				filterStatus: z.string().optional(),
 				filterTxnType: z.string().optional(),
 				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, filterStatus, filterTxnType, searchFilter } =
-				input;
+			const {
+				page,
+				pageSize,
+				filterStatus,
+				filterTxnType,
+				searchFilter,
+				startDate,
+				endDate,
+			} = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching admin passbook", { page, pageSize });
 
@@ -304,6 +341,13 @@ export const adminRouter = createTRPCRouter({
 					{ description: { contains: searchFilter, mode: "insensitive" } },
 					{ amount: Number.parseFloat(searchFilter) || undefined },
 				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			try {
@@ -363,10 +407,12 @@ export const adminRouter = createTRPCRouter({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
 				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, searchFilter } = input;
+			const { page, pageSize, searchFilter, startDate, endDate } = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching pending shipments", { page, pageSize });
 
@@ -386,6 +432,13 @@ export const adminRouter = createTRPCRouter({
 					},
 					{ user_id: { contains: searchFilter, mode: "insensitive" } },
 				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			try {
@@ -596,10 +649,12 @@ export const adminRouter = createTRPCRouter({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
 				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, searchFilter } = input;
+			const { page, pageSize, searchFilter, startDate, endDate } = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching pending addresses", { page, pageSize });
 
@@ -619,6 +674,13 @@ export const adminRouter = createTRPCRouter({
 					{ state: { contains: searchFilter, mode: "insensitive" } },
 					{ zip_code: Number.parseInt(searchFilter) || undefined },
 				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			try {
@@ -821,11 +883,21 @@ export const adminRouter = createTRPCRouter({
 				businessType: z.enum(["Retailer", "Ecommerce", "Franchise"]).optional(),
 				role: z.enum(["Client", "Admin", "Employee"]).optional(),
 				status: z.enum(["Active", "Inactive"]).optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, searchFilter, businessType, role, status } =
-				input;
+			const {
+				page,
+				pageSize,
+				searchFilter,
+				businessType,
+				role,
+				status,
+				startDate,
+				endDate,
+			} = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching all users", { page, pageSize });
 
@@ -850,6 +922,13 @@ export const adminRouter = createTRPCRouter({
 
 			if (status) {
 				whereClause.status = status;
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			try {
@@ -892,10 +971,12 @@ export const adminRouter = createTRPCRouter({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
 				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, searchFilter } = input;
+			const { page, pageSize, searchFilter, startDate, endDate } = input;
 			const skip = (page - 1) * pageSize;
 			logger.info("Fetching users with pending shipments", { page, pageSize });
 
@@ -909,6 +990,13 @@ export const adminRouter = createTRPCRouter({
 					{ company_name: { contains: searchFilter, mode: "insensitive" } },
 					{ user_id: { contains: searchFilter, mode: "insensitive" } },
 				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			const userWhere: Prisma.UserWhereInput = {

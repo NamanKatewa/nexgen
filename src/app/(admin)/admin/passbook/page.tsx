@@ -17,6 +17,7 @@ type Transaction = PassbookOutput["transactions"][number];
 import { paymentStatusTypes, transactionTypes } from "~/constants";
 
 import Link from "next/link";
+import type { DateRange } from "react-day-picker";
 import Copyable from "~/components/Copyable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
@@ -31,6 +32,10 @@ function PassbookContent() {
 	const [filterTxnType, setFilterTxnType] = useState("ALL");
 	const [searchText, setSearchText] = useState(initialUserId);
 	const debouncedSearchFilter = useDebounce(searchText, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
 
 	const { data, isLoading } = api.admin.getPassbook.useQuery(
 		{
@@ -40,6 +45,8 @@ function PassbookContent() {
 			filterTxnType: filterTxnType === "ALL" ? undefined : filterTxnType,
 			searchFilter:
 				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
 		},
 		{
 			retry: 3,
@@ -51,6 +58,7 @@ function PassbookContent() {
 		setFilterStatus("ALL");
 		setFilterTxnType("ALL");
 		setSearchText("");
+		setDateRange({ from: undefined, to: undefined });
 	};
 
 	const columns: ColumnConfig<Transaction>[] = [
@@ -180,6 +188,8 @@ function PassbookContent() {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="transaction_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

@@ -15,6 +15,7 @@ import { api } from "~/trpc/react";
 type PassbookOutput = inferRouterOutputs<AppRouter>["wallet"]["getPassbook"];
 type Transaction = PassbookOutput["transactions"][number];
 
+import type { DateRange } from "react-day-picker";
 import { paymentStatusTypes, transactionTypes } from "~/constants";
 
 const PassbookPage = () => {
@@ -25,6 +26,10 @@ const PassbookPage = () => {
 	const [filterTxnType, setFilterTxnType] = useState("ALL");
 	const [searchText, setSearchText] = useState("");
 	const debouncedSearchFilter = useDebounce(searchText, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
 
 	const { data, isLoading } = api.wallet.getPassbook.useQuery(
 		{
@@ -34,6 +39,8 @@ const PassbookPage = () => {
 			filterTxnType: filterTxnType === "ALL" ? undefined : filterTxnType,
 			searchFilter:
 				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
 		},
 		{
 			retry: 3,
@@ -45,6 +52,7 @@ const PassbookPage = () => {
 		setFilterStatus("ALL");
 		setFilterTxnType("ALL");
 		setSearchText("");
+		setDateRange({ from: undefined, to: undefined });
 	};
 
 	const columns: ColumnConfig<Transaction>[] = [
@@ -139,6 +147,8 @@ const PassbookPage = () => {
 				filters={filters}
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
@@ -26,6 +27,15 @@ function ApproveOrderContent() {
 
 	const [searchText, setSearchText] = useState(initialUserId);
 	const debouncedSearchFilter = useDebounce(searchText, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
+
+	const handleClearFilters = () => {
+		setSearchText("");
+		setDateRange({ from: undefined, to: undefined });
+	};
 
 	const { data, isLoading } = api.admin.pendingShipments.useQuery(
 		{
@@ -33,16 +43,14 @@ function ApproveOrderContent() {
 			pageSize,
 			searchFilter:
 				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
 		},
 		{
 			retry: 3,
 			refetchOnWindowFocus: false,
 		},
 	);
-
-	const handleClearFilters = () => {
-		setSearchText("");
-	};
 
 	const columns: ColumnConfig<ShipmentListItem>[] = [
 		{
@@ -119,10 +127,8 @@ function ApproveOrderContent() {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="shipment_id"
-				onRowClick={(row: ShipmentListItem) => {
-					setSelectedShipmentItem(row);
-					setShowOrderDetailsModal(true);
-				}}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

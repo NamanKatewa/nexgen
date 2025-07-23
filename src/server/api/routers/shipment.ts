@@ -8,7 +8,7 @@ import logger from "~/lib/logger";
 import { findBulkRates, findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { uploadFileToS3 } from "~/lib/s3";
-import { generateShipmentId } from "~/lib/utils";
+import { generateShipmentId, getEndOfDay } from "~/lib/utils";
 
 import {
 	type TBulkShipmentItemSchema,
@@ -777,15 +777,29 @@ export const shipmentRouter = createTRPCRouter({
 				pageSize: z.number().min(1).max(100).default(10),
 				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
 				userId: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, status, userId } = input;
+			const { page, pageSize, status, userId, startDate, endDate } = input;
 			const skip = (page - 1) * pageSize;
+
+			const where: Prisma.ShipmentWhereInput = {
+				shipment_status: status,
+				user_id: userId,
+			};
+
+			if (startDate && endDate) {
+				where.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
+			}
 
 			const [shipments, totalShipments] = await db.$transaction([
 				db.shipment.findMany({
-					where: { shipment_status: status, user_id: userId },
+					where,
 					include: {
 						user: {
 							select: {
@@ -801,7 +815,7 @@ export const shipmentRouter = createTRPCRouter({
 					},
 				}),
 				db.shipment.count({
-					where: { shipment_status: status, user_id: userId },
+					where,
 				}),
 			]);
 
@@ -822,10 +836,13 @@ export const shipmentRouter = createTRPCRouter({
 				currentStatus: z
 					.union([z.nativeEnum(SHIPMENT_STATUS), z.literal("ALL")])
 					.optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const { page, pageSize, userId, currentStatus } = input;
+			const { page, pageSize, userId, currentStatus, startDate, endDate } =
+				input;
 			const skip = (page - 1) * pageSize;
 
 			const whereClause: Prisma.ShipmentWhereInput = {
@@ -835,6 +852,13 @@ export const shipmentRouter = createTRPCRouter({
 
 			if (currentStatus && currentStatus !== "ALL") {
 				whereClause.current_status = currentStatus;
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			const [shipments, totalShipments] = await db.$transaction([
@@ -902,11 +926,14 @@ export const shipmentRouter = createTRPCRouter({
 				pageSize: z.number().min(1).max(100).default(10),
 				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
 				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const { user } = ctx;
-			const { page, pageSize, status, searchFilter } = input;
+			const { page, pageSize, status, searchFilter, startDate, endDate } =
+				input;
 			const skip = (page - 1) * pageSize;
 
 			const whereClause: Prisma.ShipmentWhereInput = {
@@ -925,6 +952,13 @@ export const shipmentRouter = createTRPCRouter({
 					{ recipient_name: { contains: searchFilter, mode: "insensitive" } },
 					{ recipient_mobile: { contains: searchFilter, mode: "insensitive" } },
 				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			const [shipments, totalShipments] = await db.$transaction([
@@ -969,11 +1003,20 @@ export const shipmentRouter = createTRPCRouter({
 				currentStatus: z
 					.union([z.nativeEnum(SHIPMENT_STATUS), z.literal("ALL")])
 					.optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const { user } = ctx;
-			const { page, pageSize, searchFilter, currentStatus } = input;
+			const {
+				page,
+				pageSize,
+				searchFilter,
+				currentStatus,
+				startDate,
+				endDate,
+			} = input;
 			const skip = (page - 1) * pageSize;
 
 			const whereClause: Prisma.ShipmentWhereInput = {
@@ -996,6 +1039,13 @@ export const shipmentRouter = createTRPCRouter({
 
 			if (currentStatus && currentStatus !== "ALL") {
 				whereClause.current_status = currentStatus;
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			const [shipments, totalShipments] = await db.$transaction([

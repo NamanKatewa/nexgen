@@ -3,6 +3,7 @@
 import type { SHIPMENT_STATUS } from "@prisma/client";
 import Link from "next/link";
 import { Suspense, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
@@ -28,6 +29,10 @@ function UserOrdersContent() {
 		undefined,
 	);
 	const debouncedSearchFilter = useDebounce(searchText, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
 
 	const { data, isLoading } = api.shipment.getUserTrackingShipments.useQuery({
 		page,
@@ -35,6 +40,8 @@ function UserOrdersContent() {
 		searchFilter:
 			debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
 		currentStatus: statusFilter,
+		startDate: dateRange?.from?.toISOString(),
+		endDate: dateRange?.to?.toISOString(),
 	});
 
 	const { data: shipmentCounts } =
@@ -160,6 +167,7 @@ function UserOrdersContent() {
 	const handleClearFilters = () => {
 		setSearchText("");
 		setStatusFilter(undefined);
+		setDateRange({ from: undefined, to: undefined });
 	};
 
 	return (
@@ -202,6 +210,8 @@ function UserOrdersContent() {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="shipment_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

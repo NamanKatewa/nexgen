@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
@@ -22,15 +23,25 @@ function PendingAddressesContent() {
 	const [processingAddressId, setProcessingAddressId] = useState<string | null>(
 		null,
 	);
-
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
+
+	const handleClearFilters = () => {
+		setSearchText("");
+		setDateRange({ from: undefined, to: undefined });
+	};
 
 	const { data, isLoading, refetch } = api.admin.pendingAddresses.useQuery({
 		page,
 		pageSize,
 		searchFilter:
 			debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+		startDate: dateRange?.from?.toISOString(),
+		endDate: dateRange?.to?.toISOString(),
 	});
 	const approveMutation = api.admin.approvePendingAddress.useMutation({
 		onMutate: (variables) => {
@@ -116,6 +127,7 @@ function PendingAddressesContent() {
 			render: (row: PendingAddress) => (
 				<div className="flex flex-col gap-2">
 					<Button
+						className="bg-green-600"
 						onClick={() =>
 							approveMutation.mutate({
 								pendingAddressId: row.pending_address_id,
@@ -129,7 +141,7 @@ function PendingAddressesContent() {
 							: "Approve"}
 					</Button>
 					<Button
-						variant="destructive"
+						className="bg-red-600"
 						onClick={() =>
 							rejectMutation.mutate({
 								pendingAddressId: row.pending_address_id,
@@ -164,7 +176,9 @@ function PendingAddressesContent() {
 						onChange: setSearchText,
 					},
 				]}
-				onClearFilters={() => setSearchText("")}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+				onClearFilters={handleClearFilters}
 			/>
 			<PaginationButtons
 				page={page}

@@ -12,7 +12,7 @@ const PaginationButtons: React.FC<PaginationButtonsProps> = ({
 	setPage,
 }) => {
 	return (
-		<div className="flex w-full items-center justify-between space-x-2 px-20">
+		<div className="flex w-full items-center justify-between space-x-2 px-20 pt-10">
 			<Button
 				variant="outline"
 				size="sm"

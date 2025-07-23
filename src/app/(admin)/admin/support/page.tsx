@@ -4,6 +4,7 @@ import type { SupportTicket } from "@prisma/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
@@ -28,6 +29,17 @@ function AdminSupportContent() {
 	const initialUserId = searchParams.get("userId") || "";
 	const [userIdSearchText, setUserIdSearchText] = useState(initialUserId);
 	const debouncedUserIdFilter = useDebounce(userIdSearchText, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
+
+	const handleClearFilters = () => {
+		setStatusFilter(undefined);
+		setPriorityFilter(undefined);
+		setUserIdSearchText("");
+		setDateRange({ from: undefined, to: undefined });
+	};
 
 	const { data, isLoading } = api.support.getAllTickets.useQuery({
 		page,
@@ -35,6 +47,8 @@ function AdminSupportContent() {
 		status: statusFilter,
 		priority: priorityFilter,
 		userId: debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
+		startDate: dateRange?.from?.toISOString(),
+		endDate: dateRange?.to?.toISOString(),
 	});
 
 	const columns: ColumnConfig<
@@ -165,12 +179,6 @@ function AdminSupportContent() {
 		},
 	];
 
-	const handleClearFilters = () => {
-		setStatusFilter(undefined);
-		setPriorityFilter(undefined);
-		setUserIdSearchText("");
-	};
-
 	return (
 		<>
 			<DataTable
@@ -181,6 +189,8 @@ function AdminSupportContent() {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="ticket_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

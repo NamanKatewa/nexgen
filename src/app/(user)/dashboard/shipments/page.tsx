@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
@@ -26,6 +27,10 @@ export default function UserOrdersPage() {
 	>(undefined);
 	const [searchText, setSearchText] = useState("");
 	const debouncedSearchFilter = useDebounce(searchText, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
 
 	const { data, isLoading } = api.shipment.getUserShipments.useQuery({
 		page,
@@ -33,6 +38,8 @@ export default function UserOrdersPage() {
 		status: statusFilter,
 		searchFilter:
 			debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+		startDate: dateRange?.from?.toISOString(),
+		endDate: dateRange?.to?.toISOString(),
 	});
 
 	const columns: ColumnConfig<Shipment>[] = [
@@ -140,35 +147,36 @@ export default function UserOrdersPage() {
 
 	const filters = [
 		{
-			id: "status",
-			label: "Status",
-			type: "select" as const,
-			options: [
-				{ label: "All", value: "" },
-				{ label: "Pending Approval", value: "PendingApproval" },
-				{ label: "Approved", value: "Approved" },
-				{ label: "Rejected", value: "Rejected" },
-			],
-			selectedValue: statusFilter || "",
-			onValueChange: (value: string) =>
-				setStatusFilter(
-					value === ""
-						? undefined
-						: (value as "PendingApproval" | "Approved" | "Rejected"),
-				),
-		},
-		{
 			id: "search",
 			label: "Search",
 			type: "text" as const,
 			value: searchText,
 			onChange: setSearchText,
 		},
+		{
+			id: "status",
+			label: "Status",
+			type: "select" as const,
+			options: [
+				{ label: "All", value: "all" },
+				{ label: "Pending Approval", value: "PendingApproval" },
+				{ label: "Approved", value: "Approved" },
+				{ label: "Rejected", value: "Rejected" },
+			],
+			selectedValue: statusFilter || "all",
+			onValueChange: (value: string) =>
+				setStatusFilter(
+					value === "all"
+						? undefined
+						: (value as "PendingApproval" | "Approved" | "Rejected"),
+				),
+		},
 	];
 
 	const handleClearFilters = () => {
 		setStatusFilter(undefined);
 		setSearchText("");
+		setDateRange({ from: undefined, to: undefined });
 	};
 
 	return (
@@ -181,6 +189,8 @@ export default function UserOrdersPage() {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="shipment_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

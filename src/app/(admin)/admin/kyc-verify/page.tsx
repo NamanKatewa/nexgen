@@ -14,6 +14,7 @@ import { entityTypes } from "~/constants";
 
 import type { inferRouterOutputs } from "@trpc/server";
 import Link from "next/link";
+import type { DateRange } from "react-day-picker";
 import { formatDate } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 
@@ -28,6 +29,10 @@ const VerifyKycPage = () => {
 	const [filterType, setFilterType] = useState("ALL");
 	const [searchText, setSearchText] = useState("");
 	const debouncedSearchFilter = useDebounce(searchText, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
 
 	const [showKycDetailsModal, setShowKycDetailsModal] = useState(false);
 	const [selectedKycItem, setSelectedKycItem] = useState<KycItem | null>(null);
@@ -40,6 +45,8 @@ const VerifyKycPage = () => {
 			filterType: filterType === "ALL" ? undefined : filterType,
 			searchFilter:
 				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
 		},
 		{
 			retry: 3,
@@ -51,6 +58,7 @@ const VerifyKycPage = () => {
 		setFilterGST("ALL");
 		setFilterType("ALL");
 		setSearchText("");
+		setDateRange({ from: undefined, to: undefined });
 	};
 
 	const columns: ColumnConfig<KycItem>[] = [
@@ -148,6 +156,8 @@ const VerifyKycPage = () => {
 					setSelectedKycItem(row);
 					setShowKycDetailsModal(true);
 				}}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

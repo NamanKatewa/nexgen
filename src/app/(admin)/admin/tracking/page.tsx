@@ -4,6 +4,7 @@ import type { SHIPMENT_STATUS } from "@prisma/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
@@ -31,12 +32,24 @@ function AdminOrdersContent() {
 	const initialUserId = searchParams.get("userId") || "";
 	const [userIdSearchText, setUserIdSearchText] = useState(initialUserId);
 	const debouncedUserIdFilter = useDebounce(userIdSearchText, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
+
+	const handleClearFilters = () => {
+		setStatusFilter(undefined);
+		setUserIdSearchText("");
+		setDateRange({ from: undefined, to: undefined });
+	};
 
 	const { data, isLoading } = api.shipment.getAllTrackingShipments.useQuery({
 		page,
 		pageSize,
 		userId: debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
 		currentStatus: statusFilter,
+		startDate: dateRange?.from?.toISOString(),
+		endDate: dateRange?.to?.toISOString(),
 	});
 
 	const { data: shipmentCounts } =
@@ -175,11 +188,6 @@ function AdminOrdersContent() {
 		},
 	];
 
-	const handleClearFilters = () => {
-		setStatusFilter(undefined);
-		setUserIdSearchText("");
-	};
-
 	return (
 		<>
 			<div className="flex w-full flex-nowrap justify-evenly gap-0 p-4">
@@ -220,6 +228,8 @@ function AdminOrdersContent() {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="shipment_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

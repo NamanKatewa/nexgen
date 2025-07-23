@@ -2,6 +2,7 @@ import { type Prisma, SUPPORT_STATUS, USER_ROLE } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import logger from "~/lib/logger";
+import { getEndOfDay } from "~/lib/utils";
 import {
 	addMessageSchema,
 	assignTicketSchema,
@@ -67,6 +68,13 @@ export const supportRouter = createTRPCRouter({
 				};
 				if (status) whereClause.status = status;
 				if (priority) whereClause.priority = priority;
+
+				if (input.startDate && input.endDate) {
+					whereClause.created_at = {
+						gte: new Date(input.startDate),
+						lte: getEndOfDay(new Date(input.endDate)),
+					};
+				}
 
 				const tickets = await ctx.db.supportTicket.findMany({
 					where: whereClause,
@@ -183,11 +191,18 @@ export const supportRouter = createTRPCRouter({
 				input,
 			});
 			try {
-				const { status, priority, userId, page, pageSize } = input;
+				const { status, priority, userId, page, pageSize, startDate, endDate } =
+					input;
 				const whereClause: Prisma.SupportTicketWhereInput = {};
 				if (status) whereClause.status = status;
 				if (priority) whereClause.priority = priority;
 				if (userId) whereClause.user_id = userId;
+				if (startDate && endDate) {
+					whereClause.created_at = {
+						gte: new Date(startDate),
+						lte: getEndOfDay(new Date(endDate)),
+					};
+				}
 
 				const tickets = await ctx.db.supportTicket.findMany({
 					where: whereClause,

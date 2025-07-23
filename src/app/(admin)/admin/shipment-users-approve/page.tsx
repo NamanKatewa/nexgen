@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { DateRange } from "react-day-picker";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
@@ -18,6 +19,15 @@ export default function AdminUsersPage() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [searchFilter, setSearchFilter] = useState("");
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
+
+	const handleClearFilters = () => {
+		setSearchFilter("");
+		setDateRange({ from: undefined, to: undefined });
+	};
 
 	const debouncedSearchFilter = useDebounce(searchFilter, 500);
 
@@ -26,6 +36,8 @@ export default function AdminUsersPage() {
 		pageSize,
 		searchFilter:
 			debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+		startDate: dateRange?.from?.toISOString(),
+		endDate: dateRange?.to?.toISOString(),
 	});
 
 	const columns: ColumnConfig<User>[] = [
@@ -83,10 +95,6 @@ export default function AdminUsersPage() {
 		},
 	];
 
-	const handleClearFilters = () => {
-		setSearchFilter("");
-	};
-
 	return (
 		<>
 			<DataTable
@@ -97,6 +105,8 @@ export default function AdminUsersPage() {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="user_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { env } from "~/env";
 import { checkIMBOrderStatus, createIMBPaymentOrder } from "~/lib/imb";
 import logger from "~/lib/logger";
+import { getEndOfDay } from "~/lib/utils";
 import { addFundsSchema, paymentSuccessSchema } from "~/schemas/wallet";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
@@ -230,12 +231,21 @@ export const walletRouter = createTRPCRouter({
 				filterStatus: z.string().optional(),
 				filterTxnType: z.string().optional(),
 				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const { user } = ctx;
-			const { page, pageSize, filterStatus, filterTxnType, searchFilter } =
-				input;
+			const {
+				page,
+				pageSize,
+				filterStatus,
+				filterTxnType,
+				searchFilter,
+				startDate,
+				endDate,
+			} = input;
 			const skip = (page - 1) * pageSize;
 			const logData = { userId: user.user_id, page, pageSize };
 			logger.info("Fetching user passbook", logData);
@@ -259,6 +269,13 @@ export const walletRouter = createTRPCRouter({
 					{ description: { contains: searchFilter, mode: "insensitive" } },
 					{ amount: Number.parseFloat(searchFilter) || undefined },
 				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
 			}
 
 			try {

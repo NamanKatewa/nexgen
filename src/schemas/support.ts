@@ -41,6 +41,8 @@ export const getUserTicketsSchema = z.object({
 	pageSize: z.number().min(1).max(100).default(10),
 	status: z.nativeEnum(SUPPORT_STATUS).optional(),
 	priority: z.nativeEnum(SUPPORT_PRIORITY).optional(),
+	startDate: z.string().optional(),
+	endDate: z.string().optional(),
 });
 
 export const getAllTicketsSchema = z.object({
@@ -49,6 +51,8 @@ export const getAllTicketsSchema = z.object({
 	status: z.enum(["Open", "Closed"]).optional(),
 	priority: z.enum(["Low", "Medium", "High"]).optional(),
 	userId: z.string().optional(),
+	startDate: z.string().optional(),
+	endDate: z.string().optional(),
 });
 
 export type CreateTicketInput = z.infer<typeof createTicketSchema>;

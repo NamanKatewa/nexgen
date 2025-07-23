@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { DateRange } from "react-day-picker";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
@@ -28,8 +29,19 @@ export default function AdminUsersPage() {
 	const [statusFilter, setStatusFilter] = useState<
 		"Active" | "Inactive" | undefined
 	>(undefined);
-
 	const debouncedSearchFilter = useDebounce(searchFilter, 500);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>({
+		from: undefined,
+		to: undefined,
+	});
+
+	const handleClearFilters = () => {
+		setSearchFilter("");
+		setBusinessTypeFilter(undefined);
+		setRoleFilter(undefined);
+		setStatusFilter(undefined);
+		setDateRange({ from: undefined, to: undefined });
+	};
 
 	const { data, isLoading } = api.admin.getAllUsers.useQuery({
 		page,
@@ -39,6 +51,8 @@ export default function AdminUsersPage() {
 		businessType: businessTypeFilter,
 		role: roleFilter,
 		status: statusFilter,
+		startDate: dateRange?.from?.toISOString(),
+		endDate: dateRange?.to?.toISOString(),
 	});
 
 	const columns: ColumnConfig<User>[] = [
@@ -197,13 +211,6 @@ export default function AdminUsersPage() {
 		},
 	];
 
-	const handleClearFilters = () => {
-		setSearchFilter("");
-		setBusinessTypeFilter(undefined);
-		setRoleFilter(undefined);
-		setStatusFilter(undefined);
-	};
-
 	return (
 		<>
 			<DataTable
@@ -214,6 +221,8 @@ export default function AdminUsersPage() {
 				onClearFilters={handleClearFilters}
 				isLoading={isLoading}
 				idKey="user_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
 			/>
 			<PaginationButtons
 				page={page}
