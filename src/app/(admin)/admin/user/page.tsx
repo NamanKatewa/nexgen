@@ -16,6 +16,7 @@ import { type RouterOutputs, api } from "~/trpc/react";
 import { exportToXlsx } from "~/lib/xlsx";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import AdminUserSkeleton from "~/components/skeletons/AdminUserSkeleton";
 
 type User = RouterOutputs["admin"]["getAllUsers"]["users"][number];
 
@@ -243,17 +244,21 @@ export default function AdminUsersPage() {
 					{exportMutation.isPending ? "Exporting..." : "Export"}
 				</Button>
 			</div>
-			<DataTable
-				title="All Users"
-				data={data?.users || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="user_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<AdminUserSkeleton />
+			) : (
+				<DataTable
+					title="All Users"
+					data={data?.users || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="user_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}

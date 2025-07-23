@@ -24,6 +24,7 @@ import Copyable from "~/components/Copyable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
 import { toast } from "sonner";
+import PassbookSkeleton from "~/components/skeletons/PassbookSkeleton";
 
 function PassbookContent() {
 	const searchParams = useSearchParams();
@@ -209,17 +210,21 @@ function PassbookContent() {
 					{exportMutation.isPending ? "Exporting..." : "Export"}
 				</Button>
 			</div>
-			<DataTable
-				title="Transactions"
-				data={data?.transactions || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="transaction_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<PassbookSkeleton />
+			) : (
+				<DataTable
+					title="Transactions"
+					data={data?.transactions || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="transaction_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}

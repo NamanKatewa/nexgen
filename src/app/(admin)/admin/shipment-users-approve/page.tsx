@@ -11,6 +11,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { type RouterOutputs, api } from "~/trpc/react";
+import ShipmentUsersApproveSkeleton from "~/components/skeletons/ShipmentUsersApproveSkeleton";
 
 type User =
 	RouterOutputs["admin"]["getUsersWithPendingShipments"]["users"][number];
@@ -97,17 +98,21 @@ export default function AdminUsersPage() {
 
 	return (
 		<>
-			<DataTable
-				title="Users"
-				data={data?.users || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="user_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<ShipmentUsersApproveSkeleton />
+			) : (
+				<DataTable
+					title="Users"
+					data={data?.users || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="user_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}

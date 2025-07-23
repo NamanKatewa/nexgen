@@ -15,6 +15,7 @@ import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
+import UserShipmentsSkeleton from "~/components/skeletons/UserShipmentsSkeleton";
 
 type Shipment =
 	RouterOutputs["shipment"]["getUserShipments"]["shipments"][number];
@@ -181,17 +182,21 @@ export default function UserOrdersPage() {
 
 	return (
 		<>
-			<DataTable
-				title="My Shipments"
-				data={data?.shipments || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="shipment_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<UserShipmentsSkeleton />
+			) : (
+				<DataTable
+					title="My Shipments"
+					data={data?.shipments || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="shipment_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}

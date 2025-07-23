@@ -11,6 +11,7 @@ import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { type RouterOutputs, api } from "~/trpc/react";
+import PendingAddressesSkeleton from "~/components/skeletons/PendingAddressesSkeleton";
 
 type PendingAddress =
 	RouterOutputs["admin"]["pendingAddresses"]["pendingAddresses"][number];
@@ -161,25 +162,29 @@ function PendingAddressesContent() {
 
 	return (
 		<>
-			<DataTable
-				title="Pending Pickup Addresses"
-				data={data?.pendingAddresses || []}
-				columns={columns}
-				isLoading={isLoading}
-				noResultsMessage="No pending addresses found."
-				filters={[
-					{
-						id: "search",
-						label: "Search",
-						type: "text",
-						value: searchText,
-						onChange: setSearchText,
-					},
-				]}
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-				onClearFilters={handleClearFilters}
-			/>
+			{isLoading ? (
+				<PendingAddressesSkeleton />
+			) : (
+				<DataTable
+					title="Pending Pickup Addresses"
+					data={data?.pendingAddresses || []}
+					columns={columns}
+					isLoading={isLoading}
+					noResultsMessage="No pending addresses found."
+					filters={[
+						{
+							id: "search",
+							label: "Search",
+							type: "text",
+							value: searchText,
+							onChange: setSearchText,
+						},
+					]}
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+					onClearFilters={handleClearFilters}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}

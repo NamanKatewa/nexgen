@@ -21,6 +21,7 @@ import type { DateRange } from "react-day-picker";
 import { paymentStatusTypes, transactionTypes } from "~/constants";
 import { Button } from "~/components/ui/button";
 import { toast } from "sonner";
+import UserPassbookSkeleton from "~/components/skeletons/UserPassbookSkeleton";
 
 const PassbookPage = () => {
 	const [page, setPage] = useState(1);
@@ -170,16 +171,20 @@ const PassbookPage = () => {
 					{exportMutation.isPending ? "Exporting..." : "Export to XLSX"}
 				</Button>
 			</div>
-			<DataTable
-				title="Transactions"
-				data={data?.transactions || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<UserPassbookSkeleton />
+			) : (
+				<DataTable
+					title="Transactions"
+					data={data?.transactions || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}

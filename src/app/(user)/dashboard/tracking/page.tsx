@@ -19,6 +19,7 @@ import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 import { exportToXlsx } from "~/lib/xlsx";
 import * as XLSX from "xlsx";
+import UserTrackingSkeleton from "~/components/skeletons/UserTrackingSkeleton";
 
 type Shipment =
 	RouterOutputs["shipment"]["getUserShipments"]["shipments"][number];
@@ -232,17 +233,21 @@ function UserOrdersContent() {
 						);
 					})}
 			</div>
-			<DataTable
-				title="Track Shipments"
-				data={data?.shipments || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="shipment_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<UserTrackingSkeleton />
+			) : (
+				<DataTable
+					title="Track Shipments"
+					data={data?.shipments || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="shipment_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}

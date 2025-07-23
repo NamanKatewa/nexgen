@@ -15,6 +15,7 @@ import useDebounce from "~/lib/hooks/useDebounce";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import AdminSupportSkeleton from "~/components/skeletons/AdminSupportSkeleton";
 
 function AdminSupportContent() {
 	const [page, setPage] = useState(1);
@@ -181,17 +182,21 @@ function AdminSupportContent() {
 
 	return (
 		<>
-			<DataTable
-				title="Manage Support Tickets"
-				data={data?.tickets || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="ticket_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<AdminSupportSkeleton />
+			) : (
+				<DataTable
+					title="Manage Support Tickets"
+					data={data?.tickets || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="ticket_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={Math.ceil((data?.totalTickets ?? 0) / pageSize)}

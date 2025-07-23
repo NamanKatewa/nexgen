@@ -30,6 +30,7 @@ import { formatDate } from "~/lib/utils";
 import { createTicketSchema } from "~/schemas/support";
 import type { CreateTicketInput } from "~/schemas/support";
 import { api } from "~/trpc/react";
+import UserSupportSkeleton from "~/components/skeletons/UserSupportSkeleton";
 
 export default function SupportPage() {
 	const [page, setPage] = useState(1);
@@ -232,17 +233,21 @@ export default function SupportPage() {
 					</DialogContent>
 				</Dialog>
 			</div>
-			<DataTable
-				title="My Support Tickets"
-				data={data?.tickets || []}
-				columns={columns}
-				isLoading={isLoading}
-				idKey="ticket_id"
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<UserSupportSkeleton />
+			) : (
+				<DataTable
+					title="My Support Tickets"
+					data={data?.tickets || []}
+					columns={columns}
+					isLoading={isLoading}
+					idKey="ticket_id"
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={Math.ceil((data?.totalTickets ?? 0) / pageSize)}

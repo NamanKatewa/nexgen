@@ -21,6 +21,7 @@ import { Button } from "~/components/ui/button";
 import { exportToXlsx } from "~/lib/xlsx";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import AdminWalletSkeleton from "~/components/skeletons/AdminWalletSkeleton";
 
 type Transactions = inferRouterOutputs<AppRouter>["admin"]["getTransactions"];
 type Transaction = Transactions extends { transactions: Array<infer T> }
@@ -160,17 +161,21 @@ const WalletTopupPage = () => {
 					{exportMutation.isPending ? "Exporting..." : "Export"}
 				</Button>
 			</div>
-			<DataTable
-				title="Wallet Recharges"
-				data={transactions?.transactions || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="transaction_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<AdminWalletSkeleton />
+			) : (
+				<DataTable
+					title="Wallet Recharges"
+					data={transactions?.transactions || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="transaction_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={transactions?.totalPages || 1}

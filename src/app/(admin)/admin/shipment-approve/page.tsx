@@ -11,6 +11,7 @@ import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
+import ShipmentApproveSkeleton from "~/components/skeletons/ShipmentApproveSkeleton";
 
 type ShipmentListOutput = RouterOutputs["admin"]["pendingShipments"];
 type ShipmentListItem = ShipmentListOutput["shipments"][number];
@@ -119,17 +120,21 @@ function ApproveOrderContent() {
 
 	return (
 		<>
-			<DataTable
-				title="Shipment Approval"
-				data={data?.shipments || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="shipment_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<ShipmentApproveSkeleton />
+			) : (
+				<DataTable
+					title="Shipment Approval"
+					data={data?.shipments || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="shipment_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}

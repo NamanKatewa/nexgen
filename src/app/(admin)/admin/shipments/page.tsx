@@ -18,6 +18,7 @@ import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
 import { exportToXlsx } from "~/lib/xlsx";
 import * as XLSX from "xlsx";
+import AdminShipmentsSkeleton from "~/components/skeletons/AdminShipmentsSkeleton";
 
 type Shipment =
 	RouterOutputs["shipment"]["getAllShipments"]["shipments"][number];
@@ -212,17 +213,21 @@ function AdminOrdersContent() {
 					{exportMutation.isPending ? "Exporting..." : "Export"}
 				</Button>
 			</div>
-			<DataTable
-				title="All Shipments"
-				data={data?.shipments || []}
-				columns={columns}
-				filters={filters}
-				onClearFilters={handleClearFilters}
-				isLoading={isLoading}
-				idKey="shipment_id"
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-			/>
+			{isLoading ? (
+				<AdminShipmentsSkeleton />
+			) : (
+				<DataTable
+					title="All Shipments"
+					data={data?.shipments || []}
+					columns={columns}
+					filters={filters}
+					onClearFilters={handleClearFilters}
+					isLoading={isLoading}
+					idKey="shipment_id"
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+				/>
+			)}
 			<PaginationButtons
 				page={page}
 				totalPages={data?.totalPages || 1}
