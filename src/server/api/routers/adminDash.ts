@@ -3,8 +3,6 @@ import {
 	SHIPMENT_STATUS,
 	USER_STATUS,
 } from "@prisma/client";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const adminDashRouter = createTRPCRouter({
@@ -46,7 +44,7 @@ export const adminDashRouter = createTRPCRouter({
 		};
 
 		// Platform Health Overview (Radar Chart)
-		const platformHealthOverview = [
+		const platformHealthOverviewRaw = [
 			{ metric: "Pending KYCs", value: pendingKycApprovals },
 			{ metric: "Pending Shipments", value: pendingShipments },
 			{ metric: "Open High-Priority Tickets", value: highPriorityTickets },
@@ -59,23 +57,41 @@ export const adminDashRouter = createTRPCRouter({
 			{ metric: "Revenue (30d)", value: totalRevenueLast30Days },
 		];
 
+		const logTransformedHealthOverview = platformHealthOverviewRaw.map(
+			(item) => ({
+				...item,
+				value: Math.log10(item.value + 1), // Apply logarithmic transformation
+			}),
+		);
+
+		const maxLogHealthValue = Math.max(
+			...logTransformedHealthOverview.map((item) => item.value),
+		);
+
+		const platformHealthOverview = logTransformedHealthOverview.map((item) => ({
+			...item,
+			value: maxLogHealthValue === 0 ? 0 : item.value / maxLogHealthValue, // Normalize log-transformed values
+		}));
+
 		// User Growth (last 12 months)
 		const twelveMonthsAgo = new Date();
 		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-		const userGrowth = await ctx.db.user.groupBy({
-			by: ["created_at"],
-			where: { created_at: { gte: twelveMonthsAgo } },
-			_count: { created_at: true },
-			orderBy: { created_at: "asc" },
-		});
+		const userGrowth = await ctx.db.$queryRaw`
+			SELECT
+				TO_CHAR(created_at, 'Mon YYYY') as month,
+				COUNT(user_id) as "newUserCount"
+			FROM "User"
+			WHERE created_at >= ${twelveMonthsAgo}
+			GROUP BY month
+			ORDER BY MIN(created_at) ASC
+		`;
 
-		const formattedUserGrowth = userGrowth.map((u) => ({
-			month: u.created_at.toLocaleString("en-IN", {
-				month: "short",
-				year: "numeric",
-			}),
-			newUserCount: u._count.created_at,
+		const formattedUserGrowth = (
+			userGrowth as { month: string; newUserCount: bigint }[]
+		).map((u) => ({
+			month: u.month,
+			newUserCount: Number(u.newUserCount),
 		}));
 
 		// Revenue vs. Refunds (last 6 months)
@@ -200,11 +216,17 @@ export const adminDashRouter = createTRPCRouter({
 			kpis,
 			platformHealthOverview,
 			userGrowth: formattedUserGrowth,
-			revenueRefunds: revenueRefunds as {
-				month: string;
-				totalRevenue: number;
-				totalRefunds: number;
-			}[],
+			revenueRefunds: (
+				revenueRefunds as {
+					month: string;
+					totalRevenue: bigint;
+					totalRefunds: bigint;
+				}[]
+			).map((r) => ({
+				month: r.month,
+				totalRevenue: Number(r.totalRevenue),
+				totalRefunds: Number(r.totalRefunds),
+			})),
 			userDemographics: formattedUserDemographics,
 			shipmentFunnel,
 			topUsersByShipmentVolume: formattedTopUsersByShipmentVolume,

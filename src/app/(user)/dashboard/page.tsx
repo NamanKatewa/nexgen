@@ -200,7 +200,7 @@ export default function UserDashboardPage() {
 									nameKey="status"
 									innerRadius={60}
 									outerRadius={100}
-									fill="var(--color-DELIVERED)"
+									fill={chartConfig.DELIVERED.color}
 									stroke="var(--color-DELIVERED)"
 									label={({ status, percent, count }) =>
 										`${status}: ${count} (${(percent * 100).toFixed(0)}%)`
@@ -243,7 +243,7 @@ export default function UserDashboardPage() {
 								<Area
 									dataKey="shipmentCount"
 									type="natural"
-									fill="var(--color-shipmentCount)"
+									fill={chartConfig.shipmentCount.color}
 									stroke="var(--color-shipmentCount)"
 									stackId="a"
 									label={{ position: "top" }}
@@ -326,7 +326,7 @@ export default function UserDashboardPage() {
 								<ChartTooltip content={<ChartTooltipContent />} />
 								<Bar
 									dataKey="shipmentCount"
-									fill="var(--color-shipmentCount)"
+									fill={chartConfig.shipmentCount.color}
 									radius={4}
 									label={{ position: "right" }}
 								/>
@@ -359,7 +359,7 @@ export default function UserDashboardPage() {
 								<Line
 									dataKey="averageDeliveryTimeDays"
 									type="monotone"
-									stroke="var(--color-averageDeliveryTimeDays)"
+									stroke={chartConfig.averageDeliveryTimeDays.color}
 									strokeWidth={2}
 									dot={true}
 									label={{ position: "top" }}
@@ -392,7 +392,7 @@ export default function UserDashboardPage() {
 								<Bar
 									dataKey="DELIVERED"
 									stackId="a"
-									fill="var(--color-DELIVERED)"
+									fill={chartConfig.DELIVERED.color}
 									label={{ position: "top" }}
 								/>
 								<Bar
@@ -404,13 +404,13 @@ export default function UserDashboardPage() {
 								<Bar
 									dataKey="RTO"
 									stackId="a"
-									fill="var(--color-RTO)"
+									fill={chartConfig.RTO.color}
 									label={{ position: "top" }}
 								/>
 								<Bar
 									dataKey="CANCELLED"
 									stackId="a"
-									fill="var(--color-CANCELLED)"
+									fill={chartConfig.CANCELLED.color}
 									label={{ position: "top" }}
 								/>
 							</BarChart>
