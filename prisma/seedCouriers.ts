@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedCouriers() {
 	console.log("Seeding couriers...");
 	const filePath = path.join(process.cwd(), "data", "couriers.json");
 
@@ -23,6 +23,10 @@ async function main() {
 		});
 	}
 	console.log("Couriers seeded successfully.");
+}
+
+async function main() {
+	seedCouriers();
 }
 
 main()

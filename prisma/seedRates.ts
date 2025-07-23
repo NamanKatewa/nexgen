@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedRates() {
 	const weightSlabs = [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 	const zones = ["a", "b", "c", "d", "e"];
 
@@ -59,6 +59,9 @@ async function main() {
 	}
 
 	console.log("Default rates seeding complete.");
+}
+async function main() {
+	seedRates();
 }
 
 main()
