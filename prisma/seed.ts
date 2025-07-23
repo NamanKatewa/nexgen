@@ -437,6 +437,7 @@ async function seedUsers(hashedPassword: string, numberOfRandomUsers: number) {
 			business_type: BUSINESS_TYPE.Ecommerce,
 			role: USER_ROLE.Admin,
 			status: USER_STATUS.Active,
+			created_at: faker.date.past(),
 		},
 	});
 	console.log(`Created/Upserted Admin user with id: ${adminUser.user_id}`);
@@ -455,6 +456,7 @@ async function seedUsers(hashedPassword: string, numberOfRandomUsers: number) {
 			business_type: BUSINESS_TYPE.Retailer,
 			role: USER_ROLE.Client,
 			status: USER_STATUS.Active,
+			created_at: faker.date.past(),
 		},
 	});
 	console.log(`Created/Upserted Client user with id: ${clientUser.user_id}`);
@@ -473,6 +475,7 @@ async function seedUsers(hashedPassword: string, numberOfRandomUsers: number) {
 		business_type: faker.helpers.arrayElement(Object.values(BUSINESS_TYPE)),
 		role: USER_ROLE.Employee,
 		status: USER_STATUS.Active,
+		created_at: faker.date.past(),
 	};
 	usersToCreate.push(employeeUserData);
 
@@ -488,6 +491,7 @@ async function seedUsers(hashedPassword: string, numberOfRandomUsers: number) {
 			business_type: faker.helpers.arrayElement(Object.values(BUSINESS_TYPE)),
 			role: USER_ROLE.Client,
 			status: faker.helpers.arrayElement(Object.values(USER_STATUS)),
+			created_at: faker.date.past(),
 		});
 	}
 
@@ -551,6 +555,7 @@ async function seedWalletsAndTransactions(users: User[]) {
 			balance: new Decimal(
 				faker.finance.amount({ min: 0, max: 10000, dec: 2 }),
 			),
+			created_at: faker.date.past(),
 		}));
 
 	if (walletsToCreate.length > 0) {
@@ -671,7 +676,7 @@ async function seedKYC(users: User[], adminUser: User, allPincodes: string[]) {
 				submission_date: faker.date.past(),
 				verification_date:
 					kycStatus === KYC_STATUS.Approved || kycStatus === KYC_STATUS.Rejected
-						? faker.date.recent()
+						? faker.date.past()
 						: null,
 				verified_by_user_id:
 					kycStatus === KYC_STATUS.Approved ? adminUser.user_id : null,
@@ -852,7 +857,7 @@ async function seedShipments(
 					compensation_amount: new Decimal(compensationAmount),
 					invoiceUrl: isInsuranceSelected ? generateBase64File().data : null,
 					created_at: faker.date.past(), // Added created_at
-					updated_at: faker.date.recent(), // Added updated_at
+					updated_at: faker.date.past(), // Added updated_at
 				});
 			}
 		} else {
@@ -914,7 +919,7 @@ async function seedTracking(shipments: Shipment[], allCouriers: Courier[]) {
 			trackingRecordsToCreate.push({
 				shipment_id: shipment.shipment_id,
 				courier_id: randomCourier.id,
-				timestamp: faker.date.recent(),
+				timestamp: faker.date.past(),
 				location: faker.location.city() || "Unknown Location",
 				status_description: faker.lorem.sentence(),
 			});
@@ -942,8 +947,9 @@ async function seedSupportTickets(users: User[], employeeUser: User) {
 				resolved_at:
 					faker.helpers.arrayElement(Object.values(SUPPORT_STATUS)) ===
 					SUPPORT_STATUS.Closed
-						? faker.date.recent()
+						? faker.date.past()
 						: null,
+				created_at: faker.date.past(),
 			});
 		}
 	}
@@ -991,8 +997,8 @@ async function loadRatesIntoCache() {
 async function main() {
 	console.log("Starting comprehensive seeding...");
 
-	seedCouriers();
-	seedRates();
+	await seedCouriers();
+	await seedRates();
 
 	// Load pincode map once
 	await loadPincodeMap();

@@ -14,7 +14,10 @@ export async function seedCouriers() {
 	for (const courier of couriers) {
 		await prisma.courier.upsert({
 			where: { shipway_id: String(courier.id) },
-			update: {},
+			update: {
+				name: courier.courier_name,
+				image_url: courier.image,
+			},
 			create: {
 				shipway_id: String(courier.id),
 				name: courier.courier_name,
