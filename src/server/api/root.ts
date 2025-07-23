@@ -1,4 +1,7 @@
+import { adminDashRouter } from "~/server/api/routers/adminDash";
 import { authRouter } from "~/server/api/routers/auth";
+import { exportRouter } from "~/server/api/routers/export";
+import { userDashRouter } from "~/server/api/routers/userDash";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { addressRouter } from "./routers/address";
 import { adminRouter } from "./routers/admin";
@@ -10,7 +13,6 @@ import { shipmentRouter } from "./routers/shipment";
 import { supportRouter } from "./routers/support";
 import { trackingRouter } from "./routers/tracking";
 import { walletRouter } from "./routers/wallet";
-import { exportRouter } from '~/server/api/routers/export';
 
 export const appRouter = createTRPCRouter({
 	auth: authRouter,
@@ -24,7 +26,9 @@ export const appRouter = createTRPCRouter({
 	tracking: trackingRouter,
 	support: supportRouter,
 	refund: refundRouter,
-    export: exportRouter,
+	export: exportRouter,
+	userDash: userDashRouter,
+	adminDash: adminDashRouter,
 });
 
 export type AppRouter = typeof appRouter;

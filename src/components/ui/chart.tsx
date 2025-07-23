@@ -3,9 +3,9 @@
 import { createContext, useContext, useId, useMemo } from "react";
 import {
 	Legend,
+	type LegendProps,
 	ResponsiveContainer,
 	Tooltip,
-	type LegendProps,
 } from "recharts";
 
 import { cn } from "~/lib/utils";
