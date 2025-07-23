@@ -8,6 +8,7 @@ import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
+import UserShipmentsSkeleton from "~/components/skeletons/UserShipmentsSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -15,7 +16,6 @@ import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
-import UserShipmentsSkeleton from "~/components/skeletons/UserShipmentsSkeleton";
 
 type Shipment =
 	RouterOutputs["shipment"]["getUserShipments"]["shipments"][number];

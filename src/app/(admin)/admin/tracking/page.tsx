@@ -6,10 +6,12 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
+import AdminTrackingSkeleton from "~/components/skeletons/AdminTrackingSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { DISPLAY_SHIPMENT_STATUSES, SHIPMENT_STATUS_MAP } from "~/constants";
@@ -17,10 +19,8 @@ import useDebounce from "~/lib/hooks/useDebounce";
 import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
-import { type RouterOutputs, api } from "~/trpc/react";
 import { exportToXlsx } from "~/lib/xlsx";
-import * as XLSX from "xlsx";
-import AdminTrackingSkeleton from "~/components/skeletons/AdminTrackingSkeleton";
+import { type RouterOutputs, api } from "~/trpc/react";
 
 type Shipment =
 	RouterOutputs["shipment"]["getAllTrackingShipments"]["shipments"][number];
@@ -70,8 +70,8 @@ function AdminOrdersContent() {
 
 	const handleExport = () => {
 		exportAdminShipmentsMutation.mutate({
-
-			searchFilter: debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
+			searchFilter:
+				debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
 			currentStatus: statusFilter,
 			startDate: dateRange?.from?.toISOString(),
 			endDate: dateRange?.to?.toISOString(),

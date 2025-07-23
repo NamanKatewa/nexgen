@@ -8,10 +8,10 @@ import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
+import PendingAddressesSkeleton from "~/components/skeletons/PendingAddressesSkeleton";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { type RouterOutputs, api } from "~/trpc/react";
-import PendingAddressesSkeleton from "~/components/skeletons/PendingAddressesSkeleton";
 
 type PendingAddress =
 	RouterOutputs["admin"]["pendingAddresses"]["pendingAddresses"][number];

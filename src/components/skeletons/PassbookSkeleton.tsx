@@ -14,9 +14,9 @@ const PassbookSkeleton = () => {
 				</div>
 			</div>
 			<div className="space-y-2">
-				{[...Array(10)].map((_, i) => (
+				{[...Array(10)].map(() => (
 					<div
-						key={`i${nanoid()}`}
+						key={nanoid()}
 						className="flex items-center justify-between space-x-4 p-4"
 					>
 						<div className="flex items-center space-x-4">

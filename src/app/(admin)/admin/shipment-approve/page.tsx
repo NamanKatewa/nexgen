@@ -7,11 +7,11 @@ import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import ShipmentDetailsModal from "~/components/ShipmentDetailsModal";
+import ShipmentApproveSkeleton from "~/components/skeletons/ShipmentApproveSkeleton";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
-import ShipmentApproveSkeleton from "~/components/skeletons/ShipmentApproveSkeleton";
 
 type ShipmentListOutput = RouterOutputs["admin"]["pendingShipments"];
 type ShipmentListItem = ShipmentListOutput["shipments"][number];

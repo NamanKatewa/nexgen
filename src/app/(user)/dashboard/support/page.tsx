@@ -13,6 +13,7 @@ import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import { FieldError } from "~/components/FieldError";
 import PaginationButtons from "~/components/PaginationButtons";
+import UserSupportSkeleton from "~/components/skeletons/UserSupportSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -30,7 +31,6 @@ import { formatDate } from "~/lib/utils";
 import { createTicketSchema } from "~/schemas/support";
 import type { CreateTicketInput } from "~/schemas/support";
 import { api } from "~/trpc/react";
-import UserSupportSkeleton from "~/components/skeletons/UserSupportSkeleton";
 
 export default function SupportPage() {
 	const [page, setPage] = useState(1);

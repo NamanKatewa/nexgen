@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
+import UserTrackingSkeleton from "~/components/skeletons/UserTrackingSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { DISPLAY_SHIPMENT_STATUSES, SHIPMENT_STATUS_MAP } from "~/constants";
@@ -16,10 +18,8 @@ import useDebounce from "~/lib/hooks/useDebounce";
 import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
-import { type RouterOutputs, api } from "~/trpc/react";
 import { exportToXlsx } from "~/lib/xlsx";
-import * as XLSX from "xlsx";
-import UserTrackingSkeleton from "~/components/skeletons/UserTrackingSkeleton";
+import { type RouterOutputs, api } from "~/trpc/react";
 
 type Shipment =
 	RouterOutputs["shipment"]["getUserShipments"]["shipments"][number];

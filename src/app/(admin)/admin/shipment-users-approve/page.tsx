@@ -7,11 +7,11 @@ import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
+import ShipmentUsersApproveSkeleton from "~/components/skeletons/ShipmentUsersApproveSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { type RouterOutputs, api } from "~/trpc/react";
-import ShipmentUsersApproveSkeleton from "~/components/skeletons/ShipmentUsersApproveSkeleton";
 
 type User =
 	RouterOutputs["admin"]["getUsersWithPendingShipments"]["users"][number];

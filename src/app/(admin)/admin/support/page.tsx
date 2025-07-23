@@ -9,13 +9,13 @@ import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
+import AdminSupportSkeleton from "~/components/skeletons/AdminSupportSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import AdminSupportSkeleton from "~/components/skeletons/AdminSupportSkeleton";
 
 function AdminSupportContent() {
 	const [page, setPage] = useState(1);

@@ -1,154 +1,161 @@
+import type { Prisma } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import logger from "~/lib/logger";
+import { getEndOfDay } from "~/lib/utils";
 import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
-import type { Prisma } from "@prisma/client";
-import { getEndOfDay } from "~/lib/utils";
-import logger from "~/lib/logger";
-import { TRPCError } from "@trpc/server";
 
 export const exportRouter = createTRPCRouter({
-    allTracking: adminProcedure
-        .input(
-            z.object({
-                searchFilter: z.string().optional(),
-                startDate: z.string().optional(),
-                endDate: z.string().optional(),
-                currentStatus: z.string().optional(),
-            }),
-        )
-        .mutation(async ({ input }) => {
-            const { searchFilter, startDate, endDate, currentStatus } = input;
+	allTracking: adminProcedure
+		.input(
+			z.object({
+				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
+				currentStatus: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const { searchFilter, startDate, endDate, currentStatus } = input;
 
-            const whereClause: Prisma.ShipmentWhereInput = {
-                shipment_status: "Approved",
-            };
+			const whereClause: Prisma.ShipmentWhereInput = {
+				shipment_status: "Approved",
+			};
 
-            if (searchFilter) {
-                whereClause.OR = [
-                    {
-                        human_readable_shipment_id: {
-                            contains: searchFilter,
-                            mode: "insensitive",
-                        },
-                    },
-                    { awb_number: { contains: searchFilter, mode: "insensitive" } },
-                    { user: { email: { contains: searchFilter, mode: "insensitive" } } },
-                    { user: { name: { contains: searchFilter, mode: "insensitive" } } },
-                    { recipient_name: { contains: searchFilter, mode: "insensitive" } },
-                    { recipient_mobile: { contains: searchFilter, mode: "insensitive" } },
-                ];
-            }
+			if (searchFilter) {
+				whereClause.OR = [
+					{
+						human_readable_shipment_id: {
+							contains: searchFilter,
+							mode: "insensitive",
+						},
+					},
+					{ awb_number: { contains: searchFilter, mode: "insensitive" } },
+					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
+					{ user: { name: { contains: searchFilter, mode: "insensitive" } } },
+					{ recipient_name: { contains: searchFilter, mode: "insensitive" } },
+					{ recipient_mobile: { contains: searchFilter, mode: "insensitive" } },
+				];
+			}
 
-            if (startDate && endDate) {
-                whereClause.created_at = {
-                    gte: new Date(startDate),
-                    lte: getEndOfDay(new Date(endDate)),
-                };
-            }
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
+			}
 
-            if (currentStatus && currentStatus !== "ALL") {
-                whereClause.current_status = currentStatus as Prisma.ShipmentWhereInput["current_status"];
-            }
+			if (currentStatus && currentStatus !== "ALL") {
+				whereClause.current_status =
+					currentStatus as Prisma.ShipmentWhereInput["current_status"];
+			}
 
-            try {
-                const shipments = await db.shipment.findMany({
-                    where: whereClause,
-                    include: {
-                        user: { select: { name: true, email: true } },
-                        courier: { select: { name: true } },
-                        origin_address: true,
-                        destination_address: true,
-                    },
-                    orderBy: { created_at: "desc" },
-                });
+			try {
+				const shipments = await db.shipment.findMany({
+					where: whereClause,
+					include: {
+						user: { select: { name: true, email: true } },
+						courier: { select: { name: true } },
+						origin_address: true,
+						destination_address: true,
+					},
+					orderBy: { created_at: "desc" },
+				});
 
-                logger.info("Successfully fetched approved shipments for admin export", {
-                    count: shipments.length,
-                });
-                return shipments;
-            } catch (error) {
-                logger.error("Failed to fetch approved shipments for admin export", { error });
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Something went wrong",
-                });
-            }
-        }),
-    userTracking: protectedProcedure
-        .input(
-            z.object({
-                searchFilter: z.string().optional(),
-                startDate: z.string().optional(),
-                endDate: z.string().optional(),
-                currentStatus: z.string().optional(),
-            }),
-        )
-        .mutation(async ({ ctx, input }) => {
-            const { user } = ctx;
-            const { searchFilter, startDate, endDate, currentStatus } = input;
+				logger.info(
+					"Successfully fetched approved shipments for admin export",
+					{
+						count: shipments.length,
+					},
+				);
+				return shipments;
+			} catch (error) {
+				logger.error("Failed to fetch approved shipments for admin export", {
+					error,
+				});
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
+	userTracking: protectedProcedure
+		.input(
+			z.object({
+				searchFilter: z.string().optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
+				currentStatus: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { user } = ctx;
+			const { searchFilter, startDate, endDate, currentStatus } = input;
 
-            const whereClause: Prisma.ShipmentWhereInput = {
-                user_id: user.user_id,
-                shipment_status: "Approved",
-            };
+			const whereClause: Prisma.ShipmentWhereInput = {
+				user_id: user.user_id,
+				shipment_status: "Approved",
+			};
 
-            if (searchFilter) {
-                whereClause.OR = [
-                    {
-                        human_readable_shipment_id: {
-                            contains: searchFilter,
-                            mode: "insensitive",
-                        },
-                    },
-                    { awb_number: { contains: searchFilter, mode: "insensitive" } },
-                    { recipient_name: { contains: searchFilter, mode: "insensitive" } },
-                    { recipient_mobile: { contains: searchFilter, mode: "insensitive" } },
-                ];
-            }
+			if (searchFilter) {
+				whereClause.OR = [
+					{
+						human_readable_shipment_id: {
+							contains: searchFilter,
+							mode: "insensitive",
+						},
+					},
+					{ awb_number: { contains: searchFilter, mode: "insensitive" } },
+					{ recipient_name: { contains: searchFilter, mode: "insensitive" } },
+					{ recipient_mobile: { contains: searchFilter, mode: "insensitive" } },
+				];
+			}
 
-            if (startDate && endDate) {
-                whereClause.created_at = {
-                    gte: new Date(startDate),
-                    lte: getEndOfDay(new Date(endDate)),
-                };
-            }
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
+			}
 
-            if (currentStatus && currentStatus !== "ALL") {
-                whereClause.current_status = currentStatus as Prisma.ShipmentWhereInput["current_status"];
-            }
+			if (currentStatus && currentStatus !== "ALL") {
+				whereClause.current_status =
+					currentStatus as Prisma.ShipmentWhereInput["current_status"];
+			}
 
-            try {
-                const shipments = await db.shipment.findMany({
-                    where: whereClause,
-                    include: {
-                        user: { select: { name: true, email: true } },
-                        courier: { select: { name: true } },
-                        origin_address: true,
-                        destination_address: true,
-                    },
-                    orderBy: { created_at: "desc" },
-                });
+			try {
+				const shipments = await db.shipment.findMany({
+					where: whereClause,
+					include: {
+						user: { select: { name: true, email: true } },
+						courier: { select: { name: true } },
+						origin_address: true,
+						destination_address: true,
+					},
+					orderBy: { created_at: "desc" },
+				});
 
-                logger.info("Successfully fetched approved shipments for user export", {
-                    userId: user.user_id,
-                    count: shipments.length,
-                });
-                return shipments;
-            } catch (error) {
-                logger.error("Failed to fetch approved shipments for user export", {
-                    userId: user.user_id,
-                    error,
-                });
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Something went wrong",
-                });
-            }
-        }),
+				logger.info("Successfully fetched approved shipments for user export", {
+					userId: user.user_id,
+					count: shipments.length,
+				});
+				return shipments;
+			} catch (error) {
+				logger.error("Failed to fetch approved shipments for user export", {
+					userId: user.user_id,
+					error,
+				});
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something went wrong",
+				});
+			}
+		}),
 	exportPassbook: adminProcedure
 		.input(
 			z.object({
