@@ -16,6 +16,8 @@ import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
+import { exportToXlsx } from "~/lib/xlsx";
+import * as XLSX from "xlsx";
 
 type Shipment =
 	RouterOutputs["shipment"]["getAllShipments"]["shipments"][number];
@@ -183,8 +185,33 @@ function AdminOrdersContent() {
 		setDateRange({ from: undefined, to: undefined });
 	};
 
+	const exportMutation = api.export.exportShipments.useMutation({
+		onSuccess: (data) => {
+			const wb = exportToXlsx(data, "Shipments");
+			XLSX.writeFile(wb, "shipments.xlsx");
+		},
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
+
+	const handleExport = () => {
+		exportMutation.mutate({
+			searchFilter:
+				debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
+			filterStatus: statusFilter,
+		});
+	};
+
 	return (
 		<>
+			<div className="flex justify-end p-4">
+				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+					{exportMutation.isPending ? "Exporting..." : "Export"}
+				</Button>
+			</div>
 			<DataTable
 				title="All Shipments"
 				data={data?.shipments || []}

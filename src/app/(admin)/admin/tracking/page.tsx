@@ -18,6 +18,8 @@ import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
+import { exportToXlsx } from "~/lib/xlsx";
+import * as XLSX from "xlsx";
 
 type Shipment =
 	RouterOutputs["shipment"]["getAllTrackingShipments"]["shipments"][number];
@@ -54,6 +56,26 @@ function AdminOrdersContent() {
 
 	const { data: shipmentCounts } =
 		api.shipment.getShipmentStatusCounts.useQuery();
+
+	const exportAdminShipmentsMutation = api.export.allTracking.useMutation({
+		onSuccess: (data) => {
+			const wb = exportToXlsx(data, "Shipments");
+			XLSX.writeFile(wb, "shipments.xlsx");
+		},
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
+
+	const handleExport = () => {
+		exportAdminShipmentsMutation.mutate({
+
+			searchFilter: debouncedUserIdFilter === "" ? undefined : debouncedUserIdFilter,
+			currentStatus: statusFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
+		});
+	};
 
 	const columns: ColumnConfig<Shipment>[] = [
 		{
@@ -190,6 +212,14 @@ function AdminOrdersContent() {
 
 	return (
 		<>
+			<div className="flex justify-end p-4">
+				<Button
+					onClick={handleExport}
+					disabled={exportAdminShipmentsMutation.isPending}
+				>
+					{exportAdminShipmentsMutation.isPending ? "Exporting..." : "Export"}
+				</Button>
+			</div>
 			<div className="flex w-full flex-nowrap justify-evenly gap-0 p-4">
 				<div
 					onMouseDown={() => setStatusFilter(undefined)}

@@ -10,6 +10,7 @@ import { shipmentRouter } from "./routers/shipment";
 import { supportRouter } from "./routers/support";
 import { trackingRouter } from "./routers/tracking";
 import { walletRouter } from "./routers/wallet";
+import { exportRouter } from '~/server/api/routers/export';
 
 export const appRouter = createTRPCRouter({
 	auth: authRouter,
@@ -23,6 +24,7 @@ export const appRouter = createTRPCRouter({
 	tracking: trackingRouter,
 	support: supportRouter,
 	refund: refundRouter,
+    export: exportRouter,
 });
 
 export type AppRouter = typeof appRouter;

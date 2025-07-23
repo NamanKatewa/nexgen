@@ -17,6 +17,10 @@ import Link from "next/link";
 import type { DateRange } from "react-day-picker";
 import PaginationButtons from "~/components/PaginationButtons";
 import type { AppRouter } from "~/server/api/root";
+import { Button } from "~/components/ui/button";
+import { exportToXlsx } from "~/lib/xlsx";
+import * as XLSX from "xlsx";
+import { toast } from "sonner";
 
 type Transactions = inferRouterOutputs<AppRouter>["admin"]["getTransactions"];
 type Transaction = Transactions extends { transactions: Array<infer T> }
@@ -56,6 +60,26 @@ const WalletTopupPage = () => {
 			refetchOnWindowFocus: false,
 		},
 	);
+
+	const exportMutation = api.export.exportTransactions.useMutation({
+		onSuccess: (data) => {
+			const wb = exportToXlsx(data, "Transactions");
+			XLSX.writeFile(wb, "transactions.xlsx");
+		},
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
+
+	const handleExport = () => {
+		exportMutation.mutate({
+			filterType: filterType === "ALL" ? undefined : filterType,
+			searchFilter:
+				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
+		});
+	};
 
 	const columns: ColumnConfig<Transaction>[] = [
 		{
@@ -131,6 +155,11 @@ const WalletTopupPage = () => {
 
 	return (
 		<>
+			<div className="flex justify-end p-4">
+				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+					{exportMutation.isPending ? "Exporting..." : "Export"}
+				</Button>
+			</div>
 			<DataTable
 				title="Wallet Recharges"
 				data={transactions?.transactions || []}

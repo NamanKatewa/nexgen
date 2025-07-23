@@ -11,12 +11,16 @@ import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 import { api } from "~/trpc/react";
+import { exportToXlsx } from "~/lib/xlsx";
+import * as XLSX from "xlsx";
 
 type PassbookOutput = inferRouterOutputs<AppRouter>["wallet"]["getPassbook"];
 type Transaction = PassbookOutput["transactions"][number];
 
 import type { DateRange } from "react-day-picker";
 import { paymentStatusTypes, transactionTypes } from "~/constants";
+import { Button } from "~/components/ui/button";
+import { toast } from "sonner";
 
 const PassbookPage = () => {
 	const [page, setPage] = useState(1);
@@ -47,6 +51,27 @@ const PassbookPage = () => {
 			refetchOnWindowFocus: false,
 		},
 	);
+
+	const exportMutation = api.export.exportUserPassbook.useMutation({
+		onSuccess: (data) => {
+			const wb = exportToXlsx(data, "Passbook");
+			XLSX.writeFile(wb, "passbook.xlsx");
+		},
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
+
+	const handleExport = () => {
+		exportMutation.mutate({
+			filterStatus: filterStatus === "ALL" ? undefined : filterStatus,
+			filterTxnType: filterTxnType === "ALL" ? undefined : filterTxnType,
+			searchFilter:
+				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
+		});
+	};
 
 	const handleClearFilters = () => {
 		setFilterStatus("ALL");
@@ -140,6 +165,11 @@ const PassbookPage = () => {
 
 	return (
 		<>
+			<div className="flex justify-end p-4">
+				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+					{exportMutation.isPending ? "Exporting..." : "Export to XLSX"}
+				</Button>
+			</div>
 			<DataTable
 				title="Transactions"
 				data={data?.transactions || []}

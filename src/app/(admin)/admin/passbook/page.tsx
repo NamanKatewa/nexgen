@@ -10,6 +10,8 @@ import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import type { AppRouter } from "~/server/api/root";
 import { api } from "~/trpc/react";
+import { exportToXlsx } from "~/lib/xlsx";
+import * as XLSX from "xlsx";
 
 type PassbookOutput = inferRouterOutputs<AppRouter>["admin"]["getPassbook"];
 type Transaction = PassbookOutput["transactions"][number];
@@ -21,6 +23,7 @@ import type { DateRange } from "react-day-picker";
 import Copyable from "~/components/Copyable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
+import { toast } from "sonner";
 
 function PassbookContent() {
 	const searchParams = useSearchParams();
@@ -53,6 +56,27 @@ function PassbookContent() {
 			refetchOnWindowFocus: false,
 		},
 	);
+
+	const exportMutation = api.export.exportPassbook.useMutation({
+		onSuccess: (data) => {
+			const wb = exportToXlsx(data, "Passbook");
+			XLSX.writeFile(wb, "passbook.xlsx");
+		},
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
+
+	const handleExport = () => {
+		exportMutation.mutate({
+			filterStatus: filterStatus === "ALL" ? undefined : filterStatus,
+			filterTxnType: filterTxnType === "ALL" ? undefined : filterTxnType,
+			searchFilter:
+				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
+		});
+	};
 
 	const handleClearFilters = () => {
 		setFilterStatus("ALL");
@@ -180,6 +204,11 @@ function PassbookContent() {
 
 	return (
 		<>
+			<div className="flex justify-end p-4">
+				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+					{exportMutation.isPending ? "Exporting..." : "Export"}
+				</Button>
+			</div>
 			<DataTable
 				title="Transactions"
 				data={data?.transactions || []}

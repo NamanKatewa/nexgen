@@ -13,6 +13,9 @@ import useDebounce from "~/lib/hooks/useDebounce";
 import { formatDate } from "~/lib/utils";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs, api } from "~/trpc/react";
+import { exportToXlsx } from "~/lib/xlsx";
+import * as XLSX from "xlsx";
+import { toast } from "sonner";
 
 type User = RouterOutputs["admin"]["getAllUsers"]["users"][number];
 
@@ -54,6 +57,28 @@ export default function AdminUsersPage() {
 		startDate: dateRange?.from?.toISOString(),
 		endDate: dateRange?.to?.toISOString(),
 	});
+
+	const exportMutation = api.export.exportUsers.useMutation({
+		onSuccess: (data) => {
+			const wb = exportToXlsx(data, "Users");
+			XLSX.writeFile(wb, "users.xlsx");
+		},
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
+
+	const handleExport = () => {
+		exportMutation.mutate({
+			searchFilter:
+				debouncedSearchFilter === "" ? undefined : debouncedSearchFilter,
+			businessType: businessTypeFilter,
+			role: roleFilter,
+			status: statusFilter,
+			startDate: dateRange?.from?.toISOString(),
+			endDate: dateRange?.to?.toISOString(),
+		});
+	};
 
 	const columns: ColumnConfig<User>[] = [
 		{
@@ -213,6 +238,11 @@ export default function AdminUsersPage() {
 
 	return (
 		<>
+			<div className="flex justify-end p-4">
+				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+					{exportMutation.isPending ? "Exporting..." : "Export"}
+				</Button>
+			</div>
 			<DataTable
 				title="All Users"
 				data={data?.users || []}
