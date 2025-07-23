@@ -338,7 +338,12 @@ export default function AdminDashboardPage() {
 								/>
 								<XAxis type="number" dataKey="count" />
 								<ChartTooltip content={<ChartTooltipContent />} />
-								<Bar dataKey="count" fill="var(--color-count)" radius={4} label={{ position: "right" }} />
+								<Bar
+									dataKey="count"
+									fill="var(--color-count)"
+									radius={4}
+									label={{ position: "right" }}
+								/>
 							</BarChart>
 						</ChartContainer>
 					</CardContent>
