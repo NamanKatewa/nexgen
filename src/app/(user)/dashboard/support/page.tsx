@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { SupportTicket } from "@prisma/client";
-import { SUPPORT_PRIORITY, type SUPPORT_STATUS } from "@prisma/client";
 import Link from "next/link";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
@@ -13,7 +12,6 @@ import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import { FieldError } from "~/components/FieldError";
 import PaginationButtons from "~/components/PaginationButtons";
-import UserSupportSkeleton from "~/components/skeletons/UserSupportSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -190,10 +188,15 @@ export default function SupportPage() {
 
 	return (
 		<>
-			<div className="flex items-center justify-center p-6">
+			<div className="flex p-4">
 				<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
 					<DialogTrigger asChild>
-						<Button className="w-full">Create New Ticket</Button>
+						<Button
+							className="w-full"
+							disabled={createTicketMutation.isPending || isLoading}
+						>
+							Create New Ticket
+						</Button>
 					</DialogTrigger>
 					<DialogContent>
 						<DialogHeader>
@@ -233,22 +236,21 @@ export default function SupportPage() {
 					</DialogContent>
 				</Dialog>
 			</div>
-			{isLoading ? (
-				<UserSupportSkeleton />
-			) : (
-				<DataTable
-					title="My Support Tickets"
-					data={data?.tickets || []}
-					columns={columns}
-					isLoading={isLoading}
-					idKey="ticket_id"
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+
+			<DataTable
+				title="My Support Tickets"
+				data={data?.tickets || []}
+				columns={columns}
+				isLoading={isLoading}
+				idKey="ticket_id"
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
+
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={Math.ceil((data?.totalTickets ?? 0) / pageSize)}
 				setPage={setPage}

@@ -33,7 +33,7 @@ export default function ChartLineClientAvgDeliverTime({
 	data: inferRouterOutputs<AppRouter>["userDash"]["getDashboardData"]["averageDeliveryTime"];
 }) {
 	return (
-		<Card className="col-span-1">
+		<Card className="col-span-1 h-[500px]">
 			<CardHeader>
 				<CardTitle>Average Delivery Time In Days</CardTitle>
 				<CardDescription>By Year</CardDescription>

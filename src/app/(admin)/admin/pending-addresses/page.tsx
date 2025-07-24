@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
-import PendingAddressesSkeleton from "~/components/skeletons/PendingAddressesSkeleton";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { type RouterOutputs, api } from "~/trpc/react";
@@ -162,30 +161,28 @@ function PendingAddressesContent() {
 
 	return (
 		<>
-			{isLoading ? (
-				<PendingAddressesSkeleton />
-			) : (
-				<DataTable
-					title="Pending Pickup Addresses"
-					data={data?.pendingAddresses || []}
-					columns={columns}
-					isLoading={isLoading}
-					noResultsMessage="No pending addresses found."
-					filters={[
-						{
-							id: "search",
-							label: "Search",
-							type: "text",
-							value: searchText,
-							onChange: setSearchText,
-						},
-					]}
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-					onClearFilters={handleClearFilters}
-				/>
-			)}
+			<DataTable
+				title="Pending Pickup Addresses"
+				data={data?.pendingAddresses || []}
+				columns={columns}
+				isLoading={isLoading}
+				noResultsMessage="No pending addresses found."
+				filters={[
+					{
+						id: "search",
+						label: "Search",
+						type: "text",
+						value: searchText,
+						onChange: setSearchText,
+					},
+				]}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+				onClearFilters={handleClearFilters}
+			/>
+
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={data?.totalPages || 1}
 				setPage={setPage}

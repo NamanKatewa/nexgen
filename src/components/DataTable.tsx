@@ -3,6 +3,7 @@ import type React from "react";
 import { useRef, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { DataTableFilter } from "~/components/DataTableFilter";
+import DataTableSkeleton from "~/components/skeletons/DataTableSkeleton";
 import { Button } from "~/components/ui/button";
 import { Calendar } from "~/components/ui/calendar";
 import {
@@ -25,7 +26,7 @@ interface FilterOption {
 	value: string;
 }
 
-interface FilterConfig {
+export interface FilterConfig {
 	id: string;
 	label: string;
 	type?: "select" | "text";
@@ -74,9 +75,14 @@ const DataTable = <T,>({
 
 	if (isLoading) {
 		return (
-			<div className="flex h-screen items-center justify-center text-blue-950">
-				Loading...
-			</div>
+			<>
+				<DataTableSkeleton
+					filters={filters}
+					columns={columns.length}
+					rows={10}
+					columnClassNames={columns.map((col) => col.className || "")}
+				/>
+			</>
 		);
 	}
 

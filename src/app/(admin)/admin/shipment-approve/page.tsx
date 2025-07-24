@@ -7,7 +7,6 @@ import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import ShipmentDetailsModal from "~/components/ShipmentDetailsModal";
-import ShipmentApproveSkeleton from "~/components/skeletons/ShipmentApproveSkeleton";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { formatDate } from "~/lib/utils";
@@ -120,22 +119,20 @@ function ApproveOrderContent() {
 
 	return (
 		<>
-			{isLoading ? (
-				<ShipmentApproveSkeleton />
-			) : (
-				<DataTable
-					title="Shipment Approval"
-					data={data?.shipments || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					idKey="shipment_id"
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+			<DataTable
+				title="Shipment Approval"
+				data={data?.shipments || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="shipment_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
+
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={data?.totalPages || 1}
 				setPage={setPage}

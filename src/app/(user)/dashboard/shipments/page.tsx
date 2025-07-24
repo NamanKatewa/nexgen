@@ -8,7 +8,6 @@ import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
-import UserShipmentsSkeleton from "~/components/skeletons/UserShipmentsSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -182,22 +181,20 @@ export default function UserOrdersPage() {
 
 	return (
 		<>
-			{isLoading ? (
-				<UserShipmentsSkeleton />
-			) : (
-				<DataTable
-					title="My Shipments"
-					data={data?.shipments || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					idKey="shipment_id"
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+			<DataTable
+				title="My Shipments"
+				data={data?.shipments || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="shipment_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
+
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={data?.totalPages || 1}
 				setPage={setPage}

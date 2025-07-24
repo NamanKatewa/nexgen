@@ -10,9 +10,9 @@ import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
-import UserTrackingSkeleton from "~/components/skeletons/UserTrackingSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Skeleton } from "~/components/ui/skeleton";
 import { DISPLAY_SHIPMENT_STATUSES, SHIPMENT_STATUS_MAP } from "~/constants";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { generateAndDownloadLabel } from "~/lib/pdf-generator";
@@ -195,60 +195,69 @@ function UserOrdersContent() {
 
 	return (
 		<>
-			<div className="flex justify-end p-4">
+			<div className="flex p-4">
 				<Button
 					onClick={handleExport}
-					disabled={exportUserShipmentsMutation.isPending}
+					disabled={exportUserShipmentsMutation.isPending || isLoading}
+					className="w-full"
 				>
 					{exportUserShipmentsMutation.isPending ? "Exporting..." : "Export"}
 				</Button>
 			</div>
 			<div className="flex w-full flex-nowrap justify-evenly gap-0 p-4">
-				<div
-					onMouseDown={() => setStatusFilter(undefined)}
-					className="flex min-w-0 flex-auto cursor-pointer flex-col items-center justify-between bg-blue-100 p-2 text-center"
-				>
-					<p>All</p>
-					<p className="text-md">({data?.totalShipments})</p>
-				</div>
-				{shipmentCounts &&
-					DISPLAY_SHIPMENT_STATUSES.map((status) => {
-						const count =
-							shipmentCounts[status as keyof typeof shipmentCounts] || 0;
-						const statusInfo = SHIPMENT_STATUS_MAP[
-							status as keyof typeof SHIPMENT_STATUS_MAP
-						] || { displayName: status, color: "bg-gray-200 text-gray-800" };
-						return (
-							<div
-								key={status}
-								onMouseDown={() => setStatusFilter(status as SHIPMENT_STATUS)}
-								className={cn(
-									"flex min-w-0 flex-auto cursor-pointer flex-col items-center justify-between bg-blue-100 p-2 text-center",
-									statusInfo.color,
-								)}
-							>
-								<p>{statusInfo.displayName}</p>
-								<p className="text-md">({count})</p>
-							</div>
-						);
-					})}
+				{isLoading ? (
+					<Skeleton className="h-16 w-full" />
+				) : (
+					<>
+						<div
+							onMouseDown={() => setStatusFilter(undefined)}
+							className="flex min-w-0 flex-auto cursor-pointer flex-col items-center justify-between bg-blue-100 p-2 text-center"
+						>
+							<p>All</p>
+							<p className="text-md">({data?.totalShipments})</p>
+						</div>
+						{shipmentCounts &&
+							DISPLAY_SHIPMENT_STATUSES.map((status) => {
+								const count =
+									shipmentCounts[status as keyof typeof shipmentCounts] || 0;
+								const statusInfo = SHIPMENT_STATUS_MAP[
+									status as keyof typeof SHIPMENT_STATUS_MAP
+								] || {
+									displayName: status,
+									color: "bg-gray-200 text-gray-800",
+								};
+								return (
+									<div
+										key={status}
+										onMouseDown={() =>
+											setStatusFilter(status as SHIPMENT_STATUS)
+										}
+										className={cn(
+											"flex min-w-0 flex-auto cursor-pointer flex-col items-center justify-between bg-blue-100 p-2 text-center",
+											statusInfo.color,
+										)}
+									>
+										<p>{statusInfo.displayName}</p>
+										<p className="text-md">({count})</p>
+									</div>
+								);
+							})}
+					</>
+				)}
 			</div>
-			{isLoading ? (
-				<UserTrackingSkeleton />
-			) : (
-				<DataTable
-					title="Track Shipments"
-					data={data?.shipments || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					idKey="shipment_id"
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+			<DataTable
+				title="Track Shipments"
+				data={data?.shipments || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="shipment_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={data?.totalPages || 1}
 				setPage={setPage}

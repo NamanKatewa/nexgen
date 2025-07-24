@@ -39,7 +39,7 @@ export default function ChartLineClientShippingVsValue({
 	data: inferRouterOutputs<AppRouter>["userDash"]["getDashboardData"]["shippingCostsDeclaredValue"];
 }) {
 	return (
-		<Card className="col-span-full">
+		<Card className="col-span-full h-[900px]">
 			<CardHeader>
 				<CardTitle>Shipping Costs vs Declared Value</CardTitle>
 				<CardDescription>Past Few Months</CardDescription>

@@ -19,7 +19,6 @@ type Transaction = PassbookOutput["transactions"][number];
 
 import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
-import UserPassbookSkeleton from "~/components/skeletons/UserPassbookSkeleton";
 import { Button } from "~/components/ui/button";
 import { paymentStatusTypes, transactionTypes } from "~/constants";
 
@@ -166,26 +165,29 @@ const PassbookPage = () => {
 
 	return (
 		<>
-			<div className="flex justify-end p-4">
-				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+			<div className="flex p-4">
+				<Button
+					onClick={handleExport}
+					disabled={exportMutation.isPending || isLoading}
+					className="w-full"
+				>
 					{exportMutation.isPending ? "Exporting..." : "Export to XLSX"}
 				</Button>
 			</div>
-			{isLoading ? (
-				<UserPassbookSkeleton />
-			) : (
-				<DataTable
-					title="Transactions"
-					data={data?.transactions || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+
+			<DataTable
+				title="Transactions"
+				data={data?.transactions || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
+
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={data?.totalPages || 1}
 				setPage={setPage}

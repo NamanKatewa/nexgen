@@ -9,7 +9,6 @@ import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
-import AdminSupportSkeleton from "~/components/skeletons/AdminSupportSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -182,25 +181,23 @@ function AdminSupportContent() {
 
 	return (
 		<>
-			{isLoading ? (
-				<AdminSupportSkeleton />
-			) : (
-				<DataTable
-					title="Manage Support Tickets"
-					data={data?.tickets || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					idKey="ticket_id"
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+			<DataTable
+				title="Manage Support Tickets"
+				data={data?.tickets || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="ticket_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
+
 			<PaginationButtons
 				page={page}
 				totalPages={Math.ceil((data?.totalTickets ?? 0) / pageSize)}
 				setPage={setPage}
+				isLoading={isLoading}
 			/>
 		</>
 	);

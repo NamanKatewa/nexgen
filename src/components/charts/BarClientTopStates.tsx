@@ -33,7 +33,7 @@ export default function ChartBarClientTopStates({
 	data: inferRouterOutputs<AppRouter>["userDash"]["getDashboardData"]["topDestinationStates"];
 }) {
 	return (
-		<Card className="col-span-1">
+		<Card className="col-span-1 h-[500px]">
 			<CardHeader>
 				<CardTitle>Top Destination States</CardTitle>
 				<CardDescription>Top 5</CardDescription>

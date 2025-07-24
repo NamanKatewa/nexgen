@@ -23,7 +23,6 @@ import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import PaginationButtons from "~/components/PaginationButtons";
-import PassbookSkeleton from "~/components/skeletons/PassbookSkeleton";
 import { Button } from "~/components/ui/button";
 
 function PassbookContent() {
@@ -205,27 +204,29 @@ function PassbookContent() {
 
 	return (
 		<>
-			<div className="flex justify-end p-4">
-				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+			<div className="flex p-4">
+				<Button
+					onClick={handleExport}
+					disabled={exportMutation.isPending || isLoading}
+					className="w-full"
+				>
 					{exportMutation.isPending ? "Exporting..." : "Export"}
 				</Button>
 			</div>
-			{isLoading ? (
-				<PassbookSkeleton />
-			) : (
-				<DataTable
-					title="Transactions"
-					data={data?.transactions || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					idKey="transaction_id"
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+			<DataTable
+				title="Transactions"
+				data={data?.transactions || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="transaction_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
+
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={data?.totalPages || 1}
 				setPage={setPage}

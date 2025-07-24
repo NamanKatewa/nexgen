@@ -39,7 +39,7 @@ export default function ChartBarAdminClientDemographics({
 	data: inferRouterOutputs<AppRouter>["adminDash"]["getDashboardData"]["userDemographics"];
 }) {
 	return (
-		<Card>
+		<Card className="col-span-1 h-[500px]">
 			<CardHeader>
 				<CardTitle>Client Demographics</CardTitle>
 				<CardDescription>By Type</CardDescription>

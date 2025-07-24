@@ -39,8 +39,8 @@ export default function ChartPieAdminShipmentPercentage({
 	}));
 
 	return (
-		<Card className="col-span-full flex flex-col">
-			<CardHeader className="items-center pb-0">
+		<Card className="col-span-full h-[500px]">
+			<CardHeader>
 				<CardTitle>Courier Usage</CardTitle>
 				<CardDescription>Percentage</CardDescription>
 			</CardHeader>

@@ -1,18 +1,16 @@
 "use client";
 
 import { Box } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 
 const Tracking = () => {
 	const [trackingId, setTrackingId] = useState("");
-	const router = useRouter();
 
 	const handleTrack = () => {
 		if (trackingId) {
-			router.push(`/track/${trackingId}`);
+			window.open(`/track/${trackingId}`, "_blank");
 		}
 	};
 

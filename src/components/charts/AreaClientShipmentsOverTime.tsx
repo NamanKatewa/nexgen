@@ -33,13 +33,13 @@ export default function ChartAreaClientShipmentsOverTime({
 	data: inferRouterOutputs<AppRouter>["userDash"]["getDashboardData"]["shipmentsOverTime"];
 }) {
 	return (
-		<Card className="col-span-1">
+		<Card className="col-span-1 h-[500px]">
 			<CardHeader>
 				<CardTitle>Shipments Over Time</CardTitle>
 				<CardDescription>Showing shipments for the last 5 days</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<ChartContainer config={chartConfig} className="h-[300px] w-full p-4">
+				<ChartContainer config={chartConfig} className="p-4">
 					<AreaChart
 						accessibilityLayer
 						data={data}

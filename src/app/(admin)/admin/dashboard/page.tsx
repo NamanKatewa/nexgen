@@ -8,8 +8,8 @@ import ChartBarAdminTopUsers from "~/components/charts/BarAdminTopUsers";
 import ChartRadarAdminPlatformHealth from "~/components/charts/ChartRadarAdminPlatformHealth";
 import ChartLineAdminUserGrowth from "~/components/charts/LineAdminUserGrowth";
 import ChartPieAdminShipmentPercentage from "~/components/charts/PieAdminShipmentPercentage";
+import AdminDashboardSkeleton from "~/components/skeletons/AdminDashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
 export default function AdminDashboardPage() {
@@ -17,17 +17,7 @@ export default function AdminDashboardPage() {
 		api.adminDash.getDashboardData.useQuery();
 
 	if (isLoading) {
-		return (
-			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-				<Skeleton className="h-[120px] w-full" />
-				<Skeleton className="h-[120px] w-full" />
-				<Skeleton className="h-[120px] w-full" />
-				<Skeleton className="h-[120px] w-full" />
-				<Skeleton className="col-span-full h-[400px]" />
-				<Skeleton className="col-span-full h-[400px]" />
-				<Skeleton className="col-span-full h-[400px]" />
-			</div>
-		);
+		return <AdminDashboardSkeleton />;
 	}
 
 	if (isError) {
@@ -55,7 +45,6 @@ export default function AdminDashboardPage() {
 		<div className="flex flex-col gap-4 p-4 md:p-8">
 			<h1 className="font-bold text-2xl">Admin Dashboard</h1>
 
-			{/* KPIs */}
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 				<Card>
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -114,7 +103,6 @@ export default function AdminDashboardPage() {
 				</Card>
 			</div>
 
-			{/* Charts */}
 			<div className="grid gap-4 lg:grid-cols-2">
 				<ChartRadarAdminPlatformHealth data={platformHealthOverview} />
 				<ChartLineAdminUserGrowth data={userGrowth} />

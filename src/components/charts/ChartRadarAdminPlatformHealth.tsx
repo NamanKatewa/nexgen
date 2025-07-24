@@ -39,7 +39,7 @@ export default function ChartRadarAdminPlatformHealth({
 	data: inferRouterOutputs<AppRouter>["adminDash"]["getDashboardData"]["platformHealthOverview"];
 }) {
 	return (
-		<Card className="col-span-1">
+		<Card className="col-span-1 h-[500px]">
 			<CardHeader className="items-center">
 				<CardTitle>Health Overview</CardTitle>
 				<CardDescription>Overall Health of Nexgen</CardDescription>

@@ -51,7 +51,7 @@ export default function ChartBarClientCourierPerformance({
 	data: inferRouterOutputs<AppRouter>["userDash"]["getDashboardData"]["courierPerformance"];
 }) {
 	return (
-		<Card className="col-span-full">
+		<Card className="col-span-full h-[900px]">
 			<CardHeader>
 				<CardTitle>Courier Performance</CardTitle>
 				<CardDescription>Last 6 Months</CardDescription>

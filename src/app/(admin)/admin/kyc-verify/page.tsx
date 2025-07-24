@@ -8,7 +8,6 @@ import useDebounce from "~/lib/hooks/useDebounce";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import KycDetailsModal from "~/components/KycDetailsModal";
-import KycSkeleton from "~/components/skeletons/KycSkeleton";
 import { api } from "~/trpc/react";
 
 import { entityTypes } from "~/constants";
@@ -145,26 +144,24 @@ const VerifyKycPage = () => {
 
 	return (
 		<>
-			{isLoading ? (
-				<KycSkeleton />
-			) : (
-				<DataTable
-					title="KYC Verification"
-					data={data?.kycList || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					idKey="kyc_id"
-					onRowClick={(row: KycItem) => {
-						setSelectedKycItem(row);
-						setShowKycDetailsModal(true);
-					}}
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+			<DataTable
+				title="KYC Verification"
+				data={data?.kycList || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="kyc_id"
+				onRowClick={(row: KycItem) => {
+					setSelectedKycItem(row);
+					setShowKycDetailsModal(true);
+				}}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
+
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={data?.totalPages || 1}
 				setPage={setPage}

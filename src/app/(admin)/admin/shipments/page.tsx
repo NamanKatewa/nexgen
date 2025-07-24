@@ -10,7 +10,6 @@ import Copyable from "~/components/Copyable";
 import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
-import AdminShipmentsSkeleton from "~/components/skeletons/AdminShipmentsSkeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -208,27 +207,28 @@ function AdminOrdersContent() {
 
 	return (
 		<>
-			<div className="flex justify-end p-4">
-				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+			<div className="flex p-4">
+				<Button
+					onClick={handleExport}
+					disabled={exportMutation.isPending || isLoading}
+					className="true"
+				>
 					{exportMutation.isPending ? "Exporting..." : "Export"}
 				</Button>
 			</div>
-			{isLoading ? (
-				<AdminShipmentsSkeleton />
-			) : (
-				<DataTable
-					title="All Shipments"
-					data={data?.shipments || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					idKey="shipment_id"
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+			<DataTable
+				title="All Shipments"
+				data={data?.shipments || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="shipment_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={data?.totalPages || 1}
 				setPage={setPage}

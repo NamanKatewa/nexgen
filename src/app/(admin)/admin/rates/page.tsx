@@ -1,8 +1,10 @@
 "use client";
 
+import { nanoid } from "nanoid";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "~/components/ui/input";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
 	Table,
 	TableBody,
@@ -96,8 +98,42 @@ export default function AdminRatesPage() {
 
 	if (isLoading) {
 		return (
-			<div className="flex h-screen items-center justify-center text-blue-950">
-				Loading rates...
+			<div className="container mx-auto py-10">
+				<h1 className="mb-6 ml-6 font-semibold text-2xl text-blue-950">
+					Default Shipping Rates
+				</h1>
+				<div className="overflow-x-auto">
+					<Table className="min-w-full table-auto text-blue-950">
+						<TableHeader className="bg-blue-100 shadow-sm">
+							<TableRow>
+								{[1, 2, 3, 4, 5, 6].map(() => (
+									<TableHead key={nanoid()} className="w-32">
+										<Skeleton className="h-6" />
+									</TableHead>
+								))}
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(
+								(weightSlab) => (
+									<TableRow key={nanoid()} className="hover:bg-blue-50">
+										<TableCell className="text-center font-medium">
+											<Skeleton className="h-9" />
+										</TableCell>
+										{[1, 2, 3, 4, 5].map((zoneTo) => (
+											<TableCell
+												key={`${weightSlab}-${zoneTo}`}
+												className="text-center"
+											>
+												<Skeleton className="h-9" />
+											</TableCell>
+										))}
+									</TableRow>
+								),
+							)}
+						</TableBody>
+					</Table>
+				</div>
 			</div>
 		);
 	}
@@ -105,7 +141,7 @@ export default function AdminRatesPage() {
 	return (
 		<div className="container mx-auto py-10">
 			<h1 className="mb-6 ml-6 font-semibold text-2xl text-blue-950">
-				Default Shipping Rates Matrix
+				Default Shipping Rates
 			</h1>
 			<div className="overflow-x-auto">
 				<Table className="min-w-full table-auto text-blue-950">

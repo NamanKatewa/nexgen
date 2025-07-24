@@ -39,7 +39,7 @@ export default function ChartBarRevenueVsRefund({
 	data: inferRouterOutputs<AppRouter>["adminDash"]["getDashboardData"]["revenueRefunds"];
 }) {
 	return (
-		<Card className="col-span-full">
+		<Card className="col-span-full h-[900px]">
 			<CardHeader>
 				<CardTitle>Revenue Vs Refund</CardTitle>
 				<CardDescription>Last 6 Months</CardDescription>

@@ -49,7 +49,7 @@ export default function ChartBarAdminTopUsers({
 		fill: `var(--chart-${index + 1})`,
 	}));
 	return (
-		<Card className="col-span-full">
+		<Card className="col-span-full h-[900px]">
 			<CardHeader>
 				<CardTitle>Top Users By Shipment Volume</CardTitle>
 				<CardDescription>Top 10</CardDescription>

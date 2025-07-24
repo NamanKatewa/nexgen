@@ -18,7 +18,6 @@ import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import PaginationButtons from "~/components/PaginationButtons";
-import AdminWalletSkeleton from "~/components/skeletons/AdminWalletSkeleton";
 import { Button } from "~/components/ui/button";
 import { exportToXlsx } from "~/lib/xlsx";
 import type { AppRouter } from "~/server/api/root";
@@ -156,27 +155,29 @@ const WalletTopupPage = () => {
 
 	return (
 		<>
-			<div className="flex justify-end p-4">
-				<Button onClick={handleExport} disabled={exportMutation.isPending}>
+			<div className="flex p-4">
+				<Button
+					onClick={handleExport}
+					disabled={exportMutation.isPending || isLoading}
+					className="w-full"
+				>
 					{exportMutation.isPending ? "Exporting..." : "Export"}
 				</Button>
 			</div>
-			{isLoading ? (
-				<AdminWalletSkeleton />
-			) : (
-				<DataTable
-					title="Wallet Recharges"
-					data={transactions?.transactions || []}
-					columns={columns}
-					filters={filters}
-					onClearFilters={handleClearFilters}
-					isLoading={isLoading}
-					idKey="transaction_id"
-					dateRange={dateRange}
-					onDateRangeChange={setDateRange}
-				/>
-			)}
+
+			<DataTable
+				title="Wallet Recharges"
+				data={transactions?.transactions || []}
+				columns={columns}
+				filters={filters}
+				onClearFilters={handleClearFilters}
+				isLoading={isLoading}
+				idKey="transaction_id"
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+			/>
 			<PaginationButtons
+				isLoading={isLoading}
 				page={page}
 				totalPages={transactions?.totalPages || 1}
 				setPage={setPage}

@@ -33,7 +33,7 @@ export default function ChartLineAdminUserGrowth({
 	data: inferRouterOutputs<AppRouter>["adminDash"]["getDashboardData"]["userGrowth"];
 }) {
 	return (
-		<Card>
+		<Card className="col-span-1 h-[500px]">
 			<CardHeader>
 				<CardTitle>User Growth</CardTitle>
 				<CardDescription>Last 12 Months</CardDescription>

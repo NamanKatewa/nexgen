@@ -39,7 +39,7 @@ export default function ChartPieClientShipmenStatustPercentage({
 	}));
 
 	return (
-		<Card className="col-span-1 flex flex-col">
+		<Card className="col-span-1 h-[500px]">
 			<CardHeader className="items-center pb-0">
 				<CardTitle>Courier Status</CardTitle>
 				<CardDescription>Percentage</CardDescription>

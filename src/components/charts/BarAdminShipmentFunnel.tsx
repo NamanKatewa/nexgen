@@ -52,7 +52,7 @@ export default function ChartBarAdminShipmentFunnel({
 	data: inferRouterOutputs<AppRouter>["adminDash"]["getDashboardData"]["shipmentFunnel"];
 }) {
 	return (
-		<Card>
+		<Card className="col-span-1 h-[500px]">
 			<CardHeader>
 				<CardTitle>Shipment Funnel</CardTitle>
 				<CardDescription>By Status</CardDescription>
