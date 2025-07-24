@@ -56,7 +56,12 @@ export default function ChartBarAdminTopUsers({
 			</CardHeader>
 			<CardContent>
 				<ChartContainer className="min-h-[300px] w-full" config={chartConfig}>
-					<BarChart accessibilityLayer data={chartData} layout="vertical">
+					<BarChart
+						accessibilityLayer
+						data={chartData}
+						layout="vertical"
+						margin={{ right: 20 }}
+					>
 						<YAxis
 							dataKey="userName"
 							type="category"
