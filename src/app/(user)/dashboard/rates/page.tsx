@@ -73,7 +73,7 @@ export default function UserRatesPage() {
 
 	return (
 		<div className="container mx-auto py-10">
-			<h1 className="mb-6 font-semibold text-2xl text-blue-950">
+			<h1 className="mb-6 ml-6 font-semibold text-2xl text-blue-950">
 				My Shipping Rates Matrix
 			</h1>
 			<div className="overflow-x-auto">

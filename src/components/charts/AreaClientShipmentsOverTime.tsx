@@ -40,7 +40,11 @@ export default function ChartAreaClientShipmentsOverTime({
 			</CardHeader>
 			<CardContent>
 				<ChartContainer config={chartConfig} className="h-[300px] w-full p-4">
-					<AreaChart accessibilityLayer data={data} margin={{ left: 20, right: 20 }}>
+					<AreaChart
+						accessibilityLayer
+						data={data}
+						margin={{ left: 20, right: 20 }}
+					>
 						<CartesianGrid vertical={false} />
 						<XAxis
 							dataKey="date"

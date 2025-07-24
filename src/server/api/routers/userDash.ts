@@ -89,7 +89,9 @@ export const userDashRouter = createTRPCRouter({
       ORDER BY date ASC
     `;
 
-		const formattedShipmentsOverTime = (shipmentsOverTime as { date: Date; shipmentCount: bigint }[]).map((s) => ({
+		const formattedShipmentsOverTime = (
+			shipmentsOverTime as { date: Date; shipmentCount: bigint }[]
+		).map((s) => ({
 			date: s.date.toISOString().split("T")[0],
 			shipmentCount: Number(s.shipmentCount),
 		}));
@@ -175,19 +177,19 @@ export const userDashRouter = createTRPCRouter({
 					_count: { current_status: true },
 				});
 
-				const initialStatusCounts = relevantShipmentStatuses.reduce((acc, status) => {
-					acc[status] = 0;
-					return acc;
-				}, {} as Record<SHIPMENT_STATUS, number>);
-
-				const formattedStatusCounts = statusCounts.reduce(
-					(acc, curr) => {
-						acc[curr.current_status as SHIPMENT_STATUS] =
-							curr._count.current_status;
+				const initialStatusCounts = relevantShipmentStatuses.reduce(
+					(acc, status) => {
+						acc[status] = 0;
 						return acc;
 					},
-					initialStatusCounts,
+					{} as Record<SHIPMENT_STATUS, number>,
 				);
+
+				const formattedStatusCounts = statusCounts.reduce((acc, curr) => {
+					acc[curr.current_status as SHIPMENT_STATUS] =
+						curr._count.current_status;
+					return acc;
+				}, initialStatusCounts);
 
 				return {
 					courierName: courier?.name || "Unknown Courier",

@@ -639,10 +639,27 @@ async function seedAddresses(users: User[], allPincodes: string[]) {
 
 async function seedKYC(users: User[], adminUser: User, allPincodes: string[]) {
 	console.log("\n--- Seeding KYC Records ---");
+
+	const existingKycRecords = await prisma.kyc.findMany({
+		where: { user_id: { in: users.map((u) => u.user_id) } },
+		select: { user_id: true },
+	});
+	const existingKycUserIds = new Set(
+		existingKycRecords.map((kyc) => kyc.user_id),
+	);
+
 	const kycAddressesToCreate = [];
 	const kycRecordsToCreate = [];
 
 	for (const user of users) {
+		// Skip if KYC already exists for this user
+		if (existingKycUserIds.has(user.user_id)) {
+			console.log(
+				`  Skipping KYC creation for user ${user.user_id}: KYC record already exists.`,
+			);
+			continue;
+		}
+
 		const kycStatus = faker.helpers.arrayElement(Object.values(KYC_STATUS));
 		const randomPincode = faker.helpers.arrayElement(allPincodes);
 		const pincodeDetails = getPincodeDetails(randomPincode);
