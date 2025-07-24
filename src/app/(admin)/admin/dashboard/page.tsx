@@ -1,22 +1,6 @@
 "use client";
 
 import { DollarSign, Package, Ticket, Users } from "lucide-react";
-import {
-	Bar,
-	BarChart,
-	CartesianGrid,
-	Line,
-	LineChart,
-	Pie,
-	PieChart,
-	PolarAngleAxis,
-	PolarGrid,
-	PolarRadiusAxis,
-	Radar,
-	RadarChart,
-	XAxis,
-	YAxis,
-} from "recharts";
 import ChartBarAdminClientDemographics from "~/components/charts/BarAdminClientDemographics";
 import ChartBarRevenueVsRefund from "~/components/charts/BarAdminRevenueVsRefund";
 import ChartBarAdminShipmentFunnel from "~/components/charts/BarAdminShipmentFunnel";
@@ -25,50 +9,8 @@ import ChartRadarAdminPlatformHealth from "~/components/charts/ChartRadarAdminPl
 import ChartLineAdminUserGrowth from "~/components/charts/LineAdminUserGrowth";
 import ChartPieAdminShipmentPercentage from "~/components/charts/PieAdminShipmentPercentage";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import {
-	ChartContainer,
-	ChartLegend,
-	ChartLegendContent,
-	ChartTooltip,
-	ChartTooltipContent,
-} from "~/components/ui/chart";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
-
-const chartConfig = {
-	newUserCount: {
-		label: "New Users",
-		color: "hsl(var(--chart-1))",
-	},
-	totalRevenue: {
-		label: "Total Revenue",
-		color: "hsl(var(--chart-2))",
-	},
-	totalRefunds: {
-		label: "Total Refunds",
-		color: "hsl(var(--chart-3))",
-	},
-	activeUsers: {
-		label: "Active Users",
-		color: "hsl(var(--chart-1))",
-	},
-	inactiveUsers: {
-		label: "Inactive Users",
-		color: "hsl(var(--chart-2))",
-	},
-	count: {
-		label: "Count",
-		color: "hsl(var(--chart-1))",
-	},
-	shipmentPercentage: {
-		label: "Shipment Percentage",
-		color: "hsl(var(--chart-1))",
-	},
-	value: {
-		label: "Value",
-		color: "hsl(var(--chart-1))",
-	},
-};
 
 export default function AdminDashboardPage() {
 	const { data, isLoading, isError } =

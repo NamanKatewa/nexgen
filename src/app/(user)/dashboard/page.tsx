@@ -11,14 +11,15 @@ import {
 	LineChart,
 	Pie,
 	PieChart,
-	PolarAngleAxis,
-	PolarGrid,
-	PolarRadiusAxis,
-	Radar,
-	RadarChart,
 	XAxis,
 	YAxis,
 } from "recharts";
+import ChartAreaClientShipmentsOverTime from "~/components/charts/AreaClientShipmentsOverTime";
+import ChartBarClientCourierPerformance from "~/components/charts/BarClientCourierPerformance";
+import ChartBarClientTopStates from "~/components/charts/BarClientTopStates";
+import ChartLineClientAvgDeliverTime from "~/components/charts/LineClientAvgDeliverTime";
+import ChartLineClientShippingVsValue from "~/components/charts/LineClientShippingVsValue";
+import ChartPieClientShipmenStatustPercentage from "~/components/charts/PieClientShipmentStatusPercentage";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
 	ChartContainer,
@@ -110,6 +111,21 @@ export default function UserDashboardPage() {
 		averageDeliveryTime,
 	} = data;
 
+	const fakeAverageDeliveryTimeData = [
+		{ month: "Jan", averageDeliveryTimeDays: 3.5 },
+		{ month: "Feb", averageDeliveryTimeDays: 4.2 },
+		{ month: "Mar", averageDeliveryTimeDays: 3.8 },
+		{ month: "Apr", averageDeliveryTimeDays: 4.0 },
+		{ month: "May", averageDeliveryTimeDays: 3.9 },
+		{ month: "Jun", averageDeliveryTimeDays: 4.5 },
+		{ month: "Jul", averageDeliveryTimeDays: 4.1 },
+		{ month: "Aug", averageDeliveryTimeDays: 3.7 },
+		{ month: "Sep", averageDeliveryTimeDays: 4.3 },
+		{ month: "Oct", averageDeliveryTimeDays: 4.0 },
+		{ month: "Nov", averageDeliveryTimeDays: 3.6 },
+		{ month: "Dec", averageDeliveryTimeDays: 4.2 },
+	];
+
 	return (
 		<div className="flex flex-col gap-4 p-4 md:p-8">
 			<h1 className="font-bold text-2xl">User Dashboard</h1>
@@ -181,242 +197,14 @@ export default function UserDashboardPage() {
 
 			{/* Charts */}
 			<div className="grid gap-4 lg:grid-cols-2">
-				<Card className="col-span-1">
-					<CardHeader>
-						<CardTitle>Shipment Status Distribution</CardTitle>
-					</CardHeader>
-					<CardContent className="flex aspect-square items-center justify-center p-6">
-						<ChartContainer
-							config={chartConfig}
-							className="min-h-[300px] w-full"
-						>
-							<PieChart>
-								<ChartTooltip
-									content={<ChartTooltipContent nameKey="status" hideLabel />}
-								/>
-								<Pie
-									data={shipmentStatusDistribution}
-									dataKey="count"
-									nameKey="status"
-									innerRadius={60}
-									outerRadius={100}
-									fill={chartConfig.DELIVERED.color}
-									stroke="var(--color-DELIVERED)"
-									label={({ status, percent, count }) =>
-										`${status}: ${count} (${(percent * 100).toFixed(0)}%)`
-									}
-								/>
-								<ChartLegend
-									content={<ChartLegendContent nameKey="status" />}
-								/>
-							</PieChart>
-						</ChartContainer>
-					</CardContent>
-				</Card>
-
-				<Card className="col-span-1">
-					<CardHeader>
-						<CardTitle>Shipments Over Time</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<ChartContainer
-							config={chartConfig}
-							className="min-h-[300px] w-full"
-						>
-							<AreaChart accessibilityLayer data={shipmentsOverTime}>
-								<CartesianGrid vertical={false} />
-								<XAxis
-									dataKey="date"
-									tickLine={false}
-									axisLine={false}
-									tickFormatter={(value) =>
-										new Date(value).toLocaleDateString("en-IN", {
-											month: "short",
-											day: "numeric",
-										})
-									}
-								/>
-								<YAxis />
-								<ChartTooltip
-									content={<ChartTooltipContent indicator="dot" />}
-								/>
-								<Area
-									dataKey="shipmentCount"
-									type="natural"
-									fill={chartConfig.shipmentCount.color}
-									stroke="var(--color-shipmentCount)"
-									stackId="a"
-									label={{ position: "top" }}
-								/>
-							</AreaChart>
-						</ChartContainer>
-					</CardContent>
-				</Card>
-
-				<Card className="col-span-full">
-					<CardHeader>
-						<CardTitle>Shipping Costs vs. Declared Value</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<ChartContainer
-							config={chartConfig}
-							className="min-h-[300px] w-full"
-						>
-							<BarChart accessibilityLayer data={shippingCostsDeclaredValue}>
-								<CartesianGrid vertical={false} />
-								<XAxis
-									dataKey="month"
-									tickLine={false}
-									tickMargin={10}
-									axisLine={false}
-								/>
-								<YAxis yAxisId="left" stroke="var(--color-totalShippingCost)" />
-								<YAxis
-									yAxisId="right"
-									orientation="right"
-									stroke="var(--color-totalDeclaredValue)"
-								/>
-								<ChartTooltip content={<ChartTooltipContent />} />
-								<ChartLegend content={<ChartLegendContent />} />
-								<Bar
-									yAxisId="left"
-									dataKey="totalShippingCost"
-									fill="var(--color-totalShippingCost)"
-									radius={4}
-									label={{ position: "top" }}
-								/>
-								<Line
-									yAxisId="right"
-									dataKey="totalDeclaredValue"
-									type="monotone"
-									stroke="var(--color-totalDeclaredValue)"
-									strokeWidth={2}
-									dot={false}
-									label={{ position: "top" }}
-								/>
-							</BarChart>
-						</ChartContainer>
-					</CardContent>
-				</Card>
-
-				<Card className="col-span-1">
-					<CardHeader>
-						<CardTitle>Top 5 Destination States</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<ChartContainer
-							config={chartConfig}
-							className="min-h-[300px] w-full"
-						>
-							<BarChart
-								accessibilityLayer
-								data={topDestinationStates}
-								layout="vertical"
-							>
-								<CartesianGrid horizontal={false} />
-								<YAxis
-									dataKey="state"
-									type="category"
-									tickLine={false}
-									tickMargin={10}
-									axisLine={false}
-									width={100}
-								/>
-								<XAxis type="number" dataKey="shipmentCount" />
-								<ChartTooltip content={<ChartTooltipContent />} />
-								<Bar
-									dataKey="shipmentCount"
-									fill={chartConfig.shipmentCount.color}
-									radius={4}
-									label={{ position: "right" }}
-								/>
-							</BarChart>
-						</ChartContainer>
-					</CardContent>
-				</Card>
-
-				<Card className="col-span-1">
-					<CardHeader>
-						<CardTitle>Average Delivery Time</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<ChartContainer
-							config={chartConfig}
-							className="min-h-[300px] w-full"
-						>
-							<LineChart accessibilityLayer data={averageDeliveryTime}>
-								<CartesianGrid vertical={false} />
-								<XAxis
-									dataKey="month"
-									tickLine={false}
-									axisLine={false}
-									tickMargin={10}
-								/>
-								<YAxis />
-								<ChartTooltip
-									content={<ChartTooltipContent indicator="dot" />}
-								/>
-								<Line
-									dataKey="averageDeliveryTimeDays"
-									type="monotone"
-									stroke={chartConfig.averageDeliveryTimeDays.color}
-									strokeWidth={2}
-									dot={true}
-									label={{ position: "top" }}
-								/>
-							</LineChart>
-						</ChartContainer>
-					</CardContent>
-				</Card>
-
-				<Card className="col-span-full">
-					<CardHeader>
-						<CardTitle>Courier Performance</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<ChartContainer
-							config={chartConfig}
-							className="min-h-[300px] w-full"
-						>
-							<BarChart accessibilityLayer data={courierPerformance}>
-								<CartesianGrid vertical={false} />
-								<XAxis
-									dataKey="courierName"
-									tickLine={false}
-									tickMargin={10}
-									axisLine={false}
-								/>
-								<YAxis />
-								<ChartTooltip content={<ChartTooltipContent />} />
-								<ChartLegend content={<ChartLegendContent />} />
-								<Bar
-									dataKey="DELIVERED"
-									stackId="a"
-									fill={chartConfig.DELIVERED.color}
-									label={{ position: "top" }}
-								/>
-								<Bar
-									dataKey="IN_TRANSIT"
-									stackId="a"
-									fill="var(--color-IN_TRANSIT)"
-									label={{ position: "top" }}
-								/>
-								<Bar
-									dataKey="RTO"
-									stackId="a"
-									fill={chartConfig.RTO.color}
-									label={{ position: "top" }}
-								/>
-								<Bar
-									dataKey="CANCELLED"
-									stackId="a"
-									fill={chartConfig.CANCELLED.color}
-									label={{ position: "top" }}
-								/>
-							</BarChart>
-						</ChartContainer>
-					</CardContent>
-				</Card>
+				<ChartPieClientShipmenStatustPercentage
+					data={shipmentStatusDistribution}
+				/>
+				<ChartAreaClientShipmentsOverTime data={shipmentsOverTime} />
+				<ChartLineClientShippingVsValue data={shippingCostsDeclaredValue} />
+				<ChartBarClientTopStates data={topDestinationStates} />
+				<ChartLineClientAvgDeliverTime data={fakeAverageDeliveryTimeData} />
+				<ChartBarClientCourierPerformance data={courierPerformance} />
 			</div>
 		</div>
 	);

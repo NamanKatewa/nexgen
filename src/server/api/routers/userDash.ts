@@ -1,6 +1,5 @@
 import { SHIPMENT_STATUS } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const userDashRouter = createTRPCRouter({
@@ -52,16 +51,27 @@ export const userDashRouter = createTRPCRouter({
 		};
 
 		// Shipment Status Distribution
-		const shipmentStatusDistribution = await ctx.db.shipment.groupBy({
-			by: ["current_status"],
-			where: { user_id: userId, current_status: { not: null } },
-			_count: { current_status: true },
-		});
+		const userShipmentStatusStages = [
+			SHIPMENT_STATUS.SHIPMENT_BOOKED,
+			SHIPMENT_STATUS.IN_TRANSIT,
+			SHIPMENT_STATUS.DELIVERED,
+			SHIPMENT_STATUS.RTO,
+			SHIPMENT_STATUS.CANCELLED,
+		];
+
+		const shipmentStatusDistribution = await Promise.all(
+			userShipmentStatusStages.map(async (status) => ({
+				status,
+				count: await ctx.db.shipment.count({
+					where: { user_id: userId, current_status: status },
+				}),
+			})),
+		);
 
 		const formattedShipmentStatusDistribution = shipmentStatusDistribution.map(
 			(s) => ({
-				status: s.current_status as SHIPMENT_STATUS,
-				count: s._count.current_status,
+				status: s.status as SHIPMENT_STATUS,
+				count: s.count,
 			}),
 		);
 
@@ -69,16 +79,19 @@ export const userDashRouter = createTRPCRouter({
 		const thirtyDaysAgo = new Date();
 		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-		const shipmentsOverTime = await ctx.db.shipment.groupBy({
-			by: ["created_at"],
-			where: { user_id: userId, created_at: { gte: thirtyDaysAgo } },
-			_count: { created_at: true },
-			orderBy: { created_at: "asc" },
-		});
+		const shipmentsOverTime = await ctx.db.$queryRaw`
+      SELECT
+        DATE(created_at) as date,
+        COUNT(*) as "shipmentCount"
+      FROM "Shipment"
+      WHERE user_id = ${userId} AND created_at >= ${thirtyDaysAgo}
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `;
 
-		const formattedShipmentsOverTime = shipmentsOverTime.map((s) => ({
-			date: s.created_at.toISOString().split("T")[0],
-			shipmentCount: s._count.created_at,
+		const formattedShipmentsOverTime = (shipmentsOverTime as { date: Date; shipmentCount: bigint }[]).map((s) => ({
+			date: s.date.toISOString().split("T")[0],
+			shipmentCount: Number(s.shipmentCount),
 		}));
 
 		// Shipping Costs vs. Declared Value (last 6 months)
@@ -127,6 +140,14 @@ export const userDashRouter = createTRPCRouter({
 			take: 5,
 		});
 
+		const relevantShipmentStatuses: SHIPMENT_STATUS[] = [
+			SHIPMENT_STATUS.DELIVERED,
+			SHIPMENT_STATUS.IN_TRANSIT,
+			SHIPMENT_STATUS.RTO,
+			SHIPMENT_STATUS.CANCELLED,
+			SHIPMENT_STATUS.SHIPMENT_BOOKED,
+		];
+
 		const courierPerformance = await Promise.all(
 			topCouriers.map(async (c) => {
 				if (c.courier_id === null) {
@@ -136,6 +157,7 @@ export const userDashRouter = createTRPCRouter({
 						IN_TRANSIT: 0,
 						RTO: 0,
 						CANCELLED: 0,
+						SHIPMENT_BOOKED: 0,
 					}; // Or handle as appropriate
 				}
 				const courier = await ctx.db.courier.findUnique({
@@ -153,13 +175,18 @@ export const userDashRouter = createTRPCRouter({
 					_count: { current_status: true },
 				});
 
+				const initialStatusCounts = relevantShipmentStatuses.reduce((acc, status) => {
+					acc[status] = 0;
+					return acc;
+				}, {} as Record<SHIPMENT_STATUS, number>);
+
 				const formattedStatusCounts = statusCounts.reduce(
 					(acc, curr) => {
 						acc[curr.current_status as SHIPMENT_STATUS] =
 							curr._count.current_status;
 						return acc;
 					},
-					{} as Record<SHIPMENT_STATUS, number>,
+					initialStatusCounts,
 				);
 
 				return {
@@ -172,12 +199,14 @@ export const userDashRouter = createTRPCRouter({
 		// Average Delivery Time (last 6 months)
 		const avgDeliveryTime = await ctx.db.$queryRaw`
       SELECT
-        TO_CHAR(created_at, 'Mon') as month,
+        TO_CHAR(created_at, 'YYYY-MM') as month,
         AVG(EXTRACT(EPOCH FROM (SELECT timestamp FROM "Tracking" WHERE "shipment_id" = s.shipment_id AND status_description = 'DELIVERED' LIMIT 1)) - EXTRACT(EPOCH FROM (SELECT timestamp FROM "Tracking" WHERE "shipment_id" = s.shipment_id AND status_description = 'PICKED_UP' LIMIT 1))) / (60 * 60 * 24) as "averageDeliveryTimeDays"
       FROM "Shipment" s
-      WHERE user_id = ${userId} AND created_at >= ${sixMonthsAgo} AND current_status = 'DELIVERED'
+      WHERE user_id = ${userId} AND created_at >= ${sixMonthsAgo}
+        AND EXISTS (SELECT 1 FROM "Tracking" WHERE "shipment_id" = s.shipment_id AND status_description = 'DELIVERED')
+        AND EXISTS (SELECT 1 FROM "Tracking" WHERE "shipment_id" = s.shipment_id AND status_description = 'PICKED_UP')
       GROUP BY month
-      ORDER BY MIN(created_at) ASC
+      ORDER BY month ASC
     `;
 
 		return {

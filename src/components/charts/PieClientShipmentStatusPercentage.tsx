@@ -20,14 +20,14 @@ import type { AppRouter } from "~/server/api/root";
 
 export const description = "A donut chart with an active sector";
 
-export default function ChartPieAdminShipmentPercentage({
+export default function ChartPieClientShipmenStatustPercentage({
 	data,
 }: {
-	data: inferRouterOutputs<AppRouter>["adminDash"]["getDashboardData"]["courierUsageDistribution"];
+	data: inferRouterOutputs<AppRouter>["userDash"]["getDashboardData"]["shipmentStatusDistribution"];
 }) {
 	const chartConfig: ChartConfig = data.reduce((acc, item, index) => {
-		acc[item.courierName] = {
-			label: item.courierName,
+		acc[item.status] = {
+			label: item.status,
 			color: `var(--chart-${index + 1})`,
 		};
 		return acc;
@@ -39,9 +39,9 @@ export default function ChartPieAdminShipmentPercentage({
 	}));
 
 	return (
-		<Card className="col-span-full flex flex-col">
+		<Card className="col-span-1 flex flex-col">
 			<CardHeader className="items-center pb-0">
-				<CardTitle>Courier Usage</CardTitle>
+				<CardTitle>Courier Status</CardTitle>
 				<CardDescription>Percentage</CardDescription>
 			</CardHeader>
 			<CardContent className="flex-1 pb-0">
@@ -56,8 +56,8 @@ export default function ChartPieAdminShipmentPercentage({
 						/>
 						<Pie
 							data={chartData}
-							dataKey="shipmentPercentage"
-							nameKey="courierName"
+							dataKey="count"
+							nameKey="status"
 							innerRadius={30}
 							strokeWidth={2}
 							activeIndex={0}
@@ -67,8 +67,8 @@ export default function ChartPieAdminShipmentPercentage({
 							}: PieSectorDataItem) => (
 								<Sector {...props} outerRadius={outerRadius + 10} />
 							)}
-							label={({ courierName, shipmentPercentage }) =>
-								`${courierName} (${shipmentPercentage.toFixed(1)}%)`
+							label={({ status, percent, count }) =>
+								`${status} ${(percent * 100).toFixed(0)}%`
 							}
 						/>
 					</PieChart>
