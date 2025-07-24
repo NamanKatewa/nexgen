@@ -444,7 +444,7 @@ async function seedUsers(hashedPassword: string, numberOfRandomUsers: number) {
 
 	// Create default client user
 	const clientUser = await prisma.user.upsert({
-		where: { email: "namankatew2004@gmail.com" },
+		where: { email: "namankatewa2004@gmail.com" },
 		update: {},
 		create: {
 			email: "namankatew2004@gmail.com",
