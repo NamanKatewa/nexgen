@@ -447,7 +447,7 @@ async function seedUsers(hashedPassword: string, numberOfRandomUsers: number) {
 		where: { email: "namankatewa2004@gmail.com" },
 		update: {},
 		create: {
-			email: "namankatew2004@gmail.com",
+			email: "namankatewa2004@gmail.com",
 			mobile_number: "1234567890",
 			password_hash: hashedPassword,
 			name: "Naman Katewa Client",
