@@ -825,7 +825,9 @@ async function seedShipments(
 						Object.values(SHIPMENT_STATUS),
 					), // Added current_status
 					payment_status: SHIPMENT_PAYMENT_STATUS.Paid,
-					shipment_status: SHIPMENT_APPROVAL_STATUS.PendingApproval,
+					shipment_status: faker.helpers.arrayElement(
+						Object.values(SHIPMENT_APPROVAL_STATUS),
+					),
 					rejection_reason:
 						faker.datatype.boolean() && SHIPMENT_APPROVAL_STATUS.Rejected
 							? faker.lorem.sentence()
