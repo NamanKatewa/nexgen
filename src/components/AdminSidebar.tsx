@@ -14,6 +14,7 @@ import {
 	PackageCheck,
 	Tag,
 	Truck,
+	TruckElectric,
 	User,
 	UserCog,
 	Wallet,
@@ -40,7 +41,7 @@ const sidebarLinks = [
 	},
 	{
 		href: "/admin/ndr",
-		icon: Truck,
+		icon: TruckElectric,
 		label: "NDR",
 	},
 	{

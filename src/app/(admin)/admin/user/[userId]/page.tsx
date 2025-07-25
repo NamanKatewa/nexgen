@@ -186,9 +186,6 @@ export default function AdminUserDetailPage() {
 
 						<p className="font-medium text-sm">Created At:</p>
 						<p className="text-sm">{formatDate(user.created_at)}</p>
-
-						<p className="font-medium text-sm">Last Updated:</p>
-						<p className="text-sm">{formatDate(user.updated_at)}</p>
 					</div>
 				</CardContent>
 			</Card>
@@ -330,12 +327,6 @@ export default function AdminUserDetailPage() {
 							>
 								₹ {Number(user.wallet.balance).toFixed(2)}
 							</p>
-
-							<p className="font-medium text-sm">Created At:</p>
-							<p className="text-sm">{formatDate(user.wallet.created_at)}</p>
-
-							<p className="font-medium text-sm">Last Updated:</p>
-							<p className="text-sm">{formatDate(user.wallet.updated_at)}</p>
 						</div>
 					</CardContent>
 				</Card>

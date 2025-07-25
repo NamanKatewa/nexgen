@@ -101,11 +101,13 @@ function PendingAddressesContent() {
 			key: "name",
 			header: "Address Name",
 			className: "w-40 px-4 whitespace-normal",
+			render: (item) => item.name,
 		},
 		{
 			key: "address_line",
 			header: "Address Line",
 			className: "w-50 px-4 whitespace-normal",
+			render: (item) => item.address_line,
 		},
 		{
 			key: "landmark",
@@ -113,12 +115,23 @@ function PendingAddressesContent() {
 			className: "w-30 px-4 whitespace-normal",
 			render: (item: PendingAddress) => item.landmark || "N/A",
 		},
-		{ key: "city", header: "City", className: "w-30 px-4 whitespace-normal" },
-		{ key: "state", header: "State", className: "w-30 px-4 whitespace-normal" },
+		{
+			key: "city",
+			header: "City",
+			className: "w-30 px-4 whitespace-normal",
+			render: (item) => item.city,
+		},
+		{
+			key: "state",
+			header: "State",
+			className: "w-30 px-4 whitespace-normal",
+			render: (item) => item.state,
+		},
 		{
 			key: "zip_code",
 			header: "Zip Code",
 			className: "w-30 px-4 whitespace-normal",
+			render: (item) => item.zip_code,
 		},
 		{
 			key: "actions",

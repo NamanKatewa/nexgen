@@ -160,6 +160,15 @@ model User {
   addresses       Address[]
   userRates       UserRate[]
   pendingAddresses PendingAddress[]
+
+  @@index([email])
+  @@index([name])
+  @@index([mobile_number])
+  @@index([company_name])
+  @@index([created_at])
+  @@index([business_type])
+  @@index([role])
+  @@index([status])
 }
 
 model DefaultRate {
@@ -172,7 +181,12 @@ model DefaultRate {
   updated_at  DateTime @updatedAt
 
   @@unique([zone_from, zone_to, weight_slab])
+  @@index([zone_from])
+  @@index([zone_to])
+  @@index([weight_slab])
+  @@index([zone_from, zone_to, weight_slab])
 }
+
 
 model UserRate {
   user_rate_id          String   @id @default(uuid())
@@ -187,6 +201,11 @@ model UserRate {
   user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
   @@unique([user_id, zone_from, zone_to, weight_slab])
+  @@index([user_id])
+  @@index([zone_from])
+  @@index([zone_to])
+  @@index([weight_slab])
+  @@index([user_id, zone_from, zone_to, weight_slab])
 }
 
 model Address {
@@ -204,6 +223,9 @@ model Address {
   origin_shipments      Shipment[] @relation("Origin")
   destination_shipments Shipment[] @relation("Destination")
   user                  User       @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id, type])
+  @@index([user_id])
 }
 
 model Kyc {
@@ -212,7 +234,7 @@ model Kyc {
   entity_name         String?
   entity_type         ENTITY_TYPE?
   website_url         String?
-  address_id          String?     @unique
+  address_id          String     @unique
   aadhar_number       String?
   aadhar_image_front  String?
   aadhar_image_back   String?
@@ -226,8 +248,13 @@ model Kyc {
   rejection_reason    String?
 
   user        User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  address     Address? @relation(fields: [address_id], references: [address_id])
+  address     Address  @relation(fields: [address_id], references: [address_id])
   verified_by User?    @relation("VerifiedByAdmin", fields: [verified_by_user_id], references: [user_id])
+
+  @@index([kyc_status])
+  @@index([submission_date])
+  @@index([gst, entity_type])
+  @@index([user_id])
 }
 
 model Wallet {
@@ -252,6 +279,14 @@ model Transaction {
 
   user   User   @relation(fields: [user_id], references: [user_id],onDelete: Cascade)
   shipment  Shipment? @relation(fields: [shipment_id], references: [shipment_id])
+
+  @@index([created_at])
+  @@index([transaction_type])
+  @@index([transaction_type, payment_status])
+  @@index([user_id])
+  @@index([description])
+  @@index([user_id, created_at, payment_status, transaction_type])
+  @@index([payment_status, created_at])
 }
 
 
@@ -289,6 +324,20 @@ model Shipment {
   destination_address Address  @relation("Destination", fields: [destination_address_id], references: [address_id])
   tracking            Tracking[]
   transactions        Transaction[]
+
+  @@index([shipment_status])
+  @@index([current_status])
+  @@index([courier_id])
+  @@index([created_at])
+  @@index([user_id])
+  @@index([human_readable_shipment_id])
+  @@index([shipment_status, user_id])
+  @@index([recipient_name])
+  @@index([recipient_mobile])
+  @@index([origin_address_id])
+  @@index([destination_address_id])
+  @@index([user_id, created_at])
+  @@index([awb_number, shipment_id, human_readable_shipment_id])
 }
 
 model Tracking {
@@ -301,6 +350,8 @@ model Tracking {
 
   shipment Shipment @relation(fields: [shipment_id], references: [shipment_id], onDelete: Cascade)
   courier  Courier  @relation(fields: [courier_id], references: [id])
+
+  @@index([shipment_id, courier_id, timestamp, location, status_description])
 }
 
 model SupportTicket {
@@ -319,6 +370,14 @@ model SupportTicket {
   user        User            @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   assigned_to Employee?       @relation(fields: [assigned_to_employee_id], references: [employee_id])
   messages    SupportMessage[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([status, priority])
+  @@index([user_id])
+  @@index([created_at])
+  @@index([assigned_to_employee_id])
+  @@index([awb])
 }
 
 model SupportMessage {
@@ -329,7 +388,11 @@ model SupportMessage {
   content     String
   created_at  DateTime @default(now())
 
+  @@index([created_at])
+
   ticket SupportTicket @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
+
+  @@index([ticket_id])
 }
 
 model Employee {
@@ -358,6 +421,10 @@ model PendingAddress {
   created_at         DateTime @default(now())
 
   user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([created_at])
+  @@index([user_id])
+  @@index([zip_code])
 }
 
 model PasswordReset {
@@ -366,6 +433,8 @@ model PasswordReset {
   otp       String
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([email])
 }
 
 model Courier {

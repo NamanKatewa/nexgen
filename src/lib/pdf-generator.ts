@@ -30,7 +30,6 @@ export async function generateAndDownloadLabel(
 			...data.shipment,
 			created_at: data.shipment.created_at as string,
 		},
-		data.companyName,
 		courierImageBase64,
 		data.barcodeSvg,
 		data.qrCodeDataUrl,

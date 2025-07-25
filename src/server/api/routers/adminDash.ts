@@ -7,7 +7,6 @@ import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const adminDashRouter = createTRPCRouter({
 	getDashboardData: adminProcedure.query(async ({ ctx }) => {
-		// Fetch KPIs
 		const totalUsers = await ctx.db.user.count();
 		const pendingKycApprovals = await ctx.db.kyc.count({
 			where: { kyc_status: "Pending" },
@@ -33,6 +32,11 @@ export const adminDashRouter = createTRPCRouter({
 			where: { status: "Open", priority: "High" },
 		});
 
+		const totalUserBalanceResult = await ctx.db.wallet.aggregate({
+			_sum: { balance: true },
+		});
+		const totalUserBalance = totalUserBalanceResult._sum.balance?.toNumber() || 0;
+
 		const kpis = {
 			totalUsers,
 			pendingKycApprovals,
@@ -41,6 +45,7 @@ export const adminDashRouter = createTRPCRouter({
 				totalRevenueLast30Days.toFixed(2),
 			),
 			highPriorityTickets,
+			totalUserBalance: Number.parseFloat(totalUserBalance.toFixed(2)),
 		};
 
 		// Platform Health Overview (Radar Chart)
@@ -171,18 +176,17 @@ export const adminDashRouter = createTRPCRouter({
 			take: 10,
 		});
 
-		const formattedTopUsersByShipmentVolume = await Promise.all(
-			topUsersByShipmentVolume.map(async (u) => {
-				const user = await ctx.db.user.findUnique({
-					where: { user_id: u.user_id },
-					select: { name: true },
-				});
-				return {
-					userName: user?.name || "Unknown User",
-					shipmentCount: u._count.user_id,
-				};
-			}),
-		);
+		const userIds = topUsersByShipmentVolume.map((u) => u.user_id);
+		const users = await ctx.db.user.findMany({
+			where: { user_id: { in: userIds } },
+			select: { user_id: true, name: true },
+		});
+		const userMap = new Map(users.map((user) => [user.user_id, user.name]));
+
+		const formattedTopUsersByShipmentVolume = topUsersByShipmentVolume.map((u) => ({
+			userName: userMap.get(u.user_id) || "Unknown User",
+			shipmentCount: u._count.user_id,
+		}));
 
 		// Courier Usage Distribution
 		const totalShipmentsAll = await ctx.db.shipment.count();
@@ -193,24 +197,27 @@ export const adminDashRouter = createTRPCRouter({
 			_count: { courier_id: true },
 		});
 
-		const formattedCourierUsageDistribution = await Promise.all(
-			courierUsageDistribution.map(async (c) => {
-				if (c.courier_id === null) {
-					return { courierName: "Unknown Courier", shipmentPercentage: 0 }; // Handle null courier_id
-				}
-				const courier = await ctx.db.courier.findUnique({
-					where: { id: c.courier_id },
-					select: { name: true },
-				});
-				return {
-					courierName: courier?.name || "Unknown Courier",
-					shipmentPercentage:
-						totalShipmentsAll > 0
-							? (c._count.courier_id / totalShipmentsAll) * 100
-							: 0,
-				};
-			}),
-		);
+		const courierIds = courierUsageDistribution
+			.map((c) => c.courier_id)
+			.filter((id) => id !== null) as string[];
+		const couriers = await ctx.db.courier.findMany({
+			where: { id: { in: courierIds } },
+			select: { id: true, name: true },
+		});
+		const courierMap = new Map(couriers.map((courier) => [courier.id, courier.name]));
+
+		const formattedCourierUsageDistribution = courierUsageDistribution.map((c) => {
+			if (c.courier_id === null) {
+				return { courierName: "Unknown Courier", shipmentPercentage: 0 }; // Handle null courier_id
+			}
+			return {
+				courierName: courierMap.get(c.courier_id) || "Unknown Courier",
+				shipmentPercentage:
+					totalShipmentsAll > 0
+						? (c._count.courier_id / totalShipmentsAll) * 100
+						: 0,
+			};
+		});
 
 		return {
 			kpis,

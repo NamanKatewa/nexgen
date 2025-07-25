@@ -59,14 +59,19 @@ export const userDashRouter = createTRPCRouter({
 			SHIPMENT_STATUS.CANCELLED,
 		];
 
-		const shipmentStatusDistribution = await Promise.all(
-			userShipmentStatusStages.map(async (status) => ({
+		const shipmentStatusCounts = await ctx.db.shipment.groupBy({
+			by: ["current_status"],
+			where: { user_id: userId, current_status: { in: userShipmentStatusStages } },
+			_count: { current_status: true },
+		});
+
+		const shipmentStatusDistribution = userShipmentStatusStages.map((status) => {
+			const found = shipmentStatusCounts.find((s) => s.current_status === status);
+			return {
 				status,
-				count: await ctx.db.shipment.count({
-					where: { user_id: userId, current_status: status },
-				}),
-			})),
-		);
+				count: found ? found._count.current_status : 0,
+			};
+		});
 
 		const formattedShipmentStatusDistribution = shipmentStatusDistribution.map(
 			(s) => ({
@@ -120,18 +125,17 @@ export const userDashRouter = createTRPCRouter({
 			take: 5,
 		});
 
-		const formattedTopDestinationStates = await Promise.all(
-			topDestinationStates.map(async (s) => {
-				const address = await ctx.db.address.findUnique({
-					where: { address_id: s.destination_address_id },
-					select: { state: true },
-				});
-				return {
-					state: address?.state || "Unknown",
-					shipmentCount: s._count.destination_address_id,
-				};
-			}),
-		);
+		const destinationAddressIds = topDestinationStates.map((s) => s.destination_address_id);
+		const addresses = await ctx.db.address.findMany({
+			where: { address_id: { in: destinationAddressIds } },
+			select: { address_id: true, state: true },
+		});
+		const addressMap = new Map(addresses.map((address) => [address.address_id, address.state]));
+
+		const formattedTopDestinationStates = topDestinationStates.map((s) => ({
+			state: addressMap.get(s.destination_address_id) || "Unknown",
+			shipmentCount: s._count.destination_address_id,
+		}));
 
 		// Courier Performance (for top 5 couriers by shipment count)
 		const topCouriers = await ctx.db.shipment.groupBy({
@@ -150,6 +154,13 @@ export const userDashRouter = createTRPCRouter({
 			SHIPMENT_STATUS.SHIPMENT_BOOKED,
 		];
 
+		const courierIds = topCouriers.map((c) => c.courier_id).filter((id) => id !== null) as string[];
+		const couriers = await ctx.db.courier.findMany({
+			where: { id: { in: courierIds } },
+			select: { id: true, name: true },
+		});
+		const courierMap = new Map(couriers.map((courier) => [courier.id, courier.name]));
+
 		const courierPerformance = await Promise.all(
 			topCouriers.map(async (c) => {
 				if (c.courier_id === null) {
@@ -162,10 +173,6 @@ export const userDashRouter = createTRPCRouter({
 						SHIPMENT_BOOKED: 0,
 					}; // Or handle as appropriate
 				}
-				const courier = await ctx.db.courier.findUnique({
-					where: { id: c.courier_id },
-					select: { name: true },
-				});
 
 				const statusCounts = await ctx.db.shipment.groupBy({
 					by: ["current_status"],
@@ -192,7 +199,7 @@ export const userDashRouter = createTRPCRouter({
 				}, initialStatusCounts);
 
 				return {
-					courierName: courier?.name || "Unknown Courier",
+					courierName: courierMap.get(c.courier_id) || "Unknown Courier",
 					...formattedStatusCounts,
 				};
 			}),

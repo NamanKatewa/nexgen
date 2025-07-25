@@ -24,8 +24,12 @@ export const trackingRouter = createTRPCRouter({
 						{ human_readable_shipment_id: identifier },
 					],
 				},
-				include: {
-					courier: true,
+				select: {
+					current_status: true,
+					human_readable_shipment_id: true,
+					awb_number: true,
+					created_at: true,
+					courier: { select: { name: true } },
 					tracking: {
 						orderBy: { timestamp: "desc" },
 					},
@@ -42,7 +46,7 @@ export const trackingRouter = createTRPCRouter({
 			return { shipment, trackingEvents: shipment.tracking };
 		}),
 
-	getCouriers: publicProcedure.query(async ({ ctx }) => {
+	getCouriers: publicProcedure.query(async () => {
 		const couriers = await db.courier.findMany();
 		return couriers;
 	}),
@@ -135,7 +139,6 @@ export const trackingRouter = createTRPCRouter({
 						continue;
 					}
 
-					// Update shipment current_status
 					const newShipmentStatus = shipwayStatusMap[current_status];
 					if (newShipmentStatus) {
 						logger.info("Updating shipment status", {

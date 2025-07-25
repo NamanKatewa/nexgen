@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { calculateInsurancePremium } from "~/lib/insurance";
 import logger from "~/lib/logger";
-import { findBulkRates, findRate } from "~/lib/rate";
+import { findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { rateSchema } from "~/schemas/rate";
 import {
@@ -18,6 +18,7 @@ export const rateRouter = createTRPCRouter({
 		const defaultRates = await ctx.db.defaultRate.findMany();
 		const userRates = await ctx.db.userRate.findMany({
 			where: { user_id: userId },
+			select: { rate: true, zone_from: true, zone_to: true, weight_slab: true },
 		});
 
 		const userRatesMap = new Map(
@@ -45,10 +46,6 @@ export const rateRouter = createTRPCRouter({
 	calculateRate: publicProcedure
 		.input(rateSchema)
 		.query(async ({ input, ctx }) => {
-			const { user } = ctx;
-			const logData = { userId: user?.user_id, input };
-			logger.info("Calculating rate", logData);
-
 			try {
 				const { originZipCode, destinationZipCode, packageWeight } = input;
 
@@ -56,7 +53,6 @@ export const rateRouter = createTRPCRouter({
 				const destinationDetails = await getPincodeDetails(destinationZipCode);
 
 				if (!originDetails || !destinationDetails) {
-					logger.warn("Invalid origin or destination pincode", { ...logData });
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "Invalid origin or destination pincode",
@@ -66,10 +62,9 @@ export const rateRouter = createTRPCRouter({
 				const { zone } = getZone(originDetails, destinationDetails);
 				const weightSlab = Math.ceil(packageWeight * 2) / 2;
 
-				if (user?.user_id) {
-					logger.info("Attempting to find user-specific rate", { ...logData });
+				if (ctx.user?.user_id) {
 					const userRate = await findRate({
-						userId: user.user_id,
+						userId: ctx.user.user_id,
 						zoneFrom: "z",
 						zoneTo: zone,
 						weightSlab,
@@ -77,22 +72,13 @@ export const rateRouter = createTRPCRouter({
 						isUserRate: true,
 					});
 					if (userRate !== null) {
-						logger.info("Found user-specific rate", {
-							...logData,
-							rate: userRate,
-							source: "user",
-						});
 						const { insurancePremium, compensationAmount } =
 							calculateInsurancePremium(
 								input.declaredValue ?? userRate,
 								input.isInsuranceSelected,
 							);
 						const finalRate = userRate + insurancePremium;
-						logger.info("Found user-specific rate", {
-							...logData,
-							rate: finalRate,
-							source: "user",
-						});
+
 						return {
 							rate: finalRate,
 							origin: originDetails,
@@ -101,13 +87,7 @@ export const rateRouter = createTRPCRouter({
 							compensationAmount,
 						};
 					}
-					logger.info(
-						"User-specific rate not found, falling back to default rate",
-						{ ...logData },
-					);
 				}
-
-				logger.info("Attempting to find default rate", { ...logData });
 				const defaultRate = await findRate({
 					zoneFrom: "z",
 					zoneTo: zone,
@@ -122,11 +102,7 @@ export const rateRouter = createTRPCRouter({
 							input.isInsuranceSelected,
 						);
 					const finalRate = defaultRate + insurancePremium;
-					logger.info("Found default rate", {
-						...logData,
-						rate: finalRate,
-						source: "default",
-					});
+
 					return {
 						rate: finalRate,
 						origin: originDetails,
@@ -136,103 +112,107 @@ export const rateRouter = createTRPCRouter({
 					};
 				}
 
-				logger.error("No rate found (user or default)", { ...logData });
+				logger.error("rate.calculateRate", {
+					ctx,
+					input,
+					error: "No rate found",
+				});
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Rate not found for the given parameters",
 				});
 			} catch (error) {
-				logger.error("Failed to calculate rate", { ...logData, error });
+				logger.error("rate.calculate", { ctx, input, error });
 				throw error;
 			}
 		}),
 
-	calculateBulkRates: protectedProcedure
-		.input(
-			z.array(
-				z.object({
-					originZipCode: z.string(),
-					destinationZipCode: z.string(),
-					packageWeight: z.number(),
-					declaredValue: z.number().optional(),
-					isInsuranceSelected: z.boolean().optional(),
-				}),
-			),
-		)
-		.query(async ({ input, ctx }) => {
-			const { user } = ctx;
-			const logData = { userId: user?.user_id, inputCount: input.length };
-			logger.info("Calculating bulk rates", logData);
+	// calculateBulkRates: protectedProcedure
+	// 	.input(
+	// 		z.array(
+	// 			z.object({
+	// 				originZipCode: z.string(),
+	// 				destinationZipCode: z.string(),
+	// 				packageWeight: z.number(),
+	// 				declaredValue: z.number().optional(),
+	// 				isInsuranceSelected: z.boolean().optional(),
+	// 			}),
+	// 		),
+	// 	)
+	// 	.query(async ({ input, ctx }) => {
+	// 		const { user } = ctx;
+	// 		const logData = { userId: user?.user_id, inputCount: input.length };
+	// 		logger.info("Calculating bulk rates", logData);
 
-			try {
-				const shipmentDetailsForRateCalculation: {
-					zoneFrom: string;
-					zoneTo: string;
-					weightSlab: number;
-					packageWeight: number;
-				}[] = [];
+	// 		try {
+	// 			const shipmentDetailsForRateCalculation: {
+	// 				zoneFrom: string;
+	// 				zoneTo: string;
+	// 				weightSlab: number;
+	// 				packageWeight: number;
+	// 			}[] = [];
 
-				for (const shipment of input) {
-					const originDetails = await getPincodeDetails(shipment.originZipCode);
-					const destinationDetails = await getPincodeDetails(
-						shipment.destinationZipCode,
-					);
+	// 			for (const shipment of input) {
+	// 				const originDetails = await getPincodeDetails(shipment.originZipCode);
+	// 				const destinationDetails = await getPincodeDetails(
+	// 					shipment.destinationZipCode,
+	// 				);
 
-					if (!originDetails || !destinationDetails) {
-						logger.warn(
-							"Invalid origin or destination pincode in bulk request",
-							{ ...logData, shipment },
-						);
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "Invalid origin or destination pincode in bulk request",
-						});
-					}
+	// 				if (!originDetails || !destinationDetails) {
+	// 					logger.warn(
+	// 						"Invalid origin or destination pincode in bulk request",
+	// 						{ ...logData, shipment },
+	// 					);
+	// 					throw new TRPCError({
+	// 						code: "BAD_REQUEST",
+	// 						message: "Invalid origin or destination pincode in bulk request",
+	// 					});
+	// 				}
 
-					const { zone } = getZone(originDetails, destinationDetails);
-					const weightSlab = Math.ceil(shipment.packageWeight * 2) / 2;
+	// 				const { zone } = getZone(originDetails, destinationDetails);
+	// 				const weightSlab = Math.ceil(shipment.packageWeight * 2) / 2;
 
-					shipmentDetailsForRateCalculation.push({
-						zoneFrom: "z",
-						zoneTo: zone,
-						weightSlab,
-						packageWeight: shipment.packageWeight,
-					});
-				}
+	// 				shipmentDetailsForRateCalculation.push({
+	// 					zoneFrom: "z",
+	// 					zoneTo: zone,
+	// 					weightSlab,
+	// 					packageWeight: shipment.packageWeight,
+	// 				});
+	// 			}
 
-				const rates = await findBulkRates({
-					userId: user?.user_id,
-					shipmentDetails: shipmentDetailsForRateCalculation,
-					isUserRate: !!user?.user_id,
-				});
+	// 			const rates = await findBulkRates({
+	// 				userId: user?.user_id,
+	// 				shipmentDetails: shipmentDetailsForRateCalculation,
+	// 				isUserRate: !!user?.user_id,
+	// 			});
 
-				const results = rates.map((rate, index) => {
-					if (rate === null) {
-						return { rate: null, insurancePremium: 0 };
-					}
+	// 			const results = rates.map((rate, index) => {
+	// 				if (rate === null) {
+	// 					return { rate: null, insurancePremium: 0 };
+	// 				}
 
-					const shipment = input[index];
-					if (!shipment) {
-						return { rate: null, insurancePremium: 0 };
-					}
-					const { insurancePremium } = calculateInsurancePremium(
-						shipment.declaredValue ?? rate,
-						shipment.isInsuranceSelected,
-					);
+	// 				const shipment = input[index];
+	// 				if (!shipment) {
+	// 					return { rate: null, insurancePremium: 0 };
+	// 				}
+	// 				const { insurancePremium } = calculateInsurancePremium(
+	// 					shipment.declaredValue ?? rate,
+	// 					shipment.isInsuranceSelected,
+	// 				);
 
-					return { rate: rate + insurancePremium, insurancePremium };
-				});
+	// 				return { rate: rate + insurancePremium, insurancePremium };
+	// 			});
 
-				logger.info("Successfully calculated bulk rates", {
-					...logData,
-					rateCount: results.length,
-				});
-				return results;
-			} catch (error) {
-				logger.error("Failed to calculate bulk rates", { ...logData, error });
-				throw error;
-			}
-		}),
+	// 			logger.info("Successfully calculated bulk rates", {
+	// 				...logData,
+	// 				rateCount: results.length,
+	// 			});
+	// 			return results;
+	// 		} catch (error) {
+	// 			logger.error("Failed to calculate bulk rates", { ...logData, error });
+	// 			throw error;
+	// 		}
+	// 	}),
 
 	getDefaultRates: adminProcedure.query(async ({ ctx }) => {
 		return ctx.db.defaultRate.findMany();

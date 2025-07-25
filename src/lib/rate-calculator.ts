@@ -17,12 +17,14 @@ interface PincodeData {
 	state: string;
 }
 
+// In-memory cache for pincode data. This is pre-loaded when the module is first imported.
 let pincodeMap: Map<string, PincodeDetails> | null = null;
 
-async function getPincodeMap(): Promise<Map<string, PincodeDetails>> {
-	if (pincodeMap) {
-		return pincodeMap;
-	}
+/**
+ * Loads the pincode map from the JSON file. This function is called once
+ * when the module is imported to pre-load the data into memory.
+ */
+async function loadPincodeMap(): Promise<Map<string, PincodeDetails>> {
 	const filePath = path.join(process.cwd(), "data", "pincode_map.json");
 	try {
 		const fileContent = await fs.readFile(filePath, "utf-8");
@@ -53,11 +55,16 @@ async function getPincodeMap(): Promise<Map<string, PincodeDetails>> {
 	}
 }
 
+// Pre-load the pincode map when the module is imported
+void loadPincodeMap();
+
 export async function getPincodeDetails(
 	pincode: string,
 ): Promise<PincodeData | undefined> {
 	try {
-		const map = await getPincodeMap();
+		// If pincodeMap is not yet loaded (e.g., during initial startup),
+		// wait for it to load. Otherwise, use the already loaded map.
+		const map = pincodeMap ?? (await loadPincodeMap());
 		const details = map.get(pincode);
 		if (details) {
 			const result = {

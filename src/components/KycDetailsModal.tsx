@@ -288,6 +288,7 @@ const KycDetailsModal: React.FC<KycDetailsModalProps> = ({
 
 						<div className="space-y-2 md:col-span-2">
 							<Label>Billing Address</Label>
+
 							{address ? (
 								<div
 									className="rounded-md border border-input px-3 py-2 text-sm"

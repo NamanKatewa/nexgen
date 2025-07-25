@@ -1,11 +1,14 @@
-import { ADDRESS_TYPE, type Prisma, SHIPMENT_STATUS } from "@prisma/client";
+import {
+	type ADDRESS_TYPE,
+	type Prisma,
+	SHIPMENT_STATUS,
+} from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { validateAddressForPickup } from "~/lib/address-utils";
 import { calculateInsurancePremium } from "~/lib/insurance";
 import logger from "~/lib/logger";
-import { findBulkRates, findRate } from "~/lib/rate";
+import { findRate } from "~/lib/rate";
 import { getPincodeDetails, getZone } from "~/lib/rate-calculator";
 import { uploadFileToS3 } from "~/lib/s3";
 import { generateShipmentId, getEndOfDay } from "~/lib/utils";
@@ -13,7 +16,6 @@ import { generateShipmentId, getEndOfDay } from "~/lib/utils";
 import {
 	type TBulkShipmentItemSchema,
 	type TShipmentSchema,
-	bulkShipmentsSchema,
 	submitShipmentSchema,
 } from "~/schemas/shipment";
 import {
@@ -23,74 +25,19 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
-interface ShipmentDetail extends TShipmentSchema {
-	rate: number;
-	packageImageUrl: string;
-}
-
-interface ShipmentResult {
-	recipientName: string;
-	status: "success" | "pending" | "error";
-	message: string;
-	shipmentId?: string;
-}
-
-type ShipmentReady = TBulkShipmentItemSchema & {
-	originAddressId: string;
-};
-
-interface NewPendingAddress {
-	user_id: string;
-	name: string;
-	address_line: string;
-	landmark: string | null;
-	city: string;
-	state: string;
-	zip_code: number;
-}
-
-interface NewDestinationAddress {
-	user_id: string;
-	name: string;
-	address_line: string;
-	landmark: string | null;
-	city: string;
-	state: string;
-	zip_code: number;
-	type: ADDRESS_TYPE;
-}
-
-interface ShipmentWithRate extends TBulkShipmentItemSchema {
-	rate: number;
-}
-
-type FinalShipmentItem = ShipmentReady & {
-	destinationAddressId: string;
-};
-
-interface ShipmentWithRateGuaranteed extends FinalShipmentItem {
-	rate: number;
-	insurancePremium: number;
-	compensationAmount: number;
-}
-
 export const shipmentRouter = createTRPCRouter({
 	createShipment: protectedProcedure
 		.input(submitShipmentSchema)
 		.mutation(async ({ ctx, input }) => {
-			const { user } = ctx;
-			const userId = user.user_id;
-			const logData = { userId, input };
-			logger.info("Creating single shipment", logData);
-
 			try {
 				const addresses = await db.address.findMany({
 					where: {
-						user_id: user.user_id as string,
+						user_id: ctx.user.user_id as string,
 						address_id: {
 							in: [input.originAddressId, input.destinationAddressId],
 						},
 					},
+					select: { address_id: true, zip_code: true },
 				});
 
 				const originAddress = addresses.find(
@@ -102,6 +49,7 @@ export const shipmentRouter = createTRPCRouter({
 				if (!originAddress) {
 					const pending = await db.pendingAddress.findFirst({
 						where: { pending_address_id: input.originAddressId },
+						select: {},
 					});
 					if (pending) {
 						throw new TRPCError({
@@ -110,20 +58,13 @@ export const shipmentRouter = createTRPCRouter({
 								"This origin address is currently pending approval. Please wait for it to be approved.",
 						});
 					}
-					logger.warn("Origin address not found", {
-						...logData,
-						addressId: input.originAddressId,
-					});
+
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "Origin address not found.",
 					});
 				}
 				if (!destinationAddress) {
-					logger.warn("Destination address not found", {
-						...logData,
-						addressId: input.destinationAddressId,
-					});
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "Destination address not found.",
@@ -138,20 +79,12 @@ export const shipmentRouter = createTRPCRouter({
 				);
 
 				if (!originDetails) {
-					logger.warn("Invalid pincode", {
-						...logData,
-						pincode: originAddress.zip_code,
-					});
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: `Invalid pincode for origin address: ${originAddress.zip_code}`,
 					});
 				}
 				if (!destinationDetails) {
-					logger.warn("Invalid pincode", {
-						...logData,
-						pincode: destinationAddress.zip_code,
-					});
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: `Invalid pincode for destination address: ${destinationAddress.zip_code}`,
@@ -163,9 +96,9 @@ export const shipmentRouter = createTRPCRouter({
 
 				let rate = null;
 
-				if (user.user_id) {
+				if (ctx.user.user_id) {
 					const userRate = await findRate({
-						userId: user.user_id,
+						userId: ctx.user.user_id,
 						zoneFrom: "z",
 						zoneTo: zone,
 						weightSlab,
@@ -189,10 +122,9 @@ export const shipmentRouter = createTRPCRouter({
 				}
 
 				if (rate === null) {
-					logger.error("Rate not found for shipment", {
-						...logData,
-						zone,
-						weightSlab,
+					logger.error("shipment.createShipment", {
+						ctx,
+						input,
 					});
 					throw new TRPCError({
 						code: "NOT_FOUND",
@@ -208,7 +140,7 @@ export const shipmentRouter = createTRPCRouter({
 
 				const finalShippingCost = rate + insurancePremium;
 
-				const human_readable_shipment_id = generateShipmentId(user.user_id);
+				const human_readable_shipment_id = generateShipmentId(ctx.user.user_id);
 
 				await db.$transaction(async (tx) => {
 					const packageImageUrl = await uploadFileToS3(
@@ -223,7 +155,7 @@ export const shipmentRouter = createTRPCRouter({
 					const shipment = await tx.shipment.create({
 						data: {
 							human_readable_shipment_id,
-							user_id: userId,
+							user_id: ctx.user.user_id,
 							payment_status: "Pending",
 							shipment_status: "PendingApproval",
 							origin_address_id: originAddress?.address_id,
@@ -240,13 +172,15 @@ export const shipmentRouter = createTRPCRouter({
 							compensation_amount: compensationAmount,
 							invoiceUrl: invoiceUrl,
 						},
+						select: { shipment_id: true },
 					});
 					const wallet = await tx.wallet.findUnique({
-						where: { user_id: user.user_id },
+						where: { user_id: ctx.user.user_id },
+						select: { balance: true, user_id: true },
 					});
 
 					if (!wallet) {
-						logger.error("User wallet not found", { ...logData });
+						logger.error("shipment.createShipment", { ctx, input });
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "User wallet not found.",
@@ -254,11 +188,6 @@ export const shipmentRouter = createTRPCRouter({
 					}
 
 					if (wallet.balance.lessThan(new Decimal(finalShippingCost))) {
-						logger.warn("Insufficient wallet balance", {
-							...logData,
-							balance: wallet.balance,
-							rate: finalShippingCost,
-						});
 						throw new TRPCError({
 							code: "BAD_GATEWAY",
 							message: "Insufficient wallet balance. Recharge your wallet.",
@@ -268,6 +197,7 @@ export const shipmentRouter = createTRPCRouter({
 					await tx.wallet.update({
 						where: { user_id: wallet.user_id },
 						data: { balance: { decrement: new Decimal(finalShippingCost) } },
+						select: {},
 					});
 
 					await tx.transaction.create({
@@ -279,6 +209,7 @@ export const shipmentRouter = createTRPCRouter({
 							shipment_id: shipment.shipment_id,
 							description: "Single Shipment Created",
 						},
+						select: {},
 					});
 
 					await tx.shipment.update({
@@ -289,12 +220,9 @@ export const shipmentRouter = createTRPCRouter({
 						data: {
 							payment_status: "Paid",
 						},
+						select: {},
 					});
 
-					logger.info("Successfully created single shipment", {
-						...logData,
-						shipmentId: shipment.shipment_id,
-					});
 					return {
 						success: true,
 						message: "Shipment created successfully",
@@ -302,473 +230,473 @@ export const shipmentRouter = createTRPCRouter({
 					};
 				});
 			} catch (error) {
-				logger.error("Failed to create single shipment", { ...logData, error });
+				logger.error("shipment.createShipment", { ctx, input, error });
 				throw error;
 			}
 		}),
 
-	createBulkShipments: protectedProcedure
-		.input(bulkShipmentsSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { user } = ctx;
-			const userId = user.user_id;
+	// createBulkShipments: protectedProcedure
+	// 	.input(bulkShipmentsSchema)
+	// 	.mutation(async ({ ctx, input }) => {
+	// 		const { user } = ctx;
+	// 		const userId = user.user_id;
 
-			const logData = {
-				userId,
-				shipmentCount: input.shipments.length,
-			};
-			logger.info("Starting performant bulk shipment creation v3", logData);
+	// 		const logData = {
+	// 			userId,
+	// 			shipmentCount: input.shipments.length,
+	// 		};
+	// 		logger.info("Starting performant bulk shipment creation v3", logData);
 
-			await getPincodeDetails("0");
+	// 		await getPincodeDetails("0");
 
-			const originAddressKeys = new Map<string, TBulkShipmentItemSchema>();
-			const destAddressKeys = new Map<string, TBulkShipmentItemSchema>();
-			for (const s of input.shipments) {
-				const originKey =
-					`${s.originAddressLine}-${s.originCity}-${s.originState}-${s.originZipCode}`.toLowerCase();
-				const destKey =
-					`${s.destinationAddressLine}-${s.destinationCity}-${s.destinationState}-${s.destinationZipCode}`.toLowerCase();
-				if (!originAddressKeys.has(originKey))
-					originAddressKeys.set(originKey, s);
-				if (!destAddressKeys.has(destKey)) destAddressKeys.set(destKey, s);
-			}
+	// 		const originAddressKeys = new Map<string, TBulkShipmentItemSchema>();
+	// 		const destAddressKeys = new Map<string, TBulkShipmentItemSchema>();
+	// 		for (const s of input.shipments) {
+	// 			const originKey =
+	// 				`${s.originAddressLine}-${s.originCity}-${s.originState}-${s.originZipCode}`.toLowerCase();
+	// 			const destKey =
+	// 				`${s.destinationAddressLine}-${s.destinationCity}-${s.destinationState}-${s.destinationZipCode}`.toLowerCase();
+	// 			if (!originAddressKeys.has(originKey))
+	// 				originAddressKeys.set(originKey, s);
+	// 			if (!destAddressKeys.has(destKey)) destAddressKeys.set(destKey, s);
+	// 		}
 
-			const [existingApproved, existingPending] = await Promise.all([
-				db.address.findMany({ where: { user_id: user.user_id as string } }),
-				db.pendingAddress.findMany({
-					where: { user_id: user.user_id },
-				}),
-			]);
+	// 		const [existingApproved, existingPending] = await Promise.all([
+	// 			db.address.findMany({ where: { user_id: user.user_id as string } }),
+	// 			db.pendingAddress.findMany({
+	// 				where: { user_id: user.user_id },
+	// 			}),
+	// 		]);
 
-			const approvedMap = new Map(
-				existingApproved.map((a) => [
-					`${a.address_line}-${a.city}-${a.state}-${a.zip_code}`.toLowerCase(),
-					a,
-				]),
-			);
-			const pendingMap = new Map(
-				existingPending.map((a) => [
-					`${a.address_line}-${a.city}-${a.state}-${a.zip_code}`.toLowerCase(),
-					a,
-				]),
-			);
+	// 		const approvedMap = new Map(
+	// 			existingApproved.map((a) => [
+	// 				`${a.address_line}-${a.city}-${a.state}-${a.zip_code}`.toLowerCase(),
+	// 				a,
+	// 			]),
+	// 		);
+	// 		const pendingMap = new Map(
+	// 			existingPending.map((a) => [
+	// 				`${a.address_line}-${a.city}-${a.state}-${a.zip_code}`.toLowerCase(),
+	// 				a,
+	// 			]),
+	// 		);
 
-			const results: ShipmentResult[] = [];
-			const shipmentsReady: ShipmentReady[] = [];
-			const newPendingToCreate: NewPendingAddress[] = [];
-			const newDestinationsToCreate: NewDestinationAddress[] = [];
+	// 		const results: ShipmentResult[] = [];
+	// 		const shipmentsReady: ShipmentReady[] = [];
+	// 		const newPendingToCreate: NewPendingAddress[] = [];
+	// 		const newDestinationsToCreate: NewDestinationAddress[] = [];
 
-			for (const shipment of input.shipments) {
-				const originKey =
-					`${shipment.originAddressLine}-${shipment.originCity}-${shipment.originState}-${shipment.originZipCode}`.toLowerCase();
-				const approvedOrigin = approvedMap.get(originKey);
+	// 		for (const shipment of input.shipments) {
+	// 			const originKey =
+	// 				`${shipment.originAddressLine}-${shipment.originCity}-${shipment.originState}-${shipment.originZipCode}`.toLowerCase();
+	// 			const approvedOrigin = approvedMap.get(originKey);
 
-				if (approvedOrigin) {
-					shipmentsReady.push({
-						...shipment,
-						originAddressId: approvedOrigin.address_id,
-					});
-				} else if (pendingMap.has(originKey)) {
-					logger.warn("Origin address already pending approval", {
-						...logData,
-						recipientName: shipment.recipientName,
-						originKey,
-					});
-					results.push({
-						recipientName: shipment.recipientName,
-						status: "pending",
-						message: "New origin address sent for admin approval.",
-					});
-				} else {
-					const isValid = await validateAddressForPickup(
-						shipment.originZipCode,
-					);
-					if (isValid) {
-						newPendingToCreate.push({
-							user_id: user.user_id as string,
-							name: `Origin for ${shipment.recipientName}`,
-							address_line: shipment.originAddressLine,
-							landmark: shipment.originLandmark || null,
-							city: shipment.originCity,
-							state: shipment.originState,
-							zip_code: Number(shipment.originZipCode),
-						});
-						logger.info("New origin address sent for admin approval", {
-							...logData,
-							recipientName: shipment.recipientName,
-							originAddressLine: shipment.originAddressLine,
-							originCity: shipment.originCity,
-							originState: shipment.originState,
-							originZipCode: shipment.originZipCode,
-						});
-						results.push({
-							recipientName: shipment.recipientName,
-							status: "pending",
-							message: "New origin address sent for admin approval.",
-						});
-					} else {
-						logger.warn("Pickup from state not available", {
-							...logData,
-							recipientName: shipment.recipientName,
-							originState: shipment.originState,
-						});
-						results.push({
-							recipientName: shipment.recipientName,
-							status: "error",
-							message: `Pickup from '${shipment.originState}' is not available.`,
-						});
-					}
-				}
-			}
+	// 			if (approvedOrigin) {
+	// 				shipmentsReady.push({
+	// 					...shipment,
+	// 					originAddressId: approvedOrigin.address_id,
+	// 				});
+	// 			} else if (pendingMap.has(originKey)) {
+	// 				logger.warn("Origin address already pending approval", {
+	// 					...logData,
+	// 					recipientName: shipment.recipientName,
+	// 					originKey,
+	// 				});
+	// 				results.push({
+	// 					recipientName: shipment.recipientName,
+	// 					status: "pending",
+	// 					message: "New origin address sent for admin approval.",
+	// 				});
+	// 			} else {
+	// 				const isValid = await validateAddressForPickup(
+	// 					shipment.originZipCode,
+	// 				);
+	// 				if (isValid) {
+	// 					newPendingToCreate.push({
+	// 						user_id: user.user_id as string,
+	// 						name: `Origin for ${shipment.recipientName}`,
+	// 						address_line: shipment.originAddressLine,
+	// 						landmark: shipment.originLandmark || null,
+	// 						city: shipment.originCity,
+	// 						state: shipment.originState,
+	// 						zip_code: Number(shipment.originZipCode),
+	// 					});
+	// 					logger.info("New origin address sent for admin approval", {
+	// 						...logData,
+	// 						recipientName: shipment.recipientName,
+	// 						originAddressLine: shipment.originAddressLine,
+	// 						originCity: shipment.originCity,
+	// 						originState: shipment.originState,
+	// 						originZipCode: shipment.originZipCode,
+	// 					});
+	// 					results.push({
+	// 						recipientName: shipment.recipientName,
+	// 						status: "pending",
+	// 						message: "New origin address sent for admin approval.",
+	// 					});
+	// 				} else {
+	// 					logger.warn("Pickup from state not available", {
+	// 						...logData,
+	// 						recipientName: shipment.recipientName,
+	// 						originState: shipment.originState,
+	// 					});
+	// 					results.push({
+	// 						recipientName: shipment.recipientName,
+	// 						status: "error",
+	// 						message: `Pickup from '${shipment.originState}' is not available.`,
+	// 					});
+	// 				}
+	// 			}
+	// 		}
 
-			for (const shipment of shipmentsReady) {
-				const destKey =
-					`${shipment.destinationAddressLine}-${shipment.destinationCity}-${shipment.destinationState}-${shipment.destinationZipCode}`.toLowerCase();
-				if (!approvedMap.has(destKey)) {
-					logger.info("New destination address to be created", {
-						...logData,
-						recipientName: shipment.recipientName,
-						destinationAddressLine: shipment.destinationAddressLine,
-						destinationCity: shipment.destinationCity,
-						destinationState: shipment.destinationState,
-						destinationZipCode: shipment.destinationZipCode,
-					});
-					newDestinationsToCreate.push({
-						user_id: user.user_id as string,
-						name: shipment.recipientName,
-						address_line: shipment.destinationAddressLine,
-						landmark: shipment.destinationLandmark || null,
-						city: shipment.destinationCity,
-						state: shipment.destinationState,
-						zip_code: Number(shipment.destinationZipCode),
-						type: ADDRESS_TYPE.User,
-					});
-				}
-			}
+	// 		for (const shipment of shipmentsReady) {
+	// 			const destKey =
+	// 				`${shipment.destinationAddressLine}-${shipment.destinationCity}-${shipment.destinationState}-${shipment.destinationZipCode}`.toLowerCase();
+	// 			if (!approvedMap.has(destKey)) {
+	// 				logger.info("New destination address to be created", {
+	// 					...logData,
+	// 					recipientName: shipment.recipientName,
+	// 					destinationAddressLine: shipment.destinationAddressLine,
+	// 					destinationCity: shipment.destinationCity,
+	// 					destinationState: shipment.destinationState,
+	// 					destinationZipCode: shipment.destinationZipCode,
+	// 				});
+	// 				newDestinationsToCreate.push({
+	// 					user_id: user.user_id as string,
+	// 					name: shipment.recipientName,
+	// 					address_line: shipment.destinationAddressLine,
+	// 					landmark: shipment.destinationLandmark || null,
+	// 					city: shipment.destinationCity,
+	// 					state: shipment.destinationState,
+	// 					zip_code: Number(shipment.destinationZipCode),
+	// 					type: ADDRESS_TYPE.User,
+	// 				});
+	// 			}
+	// 		}
 
-			if (newPendingToCreate.length > 0) {
-				await db.pendingAddress.createMany({ data: newPendingToCreate });
-				logger.info("Successfully created new pending addresses", {
-					...logData,
-					count: newPendingToCreate.length,
-				});
-			}
-			if (newDestinationsToCreate.length > 0) {
-				await db.address.createMany({
-					data: newDestinationsToCreate.map((a) => ({
-						...a,
-					})),
-				});
-				logger.info("Successfully created new destination addresses", {
-					...logData,
-					count: newDestinationsToCreate.length,
-				});
-				const allDests = await db.address.findMany({
-					where: { user_id: user.user_id as string, type: ADDRESS_TYPE.User },
-				});
-				for (const a of allDests) {
-					approvedMap.set(
-						`${a.address_line}-${a.city}-${a.state}-${a.zip_code}`.toLowerCase(),
-						a,
-					);
-				}
-			}
+	// 		if (newPendingToCreate.length > 0) {
+	// 			await db.pendingAddress.createMany({ data: newPendingToCreate });
+	// 			logger.info("Successfully created new pending addresses", {
+	// 				...logData,
+	// 				count: newPendingToCreate.length,
+	// 			});
+	// 		}
+	// 		if (newDestinationsToCreate.length > 0) {
+	// 			await db.address.createMany({
+	// 				data: newDestinationsToCreate.map((a) => ({
+	// 					...a,
+	// 				})),
+	// 			});
+	// 			logger.info("Successfully created new destination addresses", {
+	// 				...logData,
+	// 				count: newDestinationsToCreate.length,
+	// 			});
+	// 			const allDests = await db.address.findMany({
+	// 				where: { user_id: user.user_id as string, type: ADDRESS_TYPE.User },
+	// 			});
+	// 			for (const a of allDests) {
+	// 				approvedMap.set(
+	// 					`${a.address_line}-${a.city}-${a.state}-${a.zip_code}`.toLowerCase(),
+	// 					a,
+	// 				);
+	// 			}
+	// 		}
 
-			if (shipmentsReady.length > 0) {
-				const finalShipments: FinalShipmentItem[] = shipmentsReady.map((s) => {
-					const destKey =
-						`${s.destinationAddressLine}-${s.destinationCity}-${s.destinationState}-${s.destinationZipCode}`.toLowerCase();
-					const destAddress = approvedMap.get(destKey);
-					if (!destAddress) {
-						logger.error(
-							"Could not find destination address for final shipment",
-							{
-								...logData,
-								recipientName: s.recipientName,
-								destKey,
-							},
-						);
-						throw new TRPCError({
-							code: "INTERNAL_SERVER_ERROR",
-							message: `Could not find destination address for ${s.recipientName}`,
-						});
-					}
-					return { ...s, destinationAddressId: destAddress.address_id };
-				});
+	// 		if (shipmentsReady.length > 0) {
+	// 			const finalShipments: FinalShipmentItem[] = shipmentsReady.map((s) => {
+	// 				const destKey =
+	// 					`${s.destinationAddressLine}-${s.destinationCity}-${s.destinationState}-${s.destinationZipCode}`.toLowerCase();
+	// 				const destAddress = approvedMap.get(destKey);
+	// 				if (!destAddress) {
+	// 					logger.error(
+	// 						"Could not find destination address for final shipment",
+	// 						{
+	// 							...logData,
+	// 							recipientName: s.recipientName,
+	// 							destKey,
+	// 						},
+	// 					);
+	// 					throw new TRPCError({
+	// 						code: "INTERNAL_SERVER_ERROR",
+	// 						message: `Could not find destination address for ${s.recipientName}`,
+	// 					});
+	// 				}
+	// 				return { ...s, destinationAddressId: destAddress.address_id };
+	// 			});
 
-				try {
-					const transactionResults = await db.$transaction(async (tx) => {
-						const rateDetails = await Promise.all(
-							finalShipments.map(async (s) => {
-								const origin = approvedMap.get(
-									`${s.originAddressLine}-${s.originCity}-${s.originState}-${s.originZipCode}`.toLowerCase(),
-								);
-								if (!origin) {
-									throw new TRPCError({
-										code: "INTERNAL_SERVER_ERROR",
-										message: `Origin address not found for ${s.recipientName}`,
-									});
-								}
-								logger.error(
-									"Origin address not found during rate calculation",
-									{
-										...logData,
-										recipientName: s.recipientName,
-										originAddressLine: s.originAddressLine,
-									},
-								);
-								const dest = approvedMap.get(
-									`${s.destinationAddressLine}-${s.destinationCity}-${s.destinationState}-${s.destinationZipCode}`.toLowerCase(),
-								);
-								if (!dest) {
-									throw new TRPCError({
-										code: "INTERNAL_SERVER_ERROR",
-										message: `Destination address not found for ${s.recipientName}`,
-									});
-								}
-								logger.error(
-									"Destination address not found during rate calculation",
-									{
-										...logData,
-										recipientName: s.recipientName,
-										destinationAddressLine: s.destinationAddressLine,
-									},
-								);
-								const originDetails = await getPincodeDetails(
-									String(origin.zip_code),
-								);
-								const destDetails = await getPincodeDetails(
-									String(dest.zip_code),
-								);
-								if (!originDetails || !destDetails)
-									throw new TRPCError({
-										code: "BAD_REQUEST",
-										message: `Invalid pincode for shipment to ${s.recipientName}`,
-									});
-								logger.warn(
-									"Invalid pincode for shipment during rate calculation",
-									{
-										...logData,
-										recipientName: s.recipientName,
-										originZipCode: origin.zip_code,
-										destZipCode: dest.zip_code,
-									},
-								);
-								const { zone } = getZone(originDetails, destDetails);
-								const weightSlab = Math.ceil(s.packageWeight * 2) / 2;
-								return {
-									zoneFrom: "z",
-									zoneTo: zone,
-									weightSlab,
-									packageWeight: s.packageWeight,
-								};
-							}),
-						);
+	// 			try {
+	// 				const transactionResults = await db.$transaction(async (tx) => {
+	// 					const rateDetails = await Promise.all(
+	// 						finalShipments.map(async (s) => {
+	// 							const origin = approvedMap.get(
+	// 								`${s.originAddressLine}-${s.originCity}-${s.originState}-${s.originZipCode}`.toLowerCase(),
+	// 							);
+	// 							if (!origin) {
+	// 								throw new TRPCError({
+	// 									code: "INTERNAL_SERVER_ERROR",
+	// 									message: `Origin address not found for ${s.recipientName}`,
+	// 								});
+	// 							}
+	// 							logger.error(
+	// 								"Origin address not found during rate calculation",
+	// 								{
+	// 									...logData,
+	// 									recipientName: s.recipientName,
+	// 									originAddressLine: s.originAddressLine,
+	// 								},
+	// 							);
+	// 							const dest = approvedMap.get(
+	// 								`${s.destinationAddressLine}-${s.destinationCity}-${s.destinationState}-${s.destinationZipCode}`.toLowerCase(),
+	// 							);
+	// 							if (!dest) {
+	// 								throw new TRPCError({
+	// 									code: "INTERNAL_SERVER_ERROR",
+	// 									message: `Destination address not found for ${s.recipientName}`,
+	// 								});
+	// 							}
+	// 							logger.error(
+	// 								"Destination address not found during rate calculation",
+	// 								{
+	// 									...logData,
+	// 									recipientName: s.recipientName,
+	// 									destinationAddressLine: s.destinationAddressLine,
+	// 								},
+	// 							);
+	// 							const originDetails = await getPincodeDetails(
+	// 								String(origin.zip_code),
+	// 							);
+	// 							const destDetails = await getPincodeDetails(
+	// 								String(dest.zip_code),
+	// 							);
+	// 							if (!originDetails || !destDetails)
+	// 								throw new TRPCError({
+	// 									code: "BAD_REQUEST",
+	// 									message: `Invalid pincode for shipment to ${s.recipientName}`,
+	// 								});
+	// 							logger.warn(
+	// 								"Invalid pincode for shipment during rate calculation",
+	// 								{
+	// 									...logData,
+	// 									recipientName: s.recipientName,
+	// 									originZipCode: origin.zip_code,
+	// 									destZipCode: dest.zip_code,
+	// 								},
+	// 							);
+	// 							const { zone } = getZone(originDetails, destDetails);
+	// 							const weightSlab = Math.ceil(s.packageWeight * 2) / 2;
+	// 							return {
+	// 								zoneFrom: "z",
+	// 								zoneTo: zone,
+	// 								weightSlab,
+	// 								packageWeight: s.packageWeight,
+	// 							};
+	// 						}),
+	// 					);
 
-						const calculatedRates = await findBulkRates({
-							userId: user.user_id,
-							shipmentDetails: rateDetails,
-							isUserRate: true,
-						});
-						let totalAmount = new Decimal(0);
-						const shipmentsWithRates: ShipmentWithRateGuaranteed[] = [];
+	// 					const calculatedRates = await findBulkRates({
+	// 						userId: user.user_id,
+	// 						shipmentDetails: rateDetails,
+	// 						isUserRate: true,
+	// 					});
+	// 					let totalAmount = new Decimal(0);
+	// 					const shipmentsWithRates: ShipmentWithRateGuaranteed[] = [];
 
-						for (let i = 0; i < finalShipments.length; i++) {
-							const currentShipment = finalShipments[i];
-							if (!currentShipment) {
-								throw new TRPCError({
-									code: "INTERNAL_SERVER_ERROR",
-									message: "Shipment item not found during rate calculation.",
-								});
-							}
-							const rate = calculatedRates[i];
-							if (rate === null || rate === undefined)
-								throw new TRPCError({
-									code: "NOT_FOUND",
-									message: `Rate not found for shipment to ${currentShipment.recipientName}`,
-								});
-							logger.error("Rate not found for individual bulk shipment", {
-								...logData,
-								recipientName: currentShipment.recipientName,
-								rateDetails: rateDetails[i],
-							});
+	// 					for (let i = 0; i < finalShipments.length; i++) {
+	// 						const currentShipment = finalShipments[i];
+	// 						if (!currentShipment) {
+	// 							throw new TRPCError({
+	// 								code: "INTERNAL_SERVER_ERROR",
+	// 								message: "Shipment item not found during rate calculation.",
+	// 							});
+	// 						}
+	// 						const rate = calculatedRates[i];
+	// 						if (rate === null || rate === undefined)
+	// 							throw new TRPCError({
+	// 								code: "NOT_FOUND",
+	// 								message: `Rate not found for shipment to ${currentShipment.recipientName}`,
+	// 							});
+	// 						logger.error("Rate not found for individual bulk shipment", {
+	// 							...logData,
+	// 							recipientName: currentShipment.recipientName,
+	// 							rateDetails: rateDetails[i],
+	// 						});
 
-							const { insurancePremium, compensationAmount } =
-								calculateInsurancePremium(
-									currentShipment.declaredValue ?? rate,
-									currentShipment.isInsuranceSelected,
-								);
+	// 						const { insurancePremium, compensationAmount } =
+	// 							calculateInsurancePremium(
+	// 								currentShipment.declaredValue ?? rate,
+	// 								currentShipment.isInsuranceSelected,
+	// 							);
 
-							const finalShippingCost = rate + insurancePremium;
+	// 						const finalShippingCost = rate + insurancePremium;
 
-							totalAmount = totalAmount.add(new Decimal(finalShippingCost));
-							shipmentsWithRates.push({
-								...currentShipment,
-								rate: finalShippingCost,
-								insurancePremium,
-								compensationAmount,
-							} as ShipmentWithRateGuaranteed);
-						}
+	// 						totalAmount = totalAmount.add(new Decimal(finalShippingCost));
+	// 						shipmentsWithRates.push({
+	// 							...currentShipment,
+	// 							rate: finalShippingCost,
+	// 							insurancePremium,
+	// 							compensationAmount,
+	// 						} as ShipmentWithRateGuaranteed);
+	// 					}
 
-						const wallet = await tx.wallet.findUnique({
-							where: { user_id: user.user_id as string },
-						});
-						if (!wallet) {
-							logger.error(
-								"User wallet not found during bulk shipment creation",
-								{ ...logData },
-							);
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: "Insufficient wallet balance.",
-							});
-						}
-						if (wallet.balance.lessThan(totalAmount)) {
-							logger.warn("Insufficient wallet balance for bulk shipment", {
-								...logData,
-								currentBalance: wallet.balance,
-								requiredAmount: totalAmount,
-							});
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: "Insufficient wallet balance.",
-							});
-						}
+	// 					const wallet = await tx.wallet.findUnique({
+	// 						where: { user_id: user.user_id as string },
+	// 					});
+	// 					if (!wallet) {
+	// 						logger.error(
+	// 							"User wallet not found during bulk shipment creation",
+	// 							{ ...logData },
+	// 						);
+	// 						throw new TRPCError({
+	// 							code: "BAD_REQUEST",
+	// 							message: "Insufficient wallet balance.",
+	// 						});
+	// 					}
+	// 					if (wallet.balance.lessThan(totalAmount)) {
+	// 						logger.warn("Insufficient wallet balance for bulk shipment", {
+	// 							...logData,
+	// 							currentBalance: wallet.balance,
+	// 							requiredAmount: totalAmount,
+	// 						});
+	// 						throw new TRPCError({
+	// 							code: "BAD_REQUEST",
+	// 							message: "Insufficient wallet balance.",
+	// 						});
+	// 					}
 
-						await tx.wallet.update({
-							where: { user_id: user.user_id as string },
-							data: { balance: { decrement: totalAmount } },
-						});
+	// 					await tx.wallet.update({
+	// 						where: { user_id: user.user_id as string },
+	// 						data: { balance: { decrement: totalAmount } },
+	// 					});
 
-						await tx.transaction.create({
-							data: {
-								user_id: user.user_id as string,
-								transaction_type: "Debit",
-								amount: totalAmount,
-								payment_status: "Completed",
-								description: "Bulk Shipments Created",
-							},
-						});
+	// 					await tx.transaction.create({
+	// 						data: {
+	// 							user_id: user.user_id as string,
+	// 							transaction_type: "Debit",
+	// 							amount: totalAmount,
+	// 							payment_status: "Completed",
+	// 							description: "Bulk Shipments Created",
+	// 						},
+	// 					});
 
-						const uploadPromises = shipmentsWithRates.map(async (s) => {
-							if (!s.packageImage) {
-								throw new TRPCError({
-									code: "BAD_REQUEST",
-									message: `Package image is missing for shipment to ${s.recipientName}`,
-								});
-							}
-							const packageImageUrl = await uploadFileToS3(
-								s.packageImage,
-								"shipment/",
-							);
-							let invoiceUrl: string | undefined;
-							if (s.isInsuranceSelected && s.invoice) {
-								invoiceUrl = await uploadFileToS3(s.invoice, "invoices/");
-							}
-							return { packageImageUrl, invoiceUrl };
-						});
+	// 					const uploadPromises = shipmentsWithRates.map(async (s) => {
+	// 						if (!s.packageImage) {
+	// 							throw new TRPCError({
+	// 								code: "BAD_REQUEST",
+	// 								message: `Package image is missing for shipment to ${s.recipientName}`,
+	// 							});
+	// 						}
+	// 						const packageImageUrl = await uploadFileToS3(
+	// 							s.packageImage,
+	// 							"shipment/",
+	// 						);
+	// 						let invoiceUrl: string | undefined;
+	// 						if (s.isInsuranceSelected && s.invoice) {
+	// 							invoiceUrl = await uploadFileToS3(s.invoice, "invoices/");
+	// 						}
+	// 						return { packageImageUrl, invoiceUrl };
+	// 					});
 
-						const uploadedFiles: {
-							packageImageUrl: string;
-							invoiceUrl: string | undefined;
-						}[] = await Promise.all(uploadPromises);
-						const createdShipmentRecords = [];
+	// 					const uploadedFiles: {
+	// 						packageImageUrl: string;
+	// 						invoiceUrl: string | undefined;
+	// 					}[] = await Promise.all(uploadPromises);
+	// 					const createdShipmentRecords = [];
 
-						for (let i = 0; i < shipmentsWithRates.length; i++) {
-							const s = shipmentsWithRates[i];
-							if (!s) {
-								throw new TRPCError({
-									code: "INTERNAL_SERVER_ERROR",
-									message: "Shipment item not found during processing.",
-								});
-							}
-							const uploadedFile = uploadedFiles[i];
-							if (!uploadedFile) {
-								throw new TRPCError({
-									code: "INTERNAL_SERVER_ERROR",
-									message: "Uploaded file data not found for shipment.",
-								});
-							}
-							const { packageImageUrl, invoiceUrl } = uploadedFile;
-							if (!packageImageUrl) {
-								logger.error("Missing package image URL for shipment", {
-									...logData,
-									shipmentIndex: i,
-								});
-								results.push({
-									recipientName: s.recipientName,
-									status: "error",
-									message: "Missing package image URL",
-								});
-								continue;
-							}
-							const human_readable_shipment_id = generateShipmentId(
-								user.user_id,
-							);
-							const shipment = await tx.shipment.create({
-								data: {
-									human_readable_shipment_id,
-									user_id: userId,
-									payment_status: "Paid",
-									shipment_status: "PendingApproval",
-									origin_address_id: s.originAddressId,
-									destination_address_id: s.destinationAddressId,
-									recipient_name: s.recipientName,
-									recipient_mobile: s.recipientMobile,
-									package_image_url: packageImageUrl,
-									package_weight: s.packageWeight,
-									package_dimensions: `${s.packageBreadth} X ${s.packageHeight} X ${s.packageLength}`,
-									shipping_cost: s.rate,
-									declared_value: s.declaredValue,
-									is_insurance_selected: s.isInsuranceSelected,
-									insurance_premium: s.insurancePremium,
-									compensation_amount: s.compensationAmount,
-									invoiceUrl: invoiceUrl,
-								},
-							});
-							createdShipmentRecords.push({
-								recipientName: s.recipientName,
-								shipmentId: shipment.shipment_id,
-							});
-						}
-						return createdShipmentRecords;
-					});
+	// 					for (let i = 0; i < shipmentsWithRates.length; i++) {
+	// 						const s = shipmentsWithRates[i];
+	// 						if (!s) {
+	// 							throw new TRPCError({
+	// 								code: "INTERNAL_SERVER_ERROR",
+	// 								message: "Shipment item not found during processing.",
+	// 							});
+	// 						}
+	// 						const uploadedFile = uploadedFiles[i];
+	// 						if (!uploadedFile) {
+	// 							throw new TRPCError({
+	// 								code: "INTERNAL_SERVER_ERROR",
+	// 								message: "Uploaded file data not found for shipment.",
+	// 							});
+	// 						}
+	// 						const { packageImageUrl, invoiceUrl } = uploadedFile;
+	// 						if (!packageImageUrl) {
+	// 							logger.error("Missing package image URL for shipment", {
+	// 								...logData,
+	// 								shipmentIndex: i,
+	// 							});
+	// 							results.push({
+	// 								recipientName: s.recipientName,
+	// 								status: "error",
+	// 								message: "Missing package image URL",
+	// 							});
+	// 							continue;
+	// 						}
+	// 						const human_readable_shipment_id = generateShipmentId(
+	// 							user.user_id,
+	// 						);
+	// 						const shipment = await tx.shipment.create({
+	// 							data: {
+	// 								human_readable_shipment_id,
+	// 								user_id: userId,
+	// 								payment_status: "Paid",
+	// 								shipment_status: "PendingApproval",
+	// 								origin_address_id: s.originAddressId,
+	// 								destination_address_id: s.destinationAddressId,
+	// 								recipient_name: s.recipientName,
+	// 								recipient_mobile: s.recipientMobile,
+	// 								package_image_url: packageImageUrl,
+	// 								package_weight: s.packageWeight,
+	// 								package_dimensions: `${s.packageBreadth} X ${s.packageHeight} X ${s.packageLength}`,
+	// 								shipping_cost: s.rate,
+	// 								declared_value: s.declaredValue,
+	// 								is_insurance_selected: s.isInsuranceSelected,
+	// 								insurance_premium: s.insurancePremium,
+	// 								compensation_amount: s.compensationAmount,
+	// 								invoiceUrl: invoiceUrl,
+	// 							},
+	// 						});
+	// 						createdShipmentRecords.push({
+	// 							recipientName: s.recipientName,
+	// 							shipmentId: shipment.shipment_id,
+	// 						});
+	// 					}
+	// 					return createdShipmentRecords;
+	// 				});
 
-					for (const created of transactionResults) {
-						results.push({
-							...created,
-							status: "success",
-							message: "Shipment created successfully.",
-						});
-					}
-					logger.info("Successfully processed bulk shipments in transaction", {
-						...logData,
-						createdShipmentCount: transactionResults.length,
-					});
-				} catch (error) {
-					logger.error("Bulk shipment transaction failed", {
-						...logData,
-						error,
-					});
-					for (const s of finalShipments) {
-						results.push({
-							recipientName: s.recipientName,
-							status: "error",
-							message:
-								error instanceof TRPCError
-									? error.message
-									: "Transaction failed.",
-						});
-					}
-				}
-			}
+	// 				for (const created of transactionResults) {
+	// 					results.push({
+	// 						...created,
+	// 						status: "success",
+	// 						message: "Shipment created successfully.",
+	// 					});
+	// 				}
+	// 				logger.info("Successfully processed bulk shipments in transaction", {
+	// 					...logData,
+	// 					createdShipmentCount: transactionResults.length,
+	// 				});
+	// 			} catch (error) {
+	// 				logger.error("Bulk shipment transaction failed", {
+	// 					...logData,
+	// 					error,
+	// 				});
+	// 				for (const s of finalShipments) {
+	// 					results.push({
+	// 						recipientName: s.recipientName,
+	// 						status: "error",
+	// 						message:
+	// 							error instanceof TRPCError
+	// 								? error.message
+	// 								: "Transaction failed.",
+	// 					});
+	// 				}
+	// 			}
+	// 		}
 
-			logger.info("Finished performant bulk shipment processing", {
-				...logData,
-				results,
-			});
-			return results;
-		}),
+	// 		logger.info("Finished performant bulk shipment processing", {
+	// 			...logData,
+	// 			results,
+	// 		});
+	// 		return results;
+	// 	}),
 
 	getAllShipments: adminProcedure
 		.input(
@@ -804,7 +732,15 @@ export const shipmentRouter = createTRPCRouter({
 			const [shipments, totalShipments] = await db.$transaction([
 				db.shipment.findMany({
 					where,
-					include: {
+					select: {
+						shipment_id: true,
+						human_readable_shipment_id: true,
+						user_id: true,
+						shipping_cost: true,
+						shipment_status: true,
+						current_status: true,
+						payment_status: true,
+						created_at: true,
 						user: {
 							select: {
 								name: true,
@@ -868,7 +804,15 @@ export const shipmentRouter = createTRPCRouter({
 			const [shipments, totalShipments] = await db.$transaction([
 				db.shipment.findMany({
 					where: whereClause,
-					include: {
+					select: {
+						human_readable_shipment_id: true,
+						user_id: true,
+						recipient_name: true,
+						awb_number: true,
+						current_status: true,
+						created_at: true,
+						shipment_id: true,
+						shipment_status: true,
 						user: {
 							select: {
 								name: true,
@@ -935,13 +879,12 @@ export const shipmentRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const { user } = ctx;
 			const { page, pageSize, status, searchFilter, startDate, endDate } =
 				input;
 			const skip = (page - 1) * pageSize;
 
 			const whereClause: Prisma.ShipmentWhereInput = {
-				user_id: user.user_id,
+				user_id: ctx.user.user_id,
 				shipment_status: status,
 			};
 
@@ -968,7 +911,16 @@ export const shipmentRouter = createTRPCRouter({
 			const [shipments, totalShipments] = await db.$transaction([
 				db.shipment.findMany({
 					where: whereClause,
-					include: {
+					select: {
+						human_readable_shipment_id: true,
+						recipient_name: true,
+						recipient_mobile: true,
+						shipping_cost: true,
+						current_status: true,
+						created_at: true,
+						shipment_id: true,
+						shipment_status: true,
+						payment_status: true,
 						user: {
 							select: {
 								name: true,
@@ -1012,7 +964,6 @@ export const shipmentRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const { user } = ctx;
 			const {
 				page,
 				pageSize,
@@ -1024,7 +975,7 @@ export const shipmentRouter = createTRPCRouter({
 			const skip = (page - 1) * pageSize;
 
 			const whereClause: Prisma.ShipmentWhereInput = {
-				user_id: user.user_id,
+				user_id: ctx.user.user_id,
 				shipment_status: "Approved",
 			};
 
@@ -1086,13 +1037,12 @@ export const shipmentRouter = createTRPCRouter({
 		}),
 
 	getUserShipmentStatusCounts: protectedProcedure.query(async ({ ctx }) => {
-		const { user } = ctx;
 		const statusCounts = await db.shipment.groupBy({
 			by: ["current_status"],
 			_count: {
 				current_status: true,
 			},
-			where: { user_id: user.user_id, shipment_status: "Approved" },
+			where: { user_id: ctx.user.user_id, shipment_status: "Approved" },
 		});
 
 		const counts: Record<string, number> = {};
@@ -1367,7 +1317,7 @@ export const shipmentRouter = createTRPCRouter({
 					},
 					origin_address: true,
 					destination_address: true,
-					tracking: true, // Include existing tracking records
+					tracking: true,
 				},
 			});
 

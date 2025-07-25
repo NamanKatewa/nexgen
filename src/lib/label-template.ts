@@ -1,15 +1,8 @@
-import type { Address, Shipment } from "@prisma/client";
-
-interface ClientSideShipment extends Omit<Shipment, "created_at"> {
-	created_at: string;
-}
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "~/server/api/root";
 
 export const getLabelHTML = (
-	shipment: ClientSideShipment & {
-		destination_address: Address | null;
-		origin_address: Address | null;
-	},
-	companyName: string,
+	shipment: inferRouterOutputs<AppRouter>["label"]["generateLabel"]["shipment"],
 	courierImage: string,
 	barcodeSvg: string,
 	qrCodeDataUrl: string,
@@ -183,7 +176,7 @@ export const getLabelHTML = (
 
           <div class="seller-section">
             <h3 class="mb-1 font-bold">SELLER:</h3>
-            <p class="font-bold">${companyName}</p>
+            <p class="font-bold">${shipment.user.kyc?.entity_name}</p>
             <p>Shipment Date: ${createdAt}</p>
           </div>
 

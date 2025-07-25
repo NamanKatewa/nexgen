@@ -9,18 +9,27 @@ export const kycRouter = createTRPCRouter({
 	kycSubmit: protectedProcedure
 		.input(submitKycSchema)
 		.mutation(async ({ input, ctx }) => {
-			const logData = { userId: ctx.user.user_id };
-			logger.info("KYC submission attempt", logData);
-
 			try {
 				const [aadharFrontUrl, aadharBackUrl, panFrontUrl] = await Promise.all([
 					uploadFileToS3(input.aadharImageFront, "kyc/aadhar/front"),
 					uploadFileToS3(input.aadharImageBack, "kyc/aadhar/back"),
 					uploadFileToS3(input.panImageFront, "kyc/pan/front"),
 				]);
-				logger.info("Successfully uploaded KYC documents to S3", logData);
 
-				const address = await db.address.create({
+				const existingKyc = await db.kyc.findUnique({
+					where: { user_id: ctx.user.user_id },
+					select: { address_id: true },
+				});
+
+				if (!existingKyc || !existingKyc.address_id) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "KYC record or associated address not found.",
+					});
+				}
+
+				const address = await db.address.update({
+					where: { address_id: existingKyc.address_id },
 					data: {
 						type: "Warehouse",
 						zip_code: input.billingAddress.zipCode,
@@ -28,13 +37,9 @@ export const kycRouter = createTRPCRouter({
 						state: input.billingAddress.state,
 						address_line: input.billingAddress.addressLine,
 						landmark: input.billingAddress.landmark || null,
-						user: { connect: { user_id: ctx.user.user_id } },
 						name: "KYC",
 					},
-				});
-				logger.info("Successfully created KYC address", {
-					...logData,
-					addressId: address.address_id,
+					select: { address_id: true },
 				});
 
 				await db.kyc.update({
@@ -55,10 +60,9 @@ export const kycRouter = createTRPCRouter({
 					},
 				});
 
-				logger.info("Successfully submitted KYC", logData);
 				return null;
 			} catch (error) {
-				logger.error("KYC submission failed", { ...logData, error });
+				logger.error("kyc.kycSubmit", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

@@ -59,18 +59,20 @@ export const refundRouter = createTRPCRouter({
 				});
 			}
 
-			await ctx.db.shipment.update({
-				where: { shipment_id: shipment.shipment_id },
-				data: { shipment_status: "Rejected", rejection_reason: "Refund" },
-			});
+			await ctx.db.$transaction(async (tx) => {
+				await tx.shipment.update({
+					where: { shipment_id: shipment.shipment_id },
+					data: { shipment_status: "Rejected", rejection_reason: "Refund" },
+				});
 
-			await ctx.db.wallet.update({
-				where: { user_id: shipment.user_id },
-				data: {
-					balance: {
-						increment: input.refundAmount,
+				await tx.wallet.update({
+					where: { user_id: shipment.user_id },
+					data: {
+						balance: {
+							increment: input.refundAmount,
+						},
 					},
-				},
+				});
 			});
 
 			return { message: "Refund processed successfully." };

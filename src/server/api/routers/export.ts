@@ -20,7 +20,7 @@ export const exportRouter = createTRPCRouter({
 				currentStatus: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { searchFilter, startDate, endDate, currentStatus } = input;
 
 			const whereClause: Prisma.ShipmentWhereInput = {
@@ -58,26 +58,48 @@ export const exportRouter = createTRPCRouter({
 			try {
 				const shipments = await db.shipment.findMany({
 					where: whereClause,
-					include: {
+					select: {
+						human_readable_shipment_id: true,
+						awb_number: true,
+						compensation_amount: true,
+						created_at: true,
+						current_status: true,
+						declared_value: true,
+						insurance_premium: true,
+						is_insurance_selected: true,
+						package_dimensions: true,
+						package_weight: true,
+						recipient_mobile: true,
+						recipient_name: true,
+						shipment_status: true,
+						shipping_cost: true,
 						user: { select: { name: true, email: true } },
 						courier: { select: { name: true } },
-						origin_address: true,
-						destination_address: true,
+						origin_address: {
+							select: {
+								address_line: true,
+								city: true,
+								landmark: true,
+								state: true,
+								zip_code: true,
+							},
+						},
+						destination_address: {
+							select: {
+								address_line: true,
+								city: true,
+								landmark: true,
+								state: true,
+								zip_code: true,
+							},
+						},
 					},
 					orderBy: { created_at: "desc" },
 				});
 
-				logger.info(
-					"Successfully fetched approved shipments for admin export",
-					{
-						count: shipments.length,
-					},
-				);
 				return shipments;
 			} catch (error) {
-				logger.error("Failed to fetch approved shipments for admin export", {
-					error,
-				});
+				logger.error("export.allTracking", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -131,23 +153,49 @@ export const exportRouter = createTRPCRouter({
 			try {
 				const shipments = await db.shipment.findMany({
 					where: whereClause,
-					include: {
-						user: { select: { name: true, email: true } },
+					select: {
+						human_readable_shipment_id: true,
+						awb_number: true,
+						compensation_amount: true,
+						created_at: true,
+						current_status: true,
+						declared_value: true,
+						insurance_premium: true,
+						is_insurance_selected: true,
+						package_dimensions: true,
+						package_weight: true,
+						recipient_mobile: true,
+						recipient_name: true,
+						shipment_status: true,
+						shipping_cost: true,
 						courier: { select: { name: true } },
-						origin_address: true,
-						destination_address: true,
+						origin_address: {
+							select: {
+								address_line: true,
+								city: true,
+								landmark: true,
+								state: true,
+								zip_code: true,
+							},
+						},
+						destination_address: {
+							select: {
+								address_line: true,
+								city: true,
+								landmark: true,
+								state: true,
+								zip_code: true,
+							},
+						},
 					},
 					orderBy: { created_at: "desc" },
 				});
 
-				logger.info("Successfully fetched approved shipments for user export", {
-					userId: user.user_id,
-					count: shipments.length,
-				});
 				return shipments;
 			} catch (error) {
-				logger.error("Failed to fetch approved shipments for user export", {
-					userId: user.user_id,
+				logger.error("export.userTracking", {
+					ctx,
+					input,
 					error,
 				});
 				throw new TRPCError({
@@ -166,7 +214,7 @@ export const exportRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { filterStatus, filterTxnType, searchFilter, startDate, endDate } =
 				input;
 
@@ -222,12 +270,9 @@ export const exportRouter = createTRPCRouter({
 						created_at: "desc",
 					},
 				});
-				logger.info("Successfully fetched admin passbook for export", {
-					count: transactions.length,
-				});
 				return transactions;
 			} catch (error) {
-				logger.error("Failed to fetch admin passbook for export", { error });
+				logger.error("export.exportPassbook", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -245,14 +290,10 @@ export const exportRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { user } = ctx;
 			const { filterStatus, filterTxnType, searchFilter, startDate, endDate } =
 				input;
-			const logData = { userId: user.user_id };
-			logger.info("Fetching user passbook for export", logData);
-
 			const whereClause: Prisma.TransactionWhereInput = {
-				user_id: user.user_id,
+				user_id: ctx.user.user_id,
 			};
 
 			if (filterStatus && filterStatus !== "ALL") {
@@ -292,19 +333,18 @@ export const exportRouter = createTRPCRouter({
 						transaction_type: true,
 						payment_status: true,
 						description: true,
+						shipment_id: true,
 					},
 					orderBy: {
 						created_at: "desc",
 					},
 				});
 
-				logger.info("Successfully fetched user passbook for export", {
-					...logData,
-					count: transactions.length,
-				});
 				return transactions;
 			} catch (error) {
-				logger.error("Failed to fetch user passbook for export", {
+				logger.error("export.exportUserPassbook", {
+					ctx,
+					input,
 					error,
 				});
 				throw new TRPCError({
@@ -313,6 +353,7 @@ export const exportRouter = createTRPCRouter({
 				});
 			}
 		}),
+
 	exportTransactions: adminProcedure
 		.input(
 			z.object({
@@ -322,7 +363,7 @@ export const exportRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { filterType, searchFilter, startDate, endDate } = input;
 
 			const whereClause: Prisma.TransactionWhereInput = {
@@ -368,12 +409,11 @@ export const exportRouter = createTRPCRouter({
 					},
 					orderBy: { created_at: "desc" },
 				});
-				logger.info("Successfully fetched all credit transactions for export", {
-					count: transactions.length,
-				});
 				return transactions;
 			} catch (error) {
-				logger.error("Failed to fetch credit transactions for export", {
+				logger.error("export.exportTransactions", {
+					ctx,
+					input,
 					error,
 				});
 				throw new TRPCError({
@@ -392,7 +432,7 @@ export const exportRouter = createTRPCRouter({
 				filterCourier: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { searchFilter, startDate, endDate, filterStatus, filterCourier } =
 				input;
 
@@ -433,21 +473,46 @@ export const exportRouter = createTRPCRouter({
 			try {
 				const shipments = await db.shipment.findMany({
 					where: whereClause,
-					include: {
-						user: { select: { name: true, email: true } },
+					select: {
+						human_readable_shipment_id: true,
+						awb_number: true,
+						compensation_amount: true,
+						created_at: true,
+						current_status: true,
+						declared_value: true,
+						insurance_premium: true,
+						is_insurance_selected: true,
+						package_dimensions: true,
+						package_weight: true,
+						recipient_mobile: true,
+						recipient_name: true,
+						shipment_status: true,
+						shipping_cost: true,
 						courier: { select: { name: true } },
-						origin_address: true,
-						destination_address: true,
+						origin_address: {
+							select: {
+								address_line: true,
+								city: true,
+								landmark: true,
+								state: true,
+								zip_code: true,
+							},
+						},
+						destination_address: {
+							select: {
+								address_line: true,
+								city: true,
+								landmark: true,
+								state: true,
+								zip_code: true,
+							},
+						},
 					},
 					orderBy: { created_at: "desc" },
 				});
-
-				logger.info("Successfully fetched shipments for export", {
-					count: shipments.length,
-				});
 				return shipments;
 			} catch (error) {
-				logger.error("Failed to fetch shipments for export", { error });
+				logger.error("export.exportShipments", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -465,7 +530,7 @@ export const exportRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { searchFilter, businessType, role, status, startDate, endDate } =
 				input;
 
@@ -503,10 +568,15 @@ export const exportRouter = createTRPCRouter({
 				const users = await db.user.findMany({
 					where: whereClause,
 					orderBy: { created_at: "desc" },
-					include: {
+					select: {
+						user_id: true,
+						business_type: true,
+						company_name: true,
+						mobile_number: true,
+						name: true,
+						wallet: { select: { balance: true } },
 						kyc: {
 							select: {
-								kyc_id: true,
 								entity_name: true,
 								entity_type: true,
 								pan_number: true,
@@ -516,16 +586,23 @@ export const exportRouter = createTRPCRouter({
 								submission_date: true,
 								verification_date: true,
 								rejection_reason: true,
+								website_url: true,
+								address: {
+									select: {
+										address_line: true,
+										city: true,
+										landmark: true,
+										state: true,
+										zip_code: true,
+									},
+								},
 							},
 						},
 					},
 				});
-				logger.info("Successfully fetched users for export", {
-					count: users.length,
-				});
 				return users;
 			} catch (error) {
-				logger.error("Failed to fetch users for export", { error });
+				logger.error("export.exportUsers", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

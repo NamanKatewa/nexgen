@@ -44,7 +44,6 @@ interface GetOrderShipmentDetailsResponse {
 }
 
 export async function pushOrderToShipway(payload: PushOrderDataPayload) {
-	logger.info("Calling Shipway PushOrderData API", payload);
 	try {
 		const shipwayResponse = await fetch(
 			"https://shipway.in/api/PushOrderData",
@@ -63,7 +62,7 @@ export async function pushOrderToShipway(payload: PushOrderDataPayload) {
 
 		if (!shipwayResponse.ok) {
 			const errorText = await shipwayResponse.text();
-			logger.error("Shipway API call failed", {
+			logger.error("Shipway Order Creation failed", {
 				status: shipwayResponse.status,
 				errorText,
 			});
@@ -74,10 +73,8 @@ export async function pushOrderToShipway(payload: PushOrderDataPayload) {
 		}
 
 		const responseData = await shipwayResponse.json();
-		logger.info("Shipway API response", responseData);
 
 		if (responseData.status !== "Success") {
-			logger.error("Shipway API returned non-success status", responseData);
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: `Shipway reported an error: ${responseData.message || "Unknown error"}`,

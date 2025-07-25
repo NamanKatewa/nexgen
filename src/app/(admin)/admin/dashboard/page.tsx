@@ -1,6 +1,12 @@
 "use client";
 
-import { DollarSign, Package, Ticket, Users } from "lucide-react";
+import {
+	BadgeDollarSign,
+	DollarSign,
+	Package,
+	Ticket,
+	Users,
+} from "lucide-react";
 import ChartBarAdminClientDemographics from "~/components/charts/BarAdminClientDemographics";
 import ChartBarRevenueVsRefund from "~/components/charts/BarAdminRevenueVsRefund";
 import ChartBarAdminShipmentFunnel from "~/components/charts/BarAdminShipmentFunnel";
@@ -99,6 +105,17 @@ export default function AdminDashboardPage() {
 					</CardHeader>
 					<CardContent>
 						<div className="font-bold text-2xl">{kpis.highPriorityTickets}</div>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="font-medium text-sm">
+							Total User Balance
+						</CardTitle>
+						<BadgeDollarSign className="h-4 w-4 text-muted-foreground" />
+					</CardHeader>
+					<CardContent>
+						<div className="font-bold text-2xl">₹ {kpis.totalUserBalance}</div>
 					</CardContent>
 				</Card>
 			</div>

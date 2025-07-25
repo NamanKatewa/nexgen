@@ -13,18 +13,17 @@ export const walletRouter = createTRPCRouter({
 	addFunds: protectedProcedure
 		.input(addFundsSchema)
 		.mutation(async ({ input, ctx }) => {
-			const { user } = ctx;
-			const logData = { userId: user.user_id, amount: input.amount };
-			logger.info("Attempting to add funds to wallet", logData);
-
 			try {
 				const dbUser = await db.user.findUnique({
-					where: { user_id: user.user_id },
-					include: { wallet: { select: { wallet_id: true } } },
+					where: { user_id: ctx.user.user_id },
+					select: {
+						mobile_number: true,
+						email: true,
+						wallet: { select: { wallet_id: true } },
+					},
 				});
 
 				if (!dbUser?.wallet) {
-					logger.error("User or wallet not found", { ...logData });
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "User or wallet not found",
@@ -33,16 +32,12 @@ export const walletRouter = createTRPCRouter({
 
 				const transaction = await db.transaction.create({
 					data: {
-						user_id: user.user_id as string,
+						user_id: ctx.user.user_id as string,
 						transaction_type: "Credit",
 						payment_status: "Pending",
 						amount: input.amount,
 						description: "Funds added to wallet",
 					},
-				});
-				logger.info("Created pending transaction", {
-					...logData,
-					transactionId: transaction.transaction_id,
 				});
 
 				const redirectUrl = `${
@@ -60,15 +55,11 @@ export const walletRouter = createTRPCRouter({
 					remark1: dbUser.email,
 				});
 
-				logger.info("Successfully created IMB payment order", {
-					...logData,
-					paymentUrl: imbResponse.result.payment_url,
-				});
 				return {
 					paymentUrl: imbResponse.result.payment_url,
 				};
 			} catch (error) {
-				logger.error("Failed to add funds", { ...logData, error });
+				logger.error("wallet.addFunds", { ctx, input, error });
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: (error as Error).message,
@@ -78,23 +69,13 @@ export const walletRouter = createTRPCRouter({
 	updateTransaction: protectedProcedure
 		.input(paymentSuccessSchema)
 		.mutation(async ({ input, ctx }) => {
-			const { user } = ctx;
-			const logData = {
-				userId: user.user_id,
-				transactionId: input.transaction_id,
-			};
-			logger.info("Updating transaction after successful payment", logData);
-
 			try {
 				const dbUser = await db.user.findUnique({
-					where: { user_id: user.user_id },
-					include: { wallet: { select: { wallet_id: true, balance: true } } },
+					where: { user_id: ctx.user.user_id },
+					select: { wallet: { select: { wallet_id: true, balance: true } } },
 				});
 
 				if (!dbUser?.wallet) {
-					logger.error("User or wallet not found for transaction update", {
-						...logData,
-					});
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "User or wallet not found",
@@ -104,7 +85,7 @@ export const walletRouter = createTRPCRouter({
 				const transaction = await db.transaction.update({
 					where: {
 						transaction_id: input.transaction_id,
-						user_id: user.user_id,
+						user_id: ctx.user.user_id,
 					},
 					data: {
 						payment_status: "Completed",
@@ -113,7 +94,6 @@ export const walletRouter = createTRPCRouter({
 				});
 
 				if (!transaction) {
-					logger.error("Transaction not found for update", { ...logData });
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Transaction not found",
@@ -123,20 +103,14 @@ export const walletRouter = createTRPCRouter({
 				await db.wallet.update({
 					where: { wallet_id: dbUser.wallet.wallet_id },
 					data: { balance: dbUser.wallet.balance.add(transaction.amount) },
-				});
-
-				logger.info("Successfully updated transaction and wallet balance", {
-					...logData,
-					amount: transaction.amount,
+					select: {},
 				});
 			} catch (error) {
-				logger.error("Failed to update transaction", { ...logData, error });
+				logger.error("support.updateTransaction", { ctx, input, error });
 				throw error;
 			}
 		}),
 	checkPendingTransactions: protectedProcedure.mutation(async ({ ctx }) => {
-		logger.info("Starting check for pending IMB transactions.");
-
 		try {
 			const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
@@ -151,18 +125,18 @@ export const walletRouter = createTRPCRouter({
 					payment_status: "Failed",
 				},
 			});
-			logger.info("Cleaned up old pending transactions");
 
 			const pendingTransactions = await db.transaction.findMany({
 				where: {
 					user_id: ctx.user.user_id,
 					payment_status: "Pending",
 				},
-				include: { user: { select: { wallet: true } } },
-			});
-
-			logger.info("Found pending transactions to check", {
-				count: pendingTransactions.length,
+				select: {
+					transaction_id: true,
+					amount: true,
+					user_id: true,
+					user: { select: { wallet: true } },
+				},
 			});
 
 			for (const transaction of pendingTransactions) {
@@ -186,37 +160,24 @@ export const walletRouter = createTRPCRouter({
 									),
 								},
 							});
-							logger.info("Updated wallet balance for completed transaction", {
-								transactionId: transaction.transaction_id,
-								userId: transaction.user_id,
-							});
 						}
-						logger.info("Transaction marked as Completed", {
-							transactionId: transaction.transaction_id,
-						});
 					} else if (imbStatus.result.status === "FAILED") {
 						await db.transaction.update({
 							where: { transaction_id: transaction.transaction_id },
 							data: { payment_status: "Failed" },
-						});
-						logger.info("Transaction marked as Failed", {
-							transactionId: transaction.transaction_id,
+							select: {},
 						});
 					} else {
-						logger.info("Transaction still pending at IMB", {
-							transactionId: transaction.transaction_id,
-						});
 					}
 				} catch (imbError) {
-					logger.error("Error checking IMB status for transaction", {
+					logger.error("wallet.checkPendingTransactions", {
 						transactionId: transaction.transaction_id,
 						error: imbError,
 					});
 				}
 			}
-			logger.info("Finished checking pending IMB transactions.");
 		} catch (error) {
-			logger.error("Failed to check pending transactions", { error });
+			logger.error("wallet.checkPendingTransactions", { ctx, error });
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Failed to check pending transactions",
@@ -236,7 +197,6 @@ export const walletRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const { user } = ctx;
 			const {
 				page,
 				pageSize,
@@ -247,11 +207,9 @@ export const walletRouter = createTRPCRouter({
 				endDate,
 			} = input;
 			const skip = (page - 1) * pageSize;
-			const logData = { userId: user.user_id, page, pageSize };
-			logger.info("Fetching user passbook", logData);
 
 			const whereClause: Prisma.TransactionWhereInput = {
-				user_id: user.user_id,
+				user_id: ctx.user.user_id,
 			};
 
 			if (filterStatus && filterStatus !== "ALL") {
@@ -301,11 +259,6 @@ export const walletRouter = createTRPCRouter({
 					}),
 				]);
 
-				logger.info("Successfully fetched user passbook", {
-					...logData,
-					count: transactions.length,
-					totalTransactions,
-				});
 				return {
 					transactions,
 					totalTransactions,
@@ -314,7 +267,7 @@ export const walletRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalTransactions / pageSize),
 				};
 			} catch (error) {
-				logger.error("Failed to fetch user passbook", { ...logData, error });
+				logger.error("wallet.getPassbook", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

@@ -30,7 +30,7 @@ export const adminRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			const {
 				page,
 				pageSize,
@@ -41,21 +41,16 @@ export const adminRouter = createTRPCRouter({
 				endDate,
 			} = input;
 			const skip = (page - 1) * pageSize;
-			logger.info("Fetching pending KYC submissions", { page, pageSize });
-
 			const whereClause: Prisma.KycWhereInput = {
 				kyc_status: "Submitted",
 			};
-
 			if (filterGST && filterGST !== "ALL") {
 				whereClause.gst = filterGST === "YES";
 			}
-
 			if (filterType && filterType !== "ALL") {
 				whereClause.entity_type =
 					filterType as Prisma.KycWhereInput["entity_type"];
 			}
-
 			if (searchFilter) {
 				whereClause.OR = [
 					{ entity_name: { contains: searchFilter, mode: "insensitive" } },
@@ -68,23 +63,41 @@ export const adminRouter = createTRPCRouter({
 					},
 				];
 			}
-
 			if (startDate && endDate) {
 				whereClause.submission_date = {
 					gte: new Date(startDate),
 					lte: getEndOfDay(new Date(endDate)),
 				};
 			}
-
 			try {
 				const [kycList, totalKyc] = await db.$transaction([
 					db.kyc.findMany({
 						where: whereClause,
-						include: {
-							address: true,
+						select: {
+							kyc_id: true,
+							entity_name: true,
+							user_id: true,
 							user: {
 								select: { email: true, name: true, mobile_number: true },
 							},
+							submission_date: true,
+							address: {
+								select: {
+									address_line: true,
+									zip_code: true,
+									state: true,
+									city: true,
+									landmark: true,
+								},
+							},
+							website_url: true,
+							gst: true,
+							aadhar_number: true,
+							aadhar_image_front: true,
+							aadhar_image_back: true,
+							pan_number: true,
+							pan_image_front: true,
+							entity_type: true,
 						},
 						orderBy: { submission_date: "desc" },
 						skip,
@@ -94,13 +107,6 @@ export const adminRouter = createTRPCRouter({
 						where: whereClause,
 					}),
 				]);
-
-				logger.info("Successfully fetched pending KYC submissions", {
-					count: kycList.length,
-					totalKyc,
-					page,
-					pageSize,
-				});
 				return {
 					kycList,
 					totalKyc,
@@ -109,7 +115,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalKyc / pageSize),
 				};
 			} catch (error) {
-				logger.error("Failed to fetch pending KYC submissions", { error });
+				logger.error("admin.pendingKyc", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -119,15 +125,11 @@ export const adminRouter = createTRPCRouter({
 	verifyKyc: adminProcedure
 		.input(verifyKycSchema)
 		.mutation(async ({ input, ctx }) => {
-			const logData = { kycId: input.kycId, adminId: ctx.user.user_id };
-			logger.info("Verifying KYC", logData);
-
 			const kyc = await db.kyc.findUnique({
 				where: { kyc_id: input.kycId },
 				include: { user: { select: { email: true } } },
 			});
 			if (!kyc) {
-				logger.warn("KYC not found for verification", logData);
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "KYC not found",
@@ -148,11 +150,9 @@ export const adminRouter = createTRPCRouter({
 					subject: "KYC Verified",
 					html: "Your KYC has been verified. Logout and Login again to start shipping.",
 				});
-
-				logger.info("Successfully verified KYC", logData);
 				return true;
 			} catch (error) {
-				logger.error("Failed to verify KYC", { ...logData, error });
+				logger.error("admin.verifyKyc", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -162,19 +162,11 @@ export const adminRouter = createTRPCRouter({
 	rejectKyc: adminProcedure
 		.input(rejectKycSchema)
 		.mutation(async ({ input, ctx }) => {
-			const logData = {
-				kycId: input.kycId,
-				adminId: ctx.user.user_id,
-				reason: input.reason,
-			};
-			logger.info("Rejecting KYC", logData);
-
 			const kyc = await db.kyc.findUnique({
 				where: { kyc_id: input.kycId },
 				include: { user: { select: { email: true } } },
 			});
 			if (!kyc) {
-				logger.warn("KYC not found for rejection", logData);
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "KYC not found",
@@ -196,10 +188,9 @@ export const adminRouter = createTRPCRouter({
 					subject: "KYC Rejected",
 					html: `Your KYC has been rejected for the following reason: ${input.reason}`,
 				});
-				logger.info("Successfully rejected KYC", logData);
 				return true;
 			} catch (error) {
-				logger.error("Failed to reject KYC", { ...logData, error });
+				logger.error("admin.rejectKyc", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -218,21 +209,17 @@ export const adminRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			const { page, pageSize, filterType, searchFilter, startDate, endDate } =
 				input;
 			const skip = (page - 1) * pageSize;
-			logger.info("Fetching all credit transactions", { page, pageSize });
-
 			const whereClause: Prisma.TransactionWhereInput = {
 				transaction_type: "Credit",
 			};
-
 			if (filterType && filterType !== "ALL") {
 				whereClause.payment_status =
 					filterType as Prisma.TransactionWhereInput["payment_status"];
 			}
-
 			if (searchFilter) {
 				whereClause.OR = [
 					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
@@ -241,14 +228,12 @@ export const adminRouter = createTRPCRouter({
 					{ transaction_id: { contains: searchFilter, mode: "insensitive" } },
 				];
 			}
-
 			if (startDate && endDate) {
 				whereClause.created_at = {
 					gte: new Date(startDate),
 					lte: getEndOfDay(new Date(endDate)),
 				};
 			}
-
 			try {
 				const [transactions, totalTransactions] = await db.$transaction([
 					db.transaction.findMany({
@@ -274,12 +259,6 @@ export const adminRouter = createTRPCRouter({
 						where: whereClause,
 					}),
 				]);
-				logger.info("Successfully fetched all credit transactions", {
-					count: transactions.length,
-					totalTransactions,
-					page,
-					pageSize,
-				});
 				return {
 					transactions,
 					totalTransactions,
@@ -288,7 +267,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalTransactions / pageSize),
 				};
 			} catch (error) {
-				logger.error("Failed to fetch credit transactions", { error });
+				logger.error("admin.getTransactions", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -307,7 +286,7 @@ export const adminRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			const {
 				page,
 				pageSize,
@@ -318,20 +297,15 @@ export const adminRouter = createTRPCRouter({
 				endDate,
 			} = input;
 			const skip = (page - 1) * pageSize;
-			logger.info("Fetching admin passbook", { page, pageSize });
-
 			const whereClause: Prisma.TransactionWhereInput = {};
-
 			if (filterStatus && filterStatus !== "ALL") {
 				whereClause.payment_status =
 					filterStatus as Prisma.TransactionWhereInput["payment_status"];
 			}
-
 			if (filterTxnType && filterTxnType !== "ALL") {
 				whereClause.transaction_type =
 					filterTxnType as Prisma.TransactionWhereInput["transaction_type"];
 			}
-
 			if (searchFilter) {
 				whereClause.OR = [
 					{ user_id: { contains: searchFilter, mode: "insensitive" } },
@@ -342,7 +316,6 @@ export const adminRouter = createTRPCRouter({
 					{ amount: Number.parseFloat(searchFilter) || undefined },
 				];
 			}
-
 			if (startDate && endDate) {
 				whereClause.created_at = {
 					gte: new Date(startDate),
@@ -380,12 +353,6 @@ export const adminRouter = createTRPCRouter({
 						where: whereClause,
 					}),
 				]);
-				logger.info("Successfully fetched admin passbook", {
-					count: transactions.length,
-					totalTransactions,
-					page,
-					pageSize,
-				});
 				return {
 					transactions,
 					totalTransactions,
@@ -394,7 +361,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalTransactions / pageSize),
 				};
 			} catch (error) {
-				logger.error("Failed to fetch admin passbook", { error });
+				logger.error("admin.getPassbook", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -411,15 +378,12 @@ export const adminRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			const { page, pageSize, searchFilter, startDate, endDate } = input;
 			const skip = (page - 1) * pageSize;
-			logger.info("Fetching pending shipments", { page, pageSize });
-
 			const whereClause: Prisma.ShipmentWhereInput = {
 				shipment_status: "PendingApproval",
 			};
-
 			if (searchFilter) {
 				whereClause.OR = [
 					{ user: { email: { contains: searchFilter, mode: "insensitive" } } },
@@ -433,7 +397,6 @@ export const adminRouter = createTRPCRouter({
 					{ user_id: { contains: searchFilter, mode: "insensitive" } },
 				];
 			}
-
 			if (startDate && endDate) {
 				whereClause.created_at = {
 					gte: new Date(startDate),
@@ -445,10 +408,38 @@ export const adminRouter = createTRPCRouter({
 				const [shipments, totalShipments] = await db.$transaction([
 					db.shipment.findMany({
 						where: whereClause,
-						include: {
-							origin_address: true,
-							destination_address: true,
-							user: { select: { email: true, name: true } },
+						select: {
+							human_readable_shipment_id: true,
+							shipping_cost: true,
+							created_at: true,
+							shipment_id: true,
+							user: { select: { name: true, email: true } },
+							recipient_name: true,
+							recipient_mobile: true,
+							package_weight: true,
+							package_dimensions: true,
+							package_image_url: true,
+							payment_status: true,
+							shipment_status: true,
+							rejection_reason: true,
+							origin_address: {
+								select: {
+									address_line: true,
+									city: true,
+									state: true,
+									zip_code: true,
+									landmark: true,
+								},
+							},
+							destination_address: {
+								select: {
+									address_line: true,
+									city: true,
+									state: true,
+									zip_code: true,
+									landmark: true,
+								},
+							},
 						},
 						orderBy: { created_at: "desc" },
 						skip,
@@ -458,12 +449,6 @@ export const adminRouter = createTRPCRouter({
 						where: whereClause,
 					}),
 				]);
-				logger.info("Successfully fetched pending shipments", {
-					count: shipments.length,
-					totalShipments,
-					page,
-					pageSize,
-				});
 				return {
 					shipments,
 					totalShipments,
@@ -472,7 +457,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalShipments / pageSize),
 				};
 			} catch (error) {
-				logger.error("Failed to fetch pending shipments", { error });
+				logger.error("admin.pendingShipments", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -483,29 +468,19 @@ export const adminRouter = createTRPCRouter({
 		.input(approveShipmentSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { shipmentId, awbNumber, courierId } = input;
-			const { user } = ctx;
-			const logData = {
-				userId: user.user_id,
-				shipmentId,
-				awbNumber,
-				courierId,
-			};
-			logger.info(
-				"Attempting to approve shipment and push to Shipway",
-				logData,
-			);
 
 			const shipment = await ctx.db.shipment.findUnique({
 				where: { shipment_id: shipmentId },
-				include: {
-					user: true,
-					origin_address: true,
-					destination_address: true,
+				select: {
+					shipment_status: true,
+					shipment_id: true,
+					recipient_name: true,
+					recipient_mobile: true,
+					user: { select: { name: true, email: true, company_name: true } },
 				},
 			});
 
 			if (!shipment) {
-				logger.warn("Shipment not found for approval", logData);
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Shipment not found.",
@@ -513,10 +488,6 @@ export const adminRouter = createTRPCRouter({
 			}
 
 			if (shipment.shipment_status !== "PendingApproval") {
-				logger.warn("Shipment not in PendingApproval status", {
-					...logData,
-					currentStatus: shipment.shipment_status,
-				});
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Shipment is not in 'Pending Approval' status.",
@@ -528,7 +499,6 @@ export const adminRouter = createTRPCRouter({
 			});
 
 			if (!courier) {
-				logger.warn("Courier not found", logData);
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Selected courier not found.",
@@ -540,7 +510,7 @@ export const adminRouter = createTRPCRouter({
 				awb: awbNumber,
 				order_id: shipment.shipment_id,
 				first_name: shipment.user.name.split(" ")[0] || "N/A",
-				last_name: shipment.user.name.split(" ").slice(1).join(" ") || "N/A",
+				last_name: shipment.recipient_name,
 				email: shipment.user.email,
 				phone: shipment.recipient_mobile,
 				products: "Shipment",
@@ -551,7 +521,6 @@ export const adminRouter = createTRPCRouter({
 			try {
 				await pushOrderToShipway(shipwayPayload);
 
-				// Update shipment in DB
 				await ctx.db.shipment.update({
 					where: { shipment_id: shipmentId },
 					data: {
@@ -560,15 +529,14 @@ export const adminRouter = createTRPCRouter({
 						shipment_status: "Approved",
 					},
 				});
-
-				logger.info("Shipment approved and updated in DB", logData);
 				return {
 					success: true,
 					message: "Shipment approved and pushed to Shipway.",
 				};
 			} catch (error) {
-				logger.error("Error during Shipway integration or shipment approval", {
-					...logData,
+				logger.error("admin.approveShipment", {
+					ctx,
+					input,
 					error,
 				});
 				throw new TRPCError({
@@ -581,19 +549,11 @@ export const adminRouter = createTRPCRouter({
 	rejectShipment: adminProcedure
 		.input(rejectShipmentSchema)
 		.mutation(async ({ input, ctx }) => {
-			const logData = {
-				shipmentId: input.shipmentId,
-				adminId: ctx.user.user_id,
-				reason: input.reason,
-			};
-			logger.info("Rejecting shipment", logData);
-
 			const shipment = await db.shipment.findUnique({
 				where: { shipment_id: input.shipmentId },
-				include: { user: { select: { email: true } } },
+				select: { shipment_id: true, shipping_cost: true, user_id: true },
 			});
 			if (!shipment) {
-				logger.warn("Shipment not found for rejection", logData);
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Shipment not found",
@@ -629,13 +589,9 @@ export const adminRouter = createTRPCRouter({
 						},
 					});
 				});
-				logger.info(
-					"Successfully rejected shipment and refunded user",
-					logData,
-				);
 				return true;
 			} catch (error) {
-				logger.error("Failed to reject shipment", { ...logData, error });
+				logger.error("admin.rejectShipment", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -653,11 +609,9 @@ export const adminRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			const { page, pageSize, searchFilter, startDate, endDate } = input;
 			const skip = (page - 1) * pageSize;
-			logger.info("Fetching pending addresses", { page, pageSize });
-
 			const whereClause: Prisma.PendingAddressWhereInput = {};
 
 			if (searchFilter) {
@@ -688,7 +642,17 @@ export const adminRouter = createTRPCRouter({
 					[
 						db.pendingAddress.findMany({
 							where: whereClause,
-							include: { user: true },
+							select: {
+								pending_address_id: true,
+								user_id: true,
+								user: { select: { name: true, email: true } },
+								landmark: true,
+								name: true,
+								address_line: true,
+								city: true,
+								state: true,
+								zip_code: true,
+							},
 							orderBy: { created_at: "desc" },
 							skip,
 							take: pageSize,
@@ -698,12 +662,6 @@ export const adminRouter = createTRPCRouter({
 						}),
 					],
 				);
-				logger.info("Successfully fetched pending addresses", {
-					count: pendingAddresses.length,
-					totalPendingAddresses,
-					page,
-					pageSize,
-				});
 				return {
 					pendingAddresses,
 					totalPendingAddresses,
@@ -712,7 +670,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalPendingAddresses / pageSize),
 				};
 			} catch (error) {
-				logger.error("Failed to fetch pending addresses", { error });
+				logger.error("admin.pendingAddresses", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -723,12 +681,6 @@ export const adminRouter = createTRPCRouter({
 	approvePendingAddress: adminProcedure
 		.input(approvePendingAddressSchema)
 		.mutation(async ({ input, ctx }) => {
-			const logData = {
-				pendingAddressId: input.pendingAddressId,
-				adminId: ctx.user.user_id,
-			};
-			logger.info("Approving pending address", logData);
-
 			try {
 				await db.$transaction(async (prisma) => {
 					const pendingAddress = await prisma.pendingAddress.findUnique({
@@ -736,7 +688,6 @@ export const adminRouter = createTRPCRouter({
 					});
 
 					if (!pendingAddress) {
-						logger.warn("Pending address not found for approval", logData);
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "Pending address not found",
@@ -761,11 +712,11 @@ export const adminRouter = createTRPCRouter({
 					});
 				});
 
-				logger.info("Successfully approved and moved pending address", logData);
 				return true;
 			} catch (error) {
-				logger.error("Failed to approve pending address", {
-					...logData,
+				logger.error("admin.approvePendingAddress", {
+					ctx,
+					input,
 					error,
 				});
 				throw new TRPCError({
@@ -778,12 +729,6 @@ export const adminRouter = createTRPCRouter({
 	rejectPendingAddress: adminProcedure
 		.input(rejectPendingAddressSchema)
 		.mutation(async ({ input, ctx }) => {
-			const logData = {
-				pendingAddressId: input.pendingAddressId,
-				adminId: ctx.user.user_id,
-			};
-			logger.info("Rejecting pending address", logData);
-
 			try {
 				await db.$transaction(async (prisma) => {
 					const pendingAddress = await prisma.pendingAddress.findUnique({
@@ -791,7 +736,6 @@ export const adminRouter = createTRPCRouter({
 					});
 
 					if (!pendingAddress) {
-						logger.warn("Pending address not found for rejection", logData);
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "Pending address not found",
@@ -802,14 +746,9 @@ export const adminRouter = createTRPCRouter({
 						where: { pending_address_id: input.pendingAddressId },
 					});
 				});
-
-				logger.info(
-					"Successfully rejected and deleted pending address",
-					logData,
-				);
 				return true;
 			} catch (error) {
-				logger.error("Failed to reject pending address", { ...logData, error });
+				logger.error("admin.rejectPendingAddress", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -819,36 +758,111 @@ export const adminRouter = createTRPCRouter({
 
 	getUserById: adminProcedure
 		.input(z.object({ userId: z.string() }))
-		.query(async ({ input }) => {
-			const { userId } = input;
-			logger.info("Fetching user by ID", { userId });
-
+		.query(async ({ ctx, input }) => {
 			try {
 				const user = await db.user.findUnique({
-					where: { user_id: userId },
-					include: {
-						kyc: true,
-						wallet: true,
+					where: { user_id: input.userId },
+					select: {
+						name: true,
+						user_id: true,
+						email: true,
+						mobile_number: true,
+						company_name: true,
+						monthly_order: true,
+						business_type: true,
+						role: true,
+						status: true,
+						created_at: true,
+						kyc: {
+							select: {
+								kyc_id: true,
+								entity_name: true,
+								entity_type: true,
+								website_url: true,
+								aadhar_number: true,
+								pan_number: true,
+								gst: true,
+								kyc_status: true,
+								submission_date: true,
+								verification_date: true,
+								rejection_reason: true,
+								aadhar_image_front: true,
+								aadhar_image_back: true,
+								pan_image_front: true,
+							},
+						},
+						wallet: { select: { wallet_id: true, balance: true } },
 						shipments: {
+							select: {
+								shipment_id: true,
+								human_readable_shipment_id: true,
+								shipment_status: true,
+								shipping_cost: true,
+								created_at: true,
+							},
 							take: 2,
 							orderBy: { created_at: "desc" },
 						},
 						transactions: {
+							select: {
+								transaction_id: true,
+								transaction_type: true,
+								amount: true,
+								payment_status: true,
+								description: true,
+								created_at: true,
+							},
 							take: 2,
 							orderBy: { created_at: "desc" },
 						},
 						tickets: {
+							select: {
+								ticket_id: true,
+								subject: true,
+								status: true,
+								priority: true,
+								created_at: true,
+							},
 							take: 2,
 							orderBy: { created_at: "desc" },
 						},
 						employee: true,
 						verifiedKYCs: true,
-						addresses: { where: { type: "Warehouse" } },
+						addresses: {
+							where: { type: "Warehouse" },
+							select: {
+								address_id: true,
+								name: true,
+								address_line: true,
+								landmark: true,
+								city: true,
+								state: true,
+								zip_code: true,
+							},
+						},
 						userRates: {
+							select: {
+								user_rate_id: true,
+								zone_from: true,
+								zone_to: true,
+								weight_slab: true,
+								rate: true,
+								created_at: true,
+							},
 							take: 2,
 							orderBy: { created_at: "desc" },
 						},
 						pendingAddresses: {
+							select: {
+								pending_address_id: true,
+								name: true,
+								landmark: true,
+								city: true,
+								state: true,
+								zip_code: true,
+								created_at: true,
+								address_line: true,
+							},
 							take: 2,
 							orderBy: { created_at: "desc" },
 						},
@@ -856,17 +870,15 @@ export const adminRouter = createTRPCRouter({
 				});
 
 				if (!user) {
-					logger.warn("User not found", { userId });
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "User not found",
 					});
 				}
 
-				logger.info("Successfully fetched user by ID", { userId });
 				return user;
 			} catch (error) {
-				logger.error("Failed to fetch user by ID", { userId, error });
+				logger.error("admin.getUserById", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -887,7 +899,7 @@ export const adminRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			const {
 				page,
 				pageSize,
@@ -899,10 +911,7 @@ export const adminRouter = createTRPCRouter({
 				endDate,
 			} = input;
 			const skip = (page - 1) * pageSize;
-			logger.info("Fetching all users", { page, pageSize });
-
 			const whereClause: Prisma.UserWhereInput = {};
-
 			if (searchFilter) {
 				whereClause.OR = [
 					{ name: { contains: searchFilter, mode: "insensitive" } },
@@ -911,31 +920,34 @@ export const adminRouter = createTRPCRouter({
 					{ company_name: { contains: searchFilter, mode: "insensitive" } },
 				];
 			}
-
 			if (businessType) {
 				whereClause.business_type = businessType;
 			}
-
 			if (role) {
 				whereClause.role = role;
 			}
-
 			if (status) {
 				whereClause.status = status;
 			}
-
 			if (startDate && endDate) {
 				whereClause.created_at = {
 					gte: new Date(startDate),
 					lte: getEndOfDay(new Date(endDate)),
 				};
 			}
-
 			try {
 				const [users, totalUsers] = await db.$transaction([
 					db.user.findMany({
 						where: whereClause,
 						orderBy: { created_at: "desc" },
+						select: {
+							user_id: true,
+							email: true,
+							business_type: true,
+							role: true,
+							status: true,
+							created_at: true,
+						},
 						skip,
 						take: pageSize,
 					}),
@@ -943,12 +955,6 @@ export const adminRouter = createTRPCRouter({
 						where: whereClause,
 					}),
 				]);
-				logger.info("Successfully fetched all users", {
-					count: users.length,
-					totalUsers,
-					page,
-					pageSize,
-				});
 				return {
 					users,
 					totalUsers,
@@ -957,7 +963,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalUsers / pageSize),
 				};
 			} catch (error) {
-				logger.error("Failed to fetch users", { error });
+				logger.error("admin.getAllUsers", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -975,13 +981,11 @@ export const adminRouter = createTRPCRouter({
 				endDate: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			const { page, pageSize, searchFilter, startDate, endDate } = input;
 			const skip = (page - 1) * pageSize;
-			logger.info("Fetching users with pending shipments", { page, pageSize });
 
 			const whereClause: Prisma.UserWhereInput = {};
-
 			if (searchFilter) {
 				whereClause.OR = [
 					{ name: { contains: searchFilter, mode: "insensitive" } },
@@ -991,15 +995,13 @@ export const adminRouter = createTRPCRouter({
 					{ user_id: { contains: searchFilter, mode: "insensitive" } },
 				];
 			}
-
 			if (startDate && endDate) {
 				whereClause.created_at = {
 					gte: new Date(startDate),
 					lte: getEndOfDay(new Date(endDate)),
 				};
 			}
-
-			const userWhere: Prisma.UserWhereInput = {
+			const userFilter: Prisma.UserWhereInput = {
 				...whereClause,
 				shipments: {
 					some: {
@@ -1011,7 +1013,7 @@ export const adminRouter = createTRPCRouter({
 			try {
 				const [users, totalUsers] = await db.$transaction([
 					db.user.findMany({
-						where: userWhere,
+						where: userFilter,
 						select: {
 							user_id: true,
 							name: true,
@@ -1031,7 +1033,7 @@ export const adminRouter = createTRPCRouter({
 						take: pageSize,
 					}),
 					db.user.count({
-						where: userWhere,
+						where: userFilter,
 					}),
 				]);
 
@@ -1039,13 +1041,6 @@ export const adminRouter = createTRPCRouter({
 					...user,
 					pendingShipmentCount: user._count.shipments,
 				}));
-
-				logger.info("Successfully fetched users with pending shipments", {
-					count: users.length,
-					totalUsers,
-					page,
-					pageSize,
-				});
 				return {
 					users: usersWithPendingCount,
 					totalUsers,
@@ -1054,7 +1049,11 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalUsers / pageSize),
 				};
 			} catch (error) {
-				logger.error("Failed to fetch users with pending shipments", { error });
+				logger.error("admin.getUsersWithPendingShipments", {
+					ctx,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

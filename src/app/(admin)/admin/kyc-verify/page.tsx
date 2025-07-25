@@ -22,8 +22,8 @@ const VerifyKycPage = () => {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
-	type KycListOutput = inferRouterOutputs<AppRouter>["admin"]["pendingKyc"];
-	type KycItem = KycListOutput["kycList"][number];
+	type KycItem =
+		inferRouterOutputs<AppRouter>["admin"]["pendingKyc"]["kycList"][number];
 
 	const [filterGST, setFilterGST] = useState("ALL");
 	const [filterType, setFilterType] = useState("ALL");

@@ -3,7 +3,6 @@ import bwipjs from "bwip-js";
 
 import QRCode from "qrcode";
 import { z } from "zod";
-import { getLabelHTML } from "~/lib/label-template";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
@@ -20,11 +19,42 @@ export const labelRouter = createTRPCRouter({
 					],
 					shipment_status: "Approved",
 				},
-				include: {
-					destination_address: true,
-					origin_address: true,
-					user: { include: { kyc: true } },
+				select: {
+					shipment_id: true,
+					declared_value: true,
+					user_id: true,
+					human_readable_shipment_id: true,
+					updated_at: true,
+					current_status: true,
+					shipment_status: true,
+					courier_id: true,
+					payment_status: true,
+					awb_number: true,
+					created_at: true,
+					recipient_name: true,
+					recipient_mobile: true,
+					user: {
+						select: { user_id: true, kyc: { select: { entity_name: true } } },
+					},
 					courier: true,
+					destination_address: {
+						select: {
+							address_line: true,
+							landmark: true,
+							city: true,
+							state: true,
+							zip_code: true,
+						},
+					},
+					origin_address: {
+						select: {
+							address_line: true,
+							landmark: true,
+							city: true,
+							state: true,
+							zip_code: true,
+						},
+					},
 				},
 			});
 
@@ -44,8 +74,7 @@ export const labelRouter = createTRPCRouter({
 				}
 			}
 
-			const companyName = shipment.user.kyc?.entity_name;
-			if (!companyName) {
+			if (!shipment.user.kyc?.entity_name) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to Generate Label: KYC entity name not found",
@@ -75,10 +104,8 @@ export const labelRouter = createTRPCRouter({
 			return {
 				shipment: {
 					...shipment,
-					created_at: shipment.created_at.toISOString(), // Convert Date to string for serialization
-					// Ensure other Date objects are also converted if they exist in the shipment object
+					created_at: shipment.created_at.toISOString(),
 				},
-				companyName,
 				courierImage: shipment.courier?.image_url || "",
 				barcodeSvg: barcodeImageBase64,
 				qrCodeDataUrl,

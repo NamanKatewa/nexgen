@@ -682,7 +682,7 @@ async function seedKYC(users: User[], adminUser: User, allPincodes: string[]) {
 				entity_name: faker.company.name(),
 				entity_type: faker.helpers.arrayElement(Object.values(ENTITY_TYPE)),
 				website_url: faker.internet.url(),
-				address_id: pincodeDetails ? tempAddressId : null, // Set to null if no pincode details
+				address_id: tempAddressId,
 				aadhar_number: faker.string.numeric(12),
 				aadhar_image_front: generateBase64Image().data,
 				aadhar_image_back: generateBase64Image().data,

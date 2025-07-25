@@ -12,6 +12,7 @@ import {
 	Package,
 	PackagePlus,
 	Truck,
+	TruckElectric,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,7 +39,7 @@ const sidebarLinks = [
 	},
 	{
 		href: "/dashboard/ndr",
-		icon: Truck,
+		icon: TruckElectric,
 		label: "NDR",
 	},
 	{

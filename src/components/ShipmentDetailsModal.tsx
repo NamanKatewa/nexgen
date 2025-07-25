@@ -236,67 +236,132 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 							Details of the selected shipment.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-4 overflow-y-auto py-4">
-						<p>
-							<strong>User:</strong> {shipmentItem.user.name}
-						</p>
-						<p>
-							<strong>Email:</strong> {shipmentItem.user.email}
-						</p>
-						<p>
-							<strong>Created At:</strong> {formatDate(shipmentItem.created_at)}
-						</p>
-						<p>
-							<strong>Shipment ID:</strong>{" "}
-							{shipmentItem.human_readable_shipment_id}
-						</p>
-						<p>
-							<strong>Recipient Name:</strong> {shipmentItem.recipient_name}
-						</p>
-						<p>
-							<strong>Recipient Mobile:</strong> {shipmentItem.recipient_mobile}
-						</p>
-						<p>
-							<strong>Package Weight:</strong>{" "}
-							{Number(shipmentItem.package_weight).toFixed(2)} Kg
-						</p>
-						<p>
-							<strong>Package Dimensions:</strong>{" "}
-							{shipmentItem.package_dimensions}
-						</p>
-						{shipmentItem.package_image_url && (
-							<div className="flex flex-col gap-2">
-								<strong>Package Image:</strong>
-								<a
-									href={shipmentItem.package_image_url}
-									target="_blank"
-									rel="noopener noreferrer"
-								>
-									<Image
-										src={shipmentItem.package_image_url}
-										alt="Package Image"
-										width={200}
-										height={200}
-										className="h-48 w-48 object-cover"
-									/>
-								</a>
+					<div className="grid grid-cols-2 gap-4 overflow-y-auto py-4">
+						<div className="font-semibold text-gray-700">User</div>
+						<div>{shipmentItem.user.name}</div>
+
+						<div className="font-semibold text-gray-700">Email</div>
+						<div>{shipmentItem.user.email}</div>
+
+						<div className="font-semibold text-gray-700">Created At</div>
+						<div>{formatDate(shipmentItem.created_at)}</div>
+
+						<div className="font-semibold text-gray-700">Shipment ID</div>
+						<div>{shipmentItem.human_readable_shipment_id}</div>
+
+						<div className="font-semibold text-gray-700">Recipient Name</div>
+						<div>{shipmentItem.recipient_name}</div>
+
+						<div className="font-semibold text-gray-700">Recipient Mobile</div>
+						<div>{shipmentItem.recipient_mobile}</div>
+
+						<div className="font-semibold text-gray-700">Package Weight</div>
+						<div>{Number(shipmentItem.package_weight).toFixed(2)} Kg</div>
+
+						<div className="font-semibold text-gray-700">
+							Package Dimensions
+						</div>
+						<div className="space-y-1">
+							<div>
+								<span className="text-gray-600">Breadth:</span>{" "}
+								{shipmentItem.package_dimensions.split(/\s*x\s*/i)[0]} cm
 							</div>
+							<div>
+								<span className="text-gray-600">Height:</span>{" "}
+								{shipmentItem.package_dimensions.split(/\s*x\s*/i)[1]} cm
+							</div>
+							<div>
+								<span className="text-gray-600">Length:</span>{" "}
+								{shipmentItem.package_dimensions.split(/\s*x\s*/i)[2]} cm
+							</div>
+						</div>
+
+						<div className="font-semibold text-gray-700">Origin Address</div>
+						<div className="space-y-1">
+							<div>
+								<span className="text-gray-600">Address Line:</span>{" "}
+								{shipmentItem.origin_address.address_line}
+							</div>
+							<div>
+								<span className="text-gray-600">Landmark:</span>{" "}
+								{shipmentItem.origin_address.landmark}
+							</div>
+							<div>
+								<span className="text-gray-600">City:</span>{" "}
+								{shipmentItem.origin_address.city}
+							</div>
+							<div>
+								<span className="text-gray-600">State:</span>{" "}
+								{shipmentItem.origin_address.state}
+							</div>
+							<div>
+								<span className="text-gray-600">PIN Code:</span>{" "}
+								{shipmentItem.origin_address.zip_code}
+							</div>
+						</div>
+						<div className="font-semibold text-gray-700">
+							Destination Address
+						</div>
+						<div className="space-y-1">
+							<div>
+								<span className="text-gray-600">Address Line:</span>{" "}
+								{shipmentItem.destination_address.address_line}
+							</div>
+							<div>
+								<span className="text-gray-600">Landmark:</span>{" "}
+								{shipmentItem.destination_address.landmark}
+							</div>
+							<div>
+								<span className="text-gray-600">City:</span>{" "}
+								{shipmentItem.destination_address.city}
+							</div>
+							<div>
+								<span className="text-gray-600">State:</span>{" "}
+								{shipmentItem.destination_address.state}
+							</div>
+							<div>
+								<span className="text-gray-600">PIN Code:</span>{" "}
+								{shipmentItem.destination_address.zip_code}
+							</div>
+						</div>
+
+						{shipmentItem.package_image_url && (
+							<>
+								<div className="font-semibold text-gray-700">Package Image</div>
+								<div>
+									<a
+										href={shipmentItem.package_image_url}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										<Image
+											src={shipmentItem.package_image_url}
+											alt="Package Image"
+											width={200}
+											height={200}
+											className="h-48 w-48 rounded-md object-cover"
+										/>
+									</a>
+								</div>
+							</>
 						)}
-						<p>
-							<strong>Amount:</strong> ₹
-							{Number(shipmentItem.shipping_cost).toFixed(2)}
-						</p>
-						<p>
-							<strong>Payment Status:</strong> {shipmentItem.payment_status}
-						</p>
-						<p>
-							<strong>Approval Status:</strong> {shipmentItem.shipment_status}
-						</p>
+
+						<div className="font-semibold text-gray-700">Amount</div>
+						<div>₹{Number(shipmentItem.shipping_cost).toFixed(2)}</div>
+
+						<div className="font-semibold text-gray-700">Payment Status</div>
+						<div>{shipmentItem.payment_status}</div>
+
+						<div className="font-semibold text-gray-700">Approval Status</div>
+						<div>{shipmentItem.shipment_status}</div>
+
 						{shipmentItem.rejection_reason && (
-							<p>
-								<strong>Rejection Reason:</strong>{" "}
-								{shipmentItem.rejection_reason}
-							</p>
+							<>
+								<div className="font-semibold text-gray-700">
+									Rejection Reason
+								</div>
+								<div>{shipmentItem.rejection_reason}</div>
+							</>
 						)}
 					</div>
 					<DialogFooter className="mt-4 flex justify-end space-x-2">

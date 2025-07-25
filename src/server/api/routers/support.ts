@@ -20,11 +20,6 @@ export const supportRouter = createTRPCRouter({
 	createTicket: protectedProcedure
 		.input(createTicketSchema)
 		.mutation(async ({ ctx, input }) => {
-			logger.info("Creating new support ticket", {
-				userId: ctx.user.user_id,
-				subject: input.subject,
-				awb: input.awb,
-			});
 			try {
 				const newTicket = await ctx.db.supportTicket.create({
 					data: {
@@ -42,13 +37,12 @@ export const supportRouter = createTRPCRouter({
 							},
 						},
 					},
+					select: {},
 				});
-				logger.info("Support ticket created successfully", {
-					ticketId: newTicket.ticket_id,
-				});
+
 				return newTicket;
 			} catch (error) {
-				logger.error("Failed to create support ticket", { error });
+				logger.error("support.createTicket", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to create support ticket",
@@ -59,10 +53,6 @@ export const supportRouter = createTRPCRouter({
 	getUserTickets: protectedProcedure
 		.input(getUserTicketsSchema)
 		.query(async ({ ctx, input }) => {
-			logger.info("Fetching user support tickets", {
-				userId: ctx.user.user_id,
-				input,
-			});
 			try {
 				const { status, priority, page, pageSize } = input;
 				const whereClause: Prisma.SupportTicketWhereInput = {
@@ -83,20 +73,21 @@ export const supportRouter = createTRPCRouter({
 					skip: (page - 1) * pageSize,
 					take: pageSize,
 					orderBy: { created_at: "desc" },
-					include: { messages: { orderBy: { created_at: "desc" }, take: 1 } }, // Get last message
+					include: {
+						messages: {
+							select: { content: true, sender_id: true, sender_role: true },
+							orderBy: { created_at: "desc" },
+							take: 1,
+						},
+					},
 				});
 
 				const totalTickets = await ctx.db.supportTicket.count({
 					where: whereClause,
 				});
-
-				logger.info("User support tickets fetched successfully", {
-					userId: ctx.user.user_id,
-					count: tickets.length,
-				});
 				return { tickets, totalTickets };
 			} catch (error) {
-				logger.error("Failed to fetch user support tickets", { error });
+				logger.error("support.getUserTickets", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch user support tickets",
@@ -107,10 +98,6 @@ export const supportRouter = createTRPCRouter({
 	getTicketMessages: protectedProcedure
 		.input(getTicketMessagesSchema)
 		.query(async ({ ctx, input }) => {
-			logger.info("Fetching messages for ticket", {
-				ticketId: input.ticketId,
-				userId: ctx.user.user_id,
-			});
 			try {
 				const ticket = await ctx.db.supportTicket.findUnique({
 					where: { ticket_id: input.ticketId },
@@ -118,21 +105,15 @@ export const supportRouter = createTRPCRouter({
 				});
 
 				if (!ticket || ticket.user_id !== ctx.user.user_id) {
-					logger.warn("Unauthorized access to ticket messages", {
-						ticketId: input.ticketId,
-						userId: ctx.user.user_id,
-					});
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to view this ticket.",
 					});
 				}
-				logger.info("Ticket messages fetched successfully", {
-					ticketId: input.ticketId,
-				});
+
 				return ticket.messages;
 			} catch (error) {
-				logger.error("Failed to fetch ticket messages", { error });
+				logger.error("support.getTicketMessages", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch ticket messages",
@@ -143,20 +124,13 @@ export const supportRouter = createTRPCRouter({
 	addMessageToTicket: protectedProcedure
 		.input(addMessageSchema)
 		.mutation(async ({ ctx, input }) => {
-			logger.info("Adding message to ticket", {
-				ticketId: input.ticketId,
-				userId: ctx.user.user_id,
-			});
 			try {
 				const ticket = await ctx.db.supportTicket.findUnique({
 					where: { ticket_id: input.ticketId },
+					select: { user_id: true },
 				});
 
 				if (!ticket || ticket.user_id !== ctx.user.user_id) {
-					logger.warn("Unauthorized attempt to add message to ticket", {
-						ticketId: input.ticketId,
-						userId: ctx.user.user_id,
-					});
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to add messages to this ticket.",
@@ -170,14 +144,11 @@ export const supportRouter = createTRPCRouter({
 						sender_role: ctx.user.role,
 						content: input.content,
 					},
-				});
-				logger.info("Message added to ticket successfully", {
-					messageId: newMessage.message_id,
-					ticketId: input.ticketId,
+					select: {},
 				});
 				return newMessage;
 			} catch (error) {
-				logger.error("Failed to add message to ticket", { error });
+				logger.error("support.addMessageToTicket", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to add message to ticket",
@@ -188,10 +159,6 @@ export const supportRouter = createTRPCRouter({
 	getAllTickets: adminProcedure
 		.input(getAllTicketsSchema)
 		.query(async ({ ctx, input }) => {
-			logger.info("Admin fetching all support tickets", {
-				adminId: ctx.user.user_id,
-				input,
-			});
 			try {
 				const { status, priority, userId, page, pageSize, startDate, endDate } =
 					input;
@@ -218,13 +185,9 @@ export const supportRouter = createTRPCRouter({
 					where: whereClause,
 				});
 
-				logger.info("All support tickets fetched successfully by admin", {
-					adminId: ctx.user.user_id,
-					count: tickets.length,
-				});
 				return { tickets, totalTickets };
 			} catch (error) {
-				logger.error("Admin failed to fetch all support tickets", { error });
+				logger.error("support.getAllTickets", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch all support tickets",
@@ -235,10 +198,6 @@ export const supportRouter = createTRPCRouter({
 	getTicketDetails: protectedProcedure
 		.input(getTicketDetailsSchema)
 		.query(async ({ ctx, input }) => {
-			logger.info("Fetching ticket details", {
-				ticketId: input.ticketId,
-				adminId: ctx.user.user_id,
-			});
 			try {
 				const ticket = await ctx.db.supportTicket.findUnique({
 					where: { ticket_id: input.ticketId },
@@ -269,21 +228,14 @@ export const supportRouter = createTRPCRouter({
 				});
 
 				if (!ticket) {
-					logger.warn("Ticket not found for admin", {
-						ticketId: input.ticketId,
-						adminId: ctx.user.user_id,
-					});
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Ticket not found",
 					});
 				}
-				logger.info("Ticket details fetched successfully by admin", {
-					ticketId: input.ticketId,
-				});
 				return ticket;
 			} catch (error) {
-				logger.error("Admin failed to fetch ticket details", { error });
+				logger.error("support.getTicketDetails", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch ticket details",
@@ -294,20 +246,13 @@ export const supportRouter = createTRPCRouter({
 	addMessageToTicketAdmin: adminProcedure
 		.input(addMessageSchema)
 		.mutation(async ({ ctx, input }) => {
-			logger.info("Admin adding message to ticket", {
-				ticketId: input.ticketId,
-				adminId: ctx.user.user_id,
-			});
 			try {
 				const ticket = await ctx.db.supportTicket.findUnique({
 					where: { ticket_id: input.ticketId },
+					select: {},
 				});
 
 				if (!ticket) {
-					logger.warn("Ticket not found for admin message addition", {
-						ticketId: input.ticketId,
-						adminId: ctx.user.user_id,
-					});
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Ticket not found",
@@ -322,13 +267,9 @@ export const supportRouter = createTRPCRouter({
 						content: input.content,
 					},
 				});
-				logger.info("Admin message added to ticket successfully", {
-					messageId: newMessage.message_id,
-					ticketId: input.ticketId,
-				});
 				return newMessage;
 			} catch (error) {
-				logger.error("Admin failed to add message to ticket", { error });
+				logger.error("support.addMessageToTicketAdmin", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to add message to ticket",
@@ -339,11 +280,6 @@ export const supportRouter = createTRPCRouter({
 	updateTicketStatus: adminProcedure
 		.input(updateTicketStatusSchema)
 		.mutation(async ({ ctx, input }) => {
-			logger.info("Admin updating ticket status", {
-				ticketId: input.ticketId,
-				status: input.status,
-				adminId: ctx.user.user_id,
-			});
 			try {
 				const updatedTicket = await ctx.db.supportTicket.update({
 					where: { ticket_id: input.ticketId },
@@ -352,14 +288,11 @@ export const supportRouter = createTRPCRouter({
 						resolved_at:
 							input.status === SUPPORT_STATUS.Closed ? new Date() : null,
 					},
-				});
-				logger.info("Ticket status updated successfully by admin", {
-					ticketId: updatedTicket.ticket_id,
-					newStatus: updatedTicket.status,
+					select: {},
 				});
 				return updatedTicket;
 			} catch (error) {
-				logger.error("Admin failed to update ticket status", { error });
+				logger.error("support.updateTicketStatus", { ctx, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to update ticket status",
@@ -370,25 +303,21 @@ export const supportRouter = createTRPCRouter({
 	updateTicketPriority: adminProcedure
 		.input(updateTicketPrioritySchema)
 		.mutation(async ({ ctx, input }) => {
-			logger.info("Admin updating ticket priority", {
-				ticketId: input.ticketId,
-				priority: input.priority,
-				adminId: ctx.user.user_id,
-			});
 			try {
 				const updatedTicket = await ctx.db.supportTicket.update({
 					where: { ticket_id: input.ticketId },
 					data: {
 						priority: input.priority,
 					},
-				});
-				logger.info("Ticket priority updated successfully by admin", {
-					ticketId: updatedTicket.ticket_id,
-					newPriority: updatedTicket.priority,
+					select: {},
 				});
 				return updatedTicket;
 			} catch (error) {
-				logger.error("Admin failed to update ticket priority", { error });
+				logger.error("Admin failed to update ticket priority", {
+					ctx,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to update ticket priority",

@@ -122,7 +122,7 @@ function AdminOrdersContent() {
 		{
 			key: "shipment_status",
 			header: "Status",
-			className: "px-4 w-30 text-center",
+			className: "px-4 w-60 text-center",
 			render: (item) => {
 				const statusInfo = SHIPMENT_STATUS_MAP[
 					item.current_status as keyof typeof SHIPMENT_STATUS_MAP

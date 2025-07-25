@@ -17,7 +17,7 @@ export const webhookSchema = z.object({
 			status_time: z.string().optional(),
 			order_data: z.string().optional(),
 			carrier: z.string().optional(),
-			carrier_id: z.string().optional(),
+			carrier_id: z.number().optional(),
 			tracking_url: z.string().optional(),
 			scans: z
 				.array(
