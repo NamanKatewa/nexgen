@@ -39,6 +39,11 @@ const sidebarLinks = [
 		label: "Tracking",
 	},
 	{
+		href: "/admin/ndr",
+		icon: Truck,
+		label: "NDR",
+	},
+	{
 		href: "/admin/shipments",
 		icon: Package,
 		label: "All Shipments",

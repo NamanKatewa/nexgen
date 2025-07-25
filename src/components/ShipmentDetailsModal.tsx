@@ -47,6 +47,8 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 	const utils = api.useUtils();
 	const approveMutation = api.admin.approveShipment.useMutation({
 		onSuccess: () => {
+			setAwbNumber("");
+			setCourierId("");
 			utils.admin.pendingShipments.invalidate();
 			toast.success("Shipment approved successfully!");
 			onClose();
@@ -57,6 +59,7 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 	});
 	const rejectMutation = api.admin.rejectShipment.useMutation({
 		onSuccess: () => {
+			setRejectReason("");
 			utils.admin.pendingShipments.invalidate();
 			toast.success("Shipment rejected successfully!");
 			onClose();
