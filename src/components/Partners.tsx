@@ -59,8 +59,8 @@ const Partners = () => {
 						</Circle>
 						<Circle ref={div5Ref}>
 							<Image
-								src="/partners/ecomexpress.png"
-								alt="ecomexpress"
+								src="/partners/bluedart.png"
+								alt="bluedart"
 								height={80}
 								width={80}
 								className="rounded-full object-contain p-1"
