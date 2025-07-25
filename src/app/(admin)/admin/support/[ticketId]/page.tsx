@@ -26,6 +26,7 @@ import { api } from "~/trpc/react";
 import { nanoid } from "nanoid";
 import Link from "next/link";
 import { Fragment } from "react";
+import Copyable from "~/components/Copyable";
 import { Button } from "~/components/ui/button";
 import {
 	Select,
@@ -35,7 +36,6 @@ import {
 	SelectValue,
 } from "~/components/ui/select";
 import { cn } from "~/lib/utils";
-import Copyable from "~/components/Copyable";
 
 export default function AdminTicketDetailsPage() {
 	const params = useParams();

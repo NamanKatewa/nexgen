@@ -212,6 +212,7 @@ export const userDashRouter = createTRPCRouter({
     `;
 
 		return {
+			user: { name: user.name },
 			kpis,
 			shipmentStatusDistribution: formattedShipmentStatusDistribution,
 			shipmentsOverTime: formattedShipmentsOverTime,
