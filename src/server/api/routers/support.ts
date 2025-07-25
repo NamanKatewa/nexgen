@@ -23,6 +23,7 @@ export const supportRouter = createTRPCRouter({
 			logger.info("Creating new support ticket", {
 				userId: ctx.user.user_id,
 				subject: input.subject,
+				awb: input.awb,
 			});
 			try {
 				const newTicket = await ctx.db.supportTicket.create({
@@ -30,6 +31,7 @@ export const supportRouter = createTRPCRouter({
 						user_id: ctx.user.user_id,
 						subject: input.subject,
 						description: input.description,
+						awb: input.awb,
 						status: SUPPORT_STATUS.Open,
 						priority: "Low",
 						messages: {
@@ -233,15 +235,32 @@ export const supportRouter = createTRPCRouter({
 	getTicketDetails: protectedProcedure
 		.input(getTicketDetailsSchema)
 		.query(async ({ ctx, input }) => {
-			logger.info("Admin fetching ticket details", {
+			logger.info("Fetching ticket details", {
 				ticketId: input.ticketId,
 				adminId: ctx.user.user_id,
 			});
 			try {
 				const ticket = await ctx.db.supportTicket.findUnique({
 					where: { ticket_id: input.ticketId },
-					include: {
-						user: { select: { name: true, email: true, mobile_number: true } },
+					select: {
+						ticket_id: true,
+						user_id: true,
+						subject: true,
+						description: true,
+						status: true,
+						priority: true,
+						created_at: true,
+						resolved_at: true,
+						awb: true,
+						assigned_to_employee_id: true,
+						user: {
+							select: {
+								user_id: true,
+								name: true,
+								email: true,
+								mobile_number: true,
+							},
+						},
 						messages: { orderBy: { created_at: "asc" } },
 						assigned_to: {
 							select: { employee_id: true, user: { select: { name: true } } },

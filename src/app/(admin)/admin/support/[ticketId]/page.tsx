@@ -35,6 +35,7 @@ import {
 	SelectValue,
 } from "~/components/ui/select";
 import { cn } from "~/lib/utils";
+import Copyable from "~/components/Copyable";
 
 export default function AdminTicketDetailsPage() {
 	const params = useParams();
@@ -284,6 +285,12 @@ export default function AdminTicketDetailsPage() {
 						</div>
 						<p className="font-medium text-sm">Created:</p>
 						<p className="text-sm">{format(ticket.created_at, "PPP p")}</p>
+						{ticket.awb && (
+							<>
+								<p className="font-medium text-sm">AWB:</p>
+								<Copyable content={ticket.awb} />
+							</>
+						)}
 						{ticket.resolved_at && (
 							<>
 								<p className="font-medium text-sm">Resolved:</p>

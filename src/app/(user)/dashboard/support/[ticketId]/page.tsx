@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 import { Fragment } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import Copyable from "~/components/Copyable";
 import { FieldError } from "~/components/FieldError";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -148,8 +149,14 @@ export default function TicketDetailsPage() {
 						>
 							{ticket.priority}
 						</Badge>
-						<p className="font-medium text-sm">Created:</p>
+						<p className="font-medium text-sm">Created At:</p>
 						<p className="text-sm">{format(ticket.created_at, "PPP p")}</p>
+						{ticket.awb && (
+							<>
+								<p className="font-medium text-sm">AWB:</p>
+								<Copyable content={ticket.awb} />
+							</>
+						)}
 						{ticket.resolved_at && (
 							<>
 								<p className="font-medium text-sm">Resolved:</p>

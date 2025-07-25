@@ -6,6 +6,7 @@ export const createTicketSchema = z.object({
 	description: z
 		.string()
 		.min(10, "Description must be at least 10 characters long"),
+	awb: z.string().optional(),
 });
 
 export const addMessageSchema = z.object({

@@ -227,6 +227,15 @@ export default function SupportPage() {
 									<FieldError message={errors.description.message} />
 								)}
 							</div>
+							<div>
+								<label htmlFor="awb" className="block font-medium text-sm">
+									AWB (Optional)
+								</label>
+								<Input id="awb" {...register("awb")} />
+								{errors.awb && (
+									<FieldError message={errors.awb.message} />
+								)}
+							</div>
 							<Button type="submit" disabled={createTicketMutation.isPending}>
 								{createTicketMutation.isPending
 									? "Creating..."

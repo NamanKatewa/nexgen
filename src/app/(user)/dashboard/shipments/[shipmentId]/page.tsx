@@ -291,15 +291,15 @@ export default function UserShipmentDetailPage() {
 							</p>
 							<p className="font-medium text-sm">Breadth:</p>
 							<p className="text-sm">
-								{shipment.package_dimensions.split(/\s*x\s*/i)[0]}
+								{shipment.package_dimensions.split(/\s*x\s*/i)[0]} cm
 							</p>
 							<p className="font-medium text-sm">Height:</p>
 							<p className="text-sm">
-								{shipment.package_dimensions.split(/\s*x\s*/i)[1]}
+								{shipment.package_dimensions.split(/\s*x\s*/i)[1]} cm
 							</p>
 							<p className="font-medium text-sm">Length:</p>
 							<p className="text-sm">
-								{shipment.package_dimensions.split(/\s*x\s*/i)[2]}
+								{shipment.package_dimensions.split(/\s*x\s*/i)[2]} cm
 							</p>
 
 							{shipment.package_image_url && (

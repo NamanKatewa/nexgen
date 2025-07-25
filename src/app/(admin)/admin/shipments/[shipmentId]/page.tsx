@@ -335,13 +335,13 @@ export default function AdminOrderDetailPage() {
 							<p className="font-medium text-sm">Package Dimensions:</p>
 							<div className="text-sm">
 								<p>
-									Breadth: {shipment.package_dimensions.split(/\s*x\s*/i)[0]}
+									Breadth: {shipment.package_dimensions.split(/\s*x\s*/i)[0]} cm
 								</p>
 								<p>
-									Height: {shipment.package_dimensions.split(/\s*x\s*/i)[1]}
+									Height: {shipment.package_dimensions.split(/\s*x\s*/i)[1]} cm
 								</p>
 								<p>
-									Length: {shipment.package_dimensions.split(/\s*x\s*/i)[2]}
+									Length: {shipment.package_dimensions.split(/\s*x\s*/i)[2]} cm
 								</p>
 							</div>
 

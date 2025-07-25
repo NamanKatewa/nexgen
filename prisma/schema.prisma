@@ -314,6 +314,7 @@ model SupportTicket {
   created_at              DateTime         @default(now())
   updated_at              DateTime         @updatedAt
   resolved_at             DateTime?
+  awb                     String?
 
   user        User            @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   assigned_to Employee?       @relation(fields: [assigned_to_employee_id], references: [employee_id])
