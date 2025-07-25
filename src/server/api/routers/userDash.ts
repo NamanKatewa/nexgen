@@ -61,17 +61,24 @@ export const userDashRouter = createTRPCRouter({
 
 		const shipmentStatusCounts = await ctx.db.shipment.groupBy({
 			by: ["current_status"],
-			where: { user_id: userId, current_status: { in: userShipmentStatusStages } },
+			where: {
+				user_id: userId,
+				current_status: { in: userShipmentStatusStages },
+			},
 			_count: { current_status: true },
 		});
 
-		const shipmentStatusDistribution = userShipmentStatusStages.map((status) => {
-			const found = shipmentStatusCounts.find((s) => s.current_status === status);
-			return {
-				status,
-				count: found ? found._count.current_status : 0,
-			};
-		});
+		const shipmentStatusDistribution = userShipmentStatusStages.map(
+			(status) => {
+				const found = shipmentStatusCounts.find(
+					(s) => s.current_status === status,
+				);
+				return {
+					status,
+					count: found ? found._count.current_status : 0,
+				};
+			},
+		);
 
 		const formattedShipmentStatusDistribution = shipmentStatusDistribution.map(
 			(s) => ({
@@ -125,12 +132,16 @@ export const userDashRouter = createTRPCRouter({
 			take: 5,
 		});
 
-		const destinationAddressIds = topDestinationStates.map((s) => s.destination_address_id);
+		const destinationAddressIds = topDestinationStates.map(
+			(s) => s.destination_address_id,
+		);
 		const addresses = await ctx.db.address.findMany({
 			where: { address_id: { in: destinationAddressIds } },
 			select: { address_id: true, state: true },
 		});
-		const addressMap = new Map(addresses.map((address) => [address.address_id, address.state]));
+		const addressMap = new Map(
+			addresses.map((address) => [address.address_id, address.state]),
+		);
 
 		const formattedTopDestinationStates = topDestinationStates.map((s) => ({
 			state: addressMap.get(s.destination_address_id) || "Unknown",
@@ -154,12 +165,16 @@ export const userDashRouter = createTRPCRouter({
 			SHIPMENT_STATUS.SHIPMENT_BOOKED,
 		];
 
-		const courierIds = topCouriers.map((c) => c.courier_id).filter((id) => id !== null) as string[];
+		const courierIds = topCouriers
+			.map((c) => c.courier_id)
+			.filter((id) => id !== null) as string[];
 		const couriers = await ctx.db.courier.findMany({
 			where: { id: { in: courierIds } },
 			select: { id: true, name: true },
 		});
-		const courierMap = new Map(couriers.map((courier) => [courier.id, courier.name]));
+		const courierMap = new Map(
+			couriers.map((courier) => [courier.id, courier.name]),
+		);
 
 		const courierPerformance = await Promise.all(
 			topCouriers.map(async (c) => {

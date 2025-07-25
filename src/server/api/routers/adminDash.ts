@@ -35,7 +35,8 @@ export const adminDashRouter = createTRPCRouter({
 		const totalUserBalanceResult = await ctx.db.wallet.aggregate({
 			_sum: { balance: true },
 		});
-		const totalUserBalance = totalUserBalanceResult._sum.balance?.toNumber() || 0;
+		const totalUserBalance =
+			totalUserBalanceResult._sum.balance?.toNumber() || 0;
 
 		const kpis = {
 			totalUsers,
@@ -183,10 +184,12 @@ export const adminDashRouter = createTRPCRouter({
 		});
 		const userMap = new Map(users.map((user) => [user.user_id, user.name]));
 
-		const formattedTopUsersByShipmentVolume = topUsersByShipmentVolume.map((u) => ({
-			userName: userMap.get(u.user_id) || "Unknown User",
-			shipmentCount: u._count.user_id,
-		}));
+		const formattedTopUsersByShipmentVolume = topUsersByShipmentVolume.map(
+			(u) => ({
+				userName: userMap.get(u.user_id) || "Unknown User",
+				shipmentCount: u._count.user_id,
+			}),
+		);
 
 		// Courier Usage Distribution
 		const totalShipmentsAll = await ctx.db.shipment.count();
@@ -204,20 +207,24 @@ export const adminDashRouter = createTRPCRouter({
 			where: { id: { in: courierIds } },
 			select: { id: true, name: true },
 		});
-		const courierMap = new Map(couriers.map((courier) => [courier.id, courier.name]));
+		const courierMap = new Map(
+			couriers.map((courier) => [courier.id, courier.name]),
+		);
 
-		const formattedCourierUsageDistribution = courierUsageDistribution.map((c) => {
-			if (c.courier_id === null) {
-				return { courierName: "Unknown Courier", shipmentPercentage: 0 }; // Handle null courier_id
-			}
-			return {
-				courierName: courierMap.get(c.courier_id) || "Unknown Courier",
-				shipmentPercentage:
-					totalShipmentsAll > 0
-						? (c._count.courier_id / totalShipmentsAll) * 100
-						: 0,
-			};
-		});
+		const formattedCourierUsageDistribution = courierUsageDistribution.map(
+			(c) => {
+				if (c.courier_id === null) {
+					return { courierName: "Unknown Courier", shipmentPercentage: 0 }; // Handle null courier_id
+				}
+				return {
+					courierName: courierMap.get(c.courier_id) || "Unknown Courier",
+					shipmentPercentage:
+						totalShipmentsAll > 0
+							? (c._count.courier_id / totalShipmentsAll) * 100
+							: 0,
+				};
+			},
+		);
 
 		return {
 			kpis,
