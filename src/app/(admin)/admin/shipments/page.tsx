@@ -173,7 +173,7 @@ function AdminOrdersContent() {
 	const filters = [
 		{
 			id: "userId",
-			label: "User ID",
+			label: "Search",
 			type: "text" as const,
 			value: userIdSearchText,
 			onChange: setUserIdSearchText,

@@ -787,7 +787,11 @@ export const shipmentRouter = createTRPCRouter({
 
 			const where: Prisma.ShipmentWhereInput = {
 				shipment_status: status,
-				user_id: userId,
+				...(userId
+					? {
+							OR: [{ user_id: userId }, { user: { email: userId } }],
+						}
+					: {}),
 			};
 
 			if (startDate && endDate) {
