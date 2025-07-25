@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { FieldError } from "~/components/FieldError";
@@ -18,12 +19,10 @@ const formSchema = z.object({
 });
 
 const LabelMakerPage = () => {
-	const [isLoading, setIsLoading] = useState(false);
 	const {
 		register,
 		handleSubmit,
 		formState: { errors },
-		getValues,
 	} = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
@@ -31,13 +30,20 @@ const LabelMakerPage = () => {
 		},
 	});
 
-	const { mutateAsync: generateLabelMutation } =
-		api.label.generateLabel.useMutation();
+	const generateLabelMutation = api.label.generateLabel.useMutation({
+		onError: (err) => {
+			toast.error(err.message);
+		},
+		onSuccess: () => {
+			toast.success("Label Generated");
+		},
+	});
 
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
-		setIsLoading(true);
-		await generateAndDownloadLabel(values.shipmentId, generateLabelMutation);
-		setIsLoading(false);
+		await generateAndDownloadLabel(
+			values.shipmentId,
+			generateLabelMutation.mutateAsync,
+		);
 	};
 
 	return (
@@ -53,12 +59,18 @@ const LabelMakerPage = () => {
 							id="shipmentId"
 							placeholder="Enter ID"
 							{...register("shipmentId")}
-							disabled={isLoading}
+							disabled={generateLabelMutation.isPending}
 						/>
 						<FieldError message={errors.shipmentId?.message} />
 					</div>
-					<Button type="submit" className="w-full" disabled={isLoading}>
-						{isLoading ? "Generating..." : "Generate Label"}
+					<Button
+						type="submit"
+						className="w-full"
+						disabled={generateLabelMutation.isPending}
+					>
+						{generateLabelMutation.isPending
+							? "Generating..."
+							: "Generate Label"}
 					</Button>
 				</form>
 			</FormWrapper>

@@ -3,14 +3,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SUPPORT_STATUS, type USER_ROLE } from "@prisma/client";
 import { format } from "date-fns";
+import { nanoid } from "nanoid";
 import { useParams } from "next/navigation";
+import { Fragment } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Separator } from "~/components/ui/separator";
+import { Skeleton } from "~/components/ui/skeleton";
 import { Textarea } from "~/components/ui/textarea";
 import { cn } from "~/lib/utils";
 import { type AddMessageInput, addMessageSchema } from "~/schemas/support";
@@ -60,7 +62,56 @@ export default function TicketDetailsPage() {
 
 	if (userLoading || ticketLoading) {
 		return (
-			<div className="container mx-auto py-10">Loading ticket details...</div>
+			<div className="p-8">
+				<Skeleton className="mb-6 h-8 w-1/2" />
+
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>
+							<Skeleton className="h-6 w-1/4" />
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<div className="grid grid-cols-2 items-center gap-2">
+							{[...Array(4)].map(() => (
+								<Fragment key={nanoid()}>
+									<Skeleton className="h-5 w-1/3" />
+									<Skeleton className="h-5 w-2/3" />
+								</Fragment>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>
+							<Skeleton className="h-6 w-1/4" />
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<div className="grid grid-cols-1 gap-4">
+							{[...Array(3)].map(() => (
+								<Fragment key={nanoid()}>
+									<Skeleton className="h-15 w-full" />
+								</Fragment>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>
+							<Skeleton className="h-6 w-1/4" />
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<Skeleton className="h-24 w-full" />
+						<Skeleton className="h-10 w-full" />
+					</CardContent>
+				</Card>
+			</div>
 		);
 	}
 
@@ -69,7 +120,7 @@ export default function TicketDetailsPage() {
 	}
 
 	return (
-		<div className="container mx-auto py-10">
+		<div className="container mx-auto p-10">
 			<h1 className="mb-6 font-bold text-3xl">Ticket: {ticket.subject}</h1>
 
 			<Card className="mb-6">
@@ -126,8 +177,7 @@ export default function TicketDetailsPage() {
 							style={{ maxWidth: "75%" }}
 						>
 							<p className="font-semibold">
-								{message.sender_id === user?.id ? "You" : "Admin"} (
-								{(message.sender_role as USER_ROLE).toLowerCase()})
+								{message.sender_id === user?.id ? "You" : "Admin"}
 							</p>
 							<p>{message.content}</p>
 							<p className="mt-1 text-gray-500 text-xs">
@@ -141,7 +191,7 @@ export default function TicketDetailsPage() {
 			{ticket.status !== SUPPORT_STATUS.Closed && (
 				<Card>
 					<CardHeader>
-						<CardTitle>Your Reply</CardTitle>
+						<CardTitle>Reply</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -150,14 +200,14 @@ export default function TicketDetailsPage() {
 									id="content"
 									{...register("content")}
 									rows={4}
-									placeholder="Type your message here..."
+									placeholder="Type your reply here..."
 								/>
 								{errors.content && (
 									<FieldError message={errors.content.message} />
 								)}
 							</div>
 							<Button type="submit" disabled={addMessageMutation.isPending}>
-								{addMessageMutation.isPending ? "Sending..." : "Send Message"}
+								{addMessageMutation.isPending ? "Sending..." : "Send Reply"}
 							</Button>
 						</form>
 					</CardContent>

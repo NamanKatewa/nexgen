@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
 import { Badge } from "~/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Separator } from "~/components/ui/separator";
+import { Skeleton } from "~/components/ui/skeleton";
 import { Textarea } from "~/components/ui/textarea";
 import {
 	type AddMessageInput,
@@ -23,7 +23,9 @@ import {
 } from "~/schemas/support";
 import { api } from "~/trpc/react";
 
+import { nanoid } from "nanoid";
 import Link from "next/link";
+import { Fragment } from "react";
 import { Button } from "~/components/ui/button";
 import {
 	Select,
@@ -157,7 +159,57 @@ export default function AdminTicketDetailsPage() {
 
 	if (isLoading) {
 		return (
-			<div className="container mx-auto py-10">Loading ticket details...</div>
+			<div className="p-8">
+				<Skeleton className="mb-6 h-8 w-1/2" />
+
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>
+							<Skeleton className="h-6 w-1/4" />
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<div className="grid grid-cols-2 items-center gap-2">
+							{[...Array(6)].map(() => (
+								<Fragment key={nanoid()}>
+									<Skeleton className="h-5 w-1/3" />
+									<Skeleton className="h-5 w-2/3" />
+								</Fragment>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>
+							<Skeleton className="h-6 w-1/4" />
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<div className="grid grid-cols-2 items-center gap-2">
+							{[...Array(3)].map(() => (
+								<Fragment key={nanoid()}>
+									<Skeleton className="h-15 w-1/3" />
+									<Skeleton className="h-15 w-2/3" />
+								</Fragment>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>
+							<Skeleton className="h-6 w-1/4" />
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<Skeleton className="h-24 w-full" />
+						<Skeleton className="h-10 w-full" />
+					</CardContent>
+				</Card>
+			</div>
 		);
 	}
 

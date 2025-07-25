@@ -24,7 +24,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
 	return (
 		<html lang="en" className={`${geist.variable}`}>
-			<body className="mt-16 ml-8 bg-blue-50 md:ml-64">
+			<body className="mt-16 mb-16 ml-8 bg-blue-50 md:ml-64">
 				<TRPCReactProvider>
 					<Navbar />
 					<AdminSidebar />

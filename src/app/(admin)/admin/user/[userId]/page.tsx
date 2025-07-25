@@ -1,12 +1,15 @@
 "use client";
 
+import { nanoid } from "nanoid";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Fragment } from "react";
 import Copyable from "~/components/Copyable";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -24,7 +27,91 @@ export default function AdminUserDetailPage() {
 	});
 
 	if (isLoading) {
-		return <div className="p-8">Loading user details...</div>;
+		return (
+			<div className="p-8">
+				<Skeleton className="mb-6 h-8 w-1/2" />
+				<Skeleton className="my-4 h-10 w-full" />
+
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>
+							<Skeleton className="h-6 w-1/4" />
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<div className="grid grid-cols-2 items-center gap-2">
+							{[...Array(12)].map(() => (
+								<Fragment key={nanoid()}>
+									<Skeleton className="h-5 w-1/3" />
+									<Skeleton className="h-5 w-2/3" />
+								</Fragment>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>
+							<Skeleton className="h-6 w-1/4" />
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<div className="grid grid-cols-2 items-center gap-2">
+							{[...Array(8)].map(() => (
+								<Fragment key={nanoid()}>
+									<Skeleton className="h-5 w-1/3" />
+									<Skeleton className="h-5 w-2/3" />
+								</Fragment>
+							))}
+						</div>
+						<div className="mt-4 grid grid-cols-2 gap-4">
+							<div>
+								<Skeleton className="mb-2 h-4 w-1/2" />
+								<div className="flex gap-4">
+									<Skeleton className="h-48 w-48" />
+									<Skeleton className="h-48 w-48" />
+								</div>
+							</div>
+							<div>
+								<Skeleton className="mb-2 h-4 w-1/2" />
+								<div className="flex gap-4">
+									<Skeleton className="h-48 w-48" />
+								</div>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+
+				{[...Array(3)].map(() => (
+					<Card key={nanoid()} className="mb-6">
+						<CardHeader>
+							<CardTitle>
+								<Skeleton className="h-6 w-1/4" />
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="grid gap-4">
+							{[...Array(2)].map(() => (
+								<div
+									key={nanoid()}
+									className="mb-4 border-b pb-4 last:mb-0 last:border-b-0 last:pb-0"
+								>
+									<div className="grid grid-cols-2 items-center gap-2">
+										{[...Array(5)].map(() => (
+											<Fragment key={nanoid()}>
+												<Skeleton className="h-5 w-1/3" />
+												<Skeleton className="h-5 w-2/3" />
+											</Fragment>
+										))}
+									</div>
+								</div>
+							))}
+							<Skeleton className="h-10 w-full" />
+						</CardContent>
+					</Card>
+				))}
+			</div>
+		);
 	}
 
 	if (error) {
