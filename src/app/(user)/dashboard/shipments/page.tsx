@@ -10,6 +10,7 @@ import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { SHIPMENT_STATUS_MAP } from "~/constants";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { generateAndDownloadLabel } from "~/lib/pdf-generator";
 import { cn } from "~/lib/utils";
@@ -68,8 +69,8 @@ export default function UserOrdersPage() {
 			render: (item) => `₹ ${Number(item.shipping_cost).toFixed(2)}`,
 		},
 		{
-			key: "shipment_status",
-			header: "Shipment Status",
+			key: "approval_status",
+			header: "Approval Status",
 			className: "px-4 w-40 text-center",
 			render: (item) => (
 				<Badge
@@ -82,6 +83,24 @@ export default function UserOrdersPage() {
 					{item.shipment_status}
 				</Badge>
 			),
+		},
+		{
+			key: "shipment_status",
+			header: "Status",
+			className: "px-4 w-60 text-center",
+			render: (item) => {
+				const statusInfo = SHIPMENT_STATUS_MAP[
+					item.current_status as keyof typeof SHIPMENT_STATUS_MAP
+				] || {
+					displayName: item.current_status,
+					color: "bg-gray-200 text-gray-800",
+				};
+				return (
+					<Badge className={cn("w-fit capitalize", statusInfo.color)}>
+						{statusInfo.displayName ? statusInfo.displayName : "N/A"}
+					</Badge>
+				);
+			},
 		},
 		{
 			key: "payment_status",
