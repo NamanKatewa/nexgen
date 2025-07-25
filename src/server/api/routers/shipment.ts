@@ -49,7 +49,6 @@ export const shipmentRouter = createTRPCRouter({
 				if (!originAddress) {
 					const pending = await db.pendingAddress.findFirst({
 						where: { pending_address_id: input.originAddressId },
-						select: {},
 					});
 					if (pending) {
 						throw new TRPCError({
@@ -97,6 +96,7 @@ export const shipmentRouter = createTRPCRouter({
 				let rate = null;
 
 				if (ctx.user.user_id) {
+					// Attempt to find user-specific rate first
 					const userRate = await findRate({
 						userId: ctx.user.user_id,
 						zoneFrom: "z",
@@ -105,10 +105,24 @@ export const shipmentRouter = createTRPCRouter({
 						packageWeight: input.packageWeight,
 						isUserRate: true,
 					});
+
 					if (userRate !== null) {
 						rate = userRate;
+					} else {
+						// If user-specific rate not found, fallback to default rate
+						const defaultRate = await findRate({
+							zoneFrom: "z",
+							zoneTo: zone,
+							weightSlab,
+							packageWeight: input.packageWeight,
+							isUserRate: false,
+						});
+						if (defaultRate !== null) {
+							rate = defaultRate;
+						}
 					}
 				} else {
+					// For unauthenticated users, directly use default rate
 					const defaultRate = await findRate({
 						zoneFrom: "z",
 						zoneTo: zone,
@@ -197,7 +211,6 @@ export const shipmentRouter = createTRPCRouter({
 					await tx.wallet.update({
 						where: { user_id: wallet.user_id },
 						data: { balance: { decrement: new Decimal(finalShippingCost) } },
-						select: {},
 					});
 
 					await tx.transaction.create({
@@ -209,7 +222,6 @@ export const shipmentRouter = createTRPCRouter({
 							shipment_id: shipment.shipment_id,
 							description: "Single Shipment Created",
 						},
-						select: {},
 					});
 
 					await tx.shipment.update({
@@ -220,7 +232,6 @@ export const shipmentRouter = createTRPCRouter({
 						data: {
 							payment_status: "Paid",
 						},
-						select: {},
 					});
 
 					return {

@@ -103,7 +103,6 @@ export const walletRouter = createTRPCRouter({
 				await db.wallet.update({
 					where: { wallet_id: dbUser.wallet.wallet_id },
 					data: { balance: dbUser.wallet.balance.add(transaction.amount) },
-					select: {},
 				});
 			} catch (error) {
 				logger.error("support.updateTransaction", { ctx, input, error });
@@ -165,7 +164,6 @@ export const walletRouter = createTRPCRouter({
 						await db.transaction.update({
 							where: { transaction_id: transaction.transaction_id },
 							data: { payment_status: "Failed" },
-							select: {},
 						});
 					} else {
 					}

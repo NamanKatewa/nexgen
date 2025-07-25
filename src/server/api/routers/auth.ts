@@ -52,7 +52,6 @@ export const authRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const userExists = await db.user.findUnique({
 				where: { email: input.email },
-				select: {},
 			});
 			if (userExists) {
 				throw new TRPCError({

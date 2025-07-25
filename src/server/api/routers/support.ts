@@ -37,7 +37,6 @@ export const supportRouter = createTRPCRouter({
 							},
 						},
 					},
-					select: {},
 				});
 
 				return newTicket;
@@ -144,7 +143,6 @@ export const supportRouter = createTRPCRouter({
 						sender_role: ctx.user.role,
 						content: input.content,
 					},
-					select: {},
 				});
 				return newMessage;
 			} catch (error) {
@@ -249,7 +247,6 @@ export const supportRouter = createTRPCRouter({
 			try {
 				const ticket = await ctx.db.supportTicket.findUnique({
 					where: { ticket_id: input.ticketId },
-					select: {},
 				});
 
 				if (!ticket) {
@@ -288,7 +285,6 @@ export const supportRouter = createTRPCRouter({
 						resolved_at:
 							input.status === SUPPORT_STATUS.Closed ? new Date() : null,
 					},
-					select: {},
 				});
 				return updatedTicket;
 			} catch (error) {
@@ -309,7 +305,6 @@ export const supportRouter = createTRPCRouter({
 					data: {
 						priority: input.priority,
 					},
-					select: {},
 				});
 				return updatedTicket;
 			} catch (error) {
