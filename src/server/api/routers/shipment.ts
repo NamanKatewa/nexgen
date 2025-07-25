@@ -1111,6 +1111,239 @@ export const shipmentRouter = createTRPCRouter({
 		return counts;
 	}),
 
+	getNdrShipments: adminProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+				userId: z.string().optional(),
+				currentStatus: z
+					.union([z.nativeEnum(SHIPMENT_STATUS), z.literal("ALL")])
+					.optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { page, pageSize, userId, currentStatus, startDate, endDate } =
+				input;
+			const skip = (page - 1) * pageSize;
+
+			const ndrStatuses: SHIPMENT_STATUS[] = [
+				SHIPMENT_STATUS.UNDELIVERED,
+				SHIPMENT_STATUS.RTO,
+				SHIPMENT_STATUS.RTO_DELIVERED,
+				SHIPMENT_STATUS.CANCELLED,
+				SHIPMENT_STATUS.ON_HOLD,
+				SHIPMENT_STATUS.NETWORK_ISSUE,
+				SHIPMENT_STATUS.DELIVERY_NEXT_DAY,
+				SHIPMENT_STATUS.NOT_FOUND_INCORRECT,
+				SHIPMENT_STATUS.OUT_OF_DELIVERY_AREA,
+				SHIPMENT_STATUS.OTHERS,
+				SHIPMENT_STATUS.DELIVERY_DELAYED,
+				SHIPMENT_STATUS.CUSTOMER_REFUSED,
+				SHIPMENT_STATUS.CONSIGNEE_UNAVAILABLE,
+				SHIPMENT_STATUS.DELIVERY_EXCEPTION,
+				SHIPMENT_STATUS.DELIVERY_RESCHEDULED,
+				SHIPMENT_STATUS.COD_PAYMENT_NOT_READY,
+				SHIPMENT_STATUS.SHIPMENT_LOST,
+				SHIPMENT_STATUS.PICKUP_FAILED,
+				SHIPMENT_STATUS.PICKUP_CANCELLED,
+				SHIPMENT_STATUS.FUTURE_DELIVERY_REQUESTED,
+				SHIPMENT_STATUS.ADDRESS_INCORRECT,
+				SHIPMENT_STATUS.DELIVERY_ATTEMPTED,
+				SHIPMENT_STATUS.PENDING_UNDELIVERED,
+				SHIPMENT_STATUS.DELIVERY_ATTEMPTED_PREMISES_CLOSED,
+				SHIPMENT_STATUS.RETURN_REQUEST_CANCELLED,
+				SHIPMENT_STATUS.RETURN_REQUEST_CLOSED,
+				SHIPMENT_STATUS.RETURN_DELIVERED,
+				SHIPMENT_STATUS.RETURN_IN_TRANSIT,
+				SHIPMENT_STATUS.RETURN_OUT_FOR_PICKUP,
+				SHIPMENT_STATUS.RETURN_SHIPMENT_PICKED_UP,
+				SHIPMENT_STATUS.RETURN_PICKUP_RESCHEDULED,
+				SHIPMENT_STATUS.RETURN_PICKUP_DELAYED,
+				SHIPMENT_STATUS.RETURN_PICKUP_SCHEDULED,
+				SHIPMENT_STATUS.RETURN_OUT_FOR_DELIVERY,
+				SHIPMENT_STATUS.RETURN_UNDELIVERED,
+				SHIPMENT_STATUS.REVERSE_PICKUP_EXCEPTION,
+			];
+
+			const whereClause: Prisma.ShipmentWhereInput = {
+				shipment_status: "Approved",
+				user_id: userId,
+				current_status:
+					currentStatus && currentStatus !== "ALL"
+						? currentStatus
+						: { in: ndrStatuses },
+			};
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
+			}
+
+			const [shipments, totalShipments] = await db.$transaction([
+				db.shipment.findMany({
+					where: whereClause,
+					include: {
+						user: {
+							select: {
+								name: true,
+								email: true,
+								company_name: true,
+							},
+						},
+						courier: { select: { name: true } },
+					},
+					skip,
+					take: pageSize,
+					orderBy: {
+						created_at: "desc",
+					},
+				}),
+				db.shipment.count({
+					where: whereClause,
+				}),
+			]);
+
+			return {
+				shipments,
+				totalShipments,
+				page,
+				pageSize,
+				totalPages: Math.ceil(totalShipments / pageSize),
+			};
+		}),
+
+	getUserNdrShipments: protectedProcedure
+		.input(
+			z.object({
+				page: z.number().min(1).default(1),
+				pageSize: z.number().min(1).max(100).default(10),
+				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+				searchFilter: z.string().optional(),
+				currentStatus: z
+					.union([z.nativeEnum(SHIPMENT_STATUS), z.literal("ALL")])
+					.optional(),
+				startDate: z.string().optional(),
+				endDate: z.string().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const { user } = ctx;
+			const {
+				page,
+				pageSize,
+				searchFilter,
+				currentStatus,
+				startDate,
+				endDate,
+			} = input;
+			const skip = (page - 1) * pageSize;
+
+			const ndrStatuses: SHIPMENT_STATUS[] = [
+				SHIPMENT_STATUS.UNDELIVERED,
+				SHIPMENT_STATUS.RTO,
+				SHIPMENT_STATUS.RTO_DELIVERED,
+				SHIPMENT_STATUS.CANCELLED,
+				SHIPMENT_STATUS.ON_HOLD,
+				SHIPMENT_STATUS.NETWORK_ISSUE,
+				SHIPMENT_STATUS.DELIVERY_NEXT_DAY,
+				SHIPMENT_STATUS.NOT_FOUND_INCORRECT,
+				SHIPMENT_STATUS.OUT_OF_DELIVERY_AREA,
+				SHIPMENT_STATUS.OTHERS,
+				SHIPMENT_STATUS.DELIVERY_DELAYED,
+				SHIPMENT_STATUS.CUSTOMER_REFUSED,
+				SHIPMENT_STATUS.CONSIGNEE_UNAVAILABLE,
+				SHIPMENT_STATUS.DELIVERY_EXCEPTION,
+				SHIPMENT_STATUS.DELIVERY_RESCHEDULED,
+				SHIPMENT_STATUS.COD_PAYMENT_NOT_READY,
+				SHIPMENT_STATUS.SHIPMENT_LOST,
+				SHIPMENT_STATUS.PICKUP_FAILED,
+				SHIPMENT_STATUS.PICKUP_CANCELLED,
+				SHIPMENT_STATUS.FUTURE_DELIVERY_REQUESTED,
+				SHIPMENT_STATUS.ADDRESS_INCORRECT,
+				SHIPMENT_STATUS.DELIVERY_ATTEMPTED,
+				SHIPMENT_STATUS.PENDING_UNDELIVERED,
+				SHIPMENT_STATUS.DELIVERY_ATTEMPTED_PREMISES_CLOSED,
+				SHIPMENT_STATUS.RETURN_REQUEST_CANCELLED,
+				SHIPMENT_STATUS.RETURN_REQUEST_CLOSED,
+				SHIPMENT_STATUS.RETURN_DELIVERED,
+				SHIPMENT_STATUS.RETURN_IN_TRANSIT,
+				SHIPMENT_STATUS.RETURN_OUT_FOR_PICKUP,
+				SHIPMENT_STATUS.RETURN_SHIPMENT_PICKED_UP,
+				SHIPMENT_STATUS.RETURN_PICKUP_RESCHEDULED,
+				SHIPMENT_STATUS.RETURN_PICKUP_DELAYED,
+				SHIPMENT_STATUS.RETURN_PICKUP_SCHEDULED,
+				SHIPMENT_STATUS.RETURN_OUT_FOR_DELIVERY,
+				SHIPMENT_STATUS.RETURN_UNDELIVERED,
+				SHIPMENT_STATUS.REVERSE_PICKUP_EXCEPTION,
+			];
+
+			const whereClause: Prisma.ShipmentWhereInput = {
+				user_id: user.user_id,
+				shipment_status: "Approved",
+				current_status:
+					currentStatus && currentStatus !== "ALL"
+						? currentStatus
+						: { in: ndrStatuses },
+			};
+
+			if (searchFilter) {
+				whereClause.OR = [
+					{
+						human_readable_shipment_id: {
+							contains: searchFilter,
+							mode: "insensitive",
+						},
+					},
+					{ recipient_name: { contains: searchFilter, mode: "insensitive" } },
+					{ recipient_mobile: { contains: searchFilter, mode: "insensitive" } },
+				];
+			}
+
+			if (startDate && endDate) {
+				whereClause.created_at = {
+					gte: new Date(startDate),
+					lte: getEndOfDay(new Date(endDate)),
+				};
+			}
+
+			const [shipments, totalShipments] = await db.$transaction([
+				db.shipment.findMany({
+					where: whereClause,
+					include: {
+						user: {
+							select: {
+								name: true,
+								email: true,
+							},
+						},
+						origin_address: true,
+						destination_address: true,
+					},
+					skip,
+					take: pageSize,
+					orderBy: {
+						created_at: "desc",
+					},
+				}),
+				db.shipment.count({
+					where: whereClause,
+				}),
+			]);
+
+			return {
+				shipments,
+				totalShipments,
+				page,
+				pageSize,
+				totalPages: Math.ceil(totalShipments / pageSize),
+			};
+		}),
+
 	getShipmentById: protectedProcedure
 		.input(z.object({ shipmentId: z.string() }))
 		.query(async ({ ctx, input }) => {
