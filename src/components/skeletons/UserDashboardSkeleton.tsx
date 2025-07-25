@@ -5,7 +5,7 @@ import { Skeleton } from "../ui/skeleton";
 const UserDashboardSkeleton = () => {
 	return (
 		<div className="flex flex-col gap-4 p-4 md:p-8">
-			<h1 className="font-bold text-2xl">User Dashboard</h1>
+			<h1 className="font-bold text-2xl">Hello! Welcome to User Dashboard</h1>
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 				{[1, 2, 3, 4, 5].map((i) => (
 					<Card key={i}>
