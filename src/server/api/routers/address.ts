@@ -10,23 +10,25 @@ export const addressRouter = createTRPCRouter({
 	getAddresses: protectedProcedure
 		.input(z.object({ type: z.nativeEnum(ADDRESS_TYPE).optional() }))
 		.query(async ({ ctx, input }) => {
-			const logData = { userId: ctx.user.user_id, input };
-			logger.info("Getting addresses", logData);
-
 			try {
 				const addresses = await ctx.db.address.findMany({
 					where: {
 						user_id: ctx.user.user_id,
 						...(input.type && { type: input.type }),
 					},
-				});
-				logger.info("Successfully retrieved addresses", {
-					...logData,
-					count: addresses.length,
+					select: {
+						zip_code: true,
+						name: true,
+						address_id: true,
+						address_line: true,
+						city: true,
+						state: true,
+						landmark: true,
+					},
 				});
 				return addresses;
 			} catch (error) {
-				logger.error("Failed to get addresses", { ...logData, error });
+				logger.error("address.getAddresses", { ...ctx, ...input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -37,9 +39,6 @@ export const addressRouter = createTRPCRouter({
 	createAddress: protectedProcedure
 		.input(addressSchema.extend({ type: z.nativeEnum(ADDRESS_TYPE) }))
 		.mutation(async ({ ctx, input }) => {
-			const logData = { userId: ctx.user.user_id, input };
-			logger.info("Creating address", logData);
-
 			try {
 				if (input.type === ADDRESS_TYPE.Warehouse) {
 					const isValidState = await validateAddressForPickup(
@@ -47,10 +46,6 @@ export const addressRouter = createTRPCRouter({
 					);
 
 					if (!isValidState) {
-						logger.warn(
-							"Attempted to create warehouse address in disallowed state",
-							logData,
-						);
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: `Pickup addresses are only allowed in Delhi, Uttar Pradesh, Haryana, Bihar, and West Bengal. The provided state '${input.state}' is not allowed or does not match the pincode's state.`,
@@ -65,14 +60,8 @@ export const addressRouter = createTRPCRouter({
 							address_line: input.addressLine,
 							landmark: input.landmark || null,
 							name: input.name,
-							user: {
-								connect: { user_id: ctx.user.user_id as string },
-							},
+							user_id: ctx.user.user_id,
 						},
-					});
-					logger.info("Successfully created pending warehouse address", {
-						...logData,
-						pendingAddressId: pendingAddress.pending_address_id,
 					});
 					return pendingAddress;
 				}
@@ -85,18 +74,13 @@ export const addressRouter = createTRPCRouter({
 						landmark: input.landmark || null,
 						name: input.name,
 						type: input.type,
-						user: {
-							connect: { user_id: ctx.user.user_id as string },
-						},
+						user_id: ctx.user.user_id,
 					},
-				});
-				logger.info("Successfully created address", {
-					...logData,
-					addressId: address.address_id,
+					select: { address_id: true },
 				});
 				return address;
 			} catch (error) {
-				logger.error("Failed to create address", { ...logData, error });
+				logger.error("Failed to create address", { ...ctx, ...input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

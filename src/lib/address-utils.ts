@@ -16,24 +16,10 @@ export function isAllowedState(state: string): boolean {
 export async function validateAddressForPickup(
 	zipCode: string,
 ): Promise<boolean> {
-	const logData = { zipCode };
-	logger.info("Validating address for pickup", logData);
-
 	const pincodeDetails = await getPincodeDetails(zipCode);
-
 	if (!pincodeDetails) {
-		logger.warn("Pincode details not found for validation", logData);
-		return false; // Pincode not found, so not serviceable
+		return false;
 	}
-
 	const isAllowed = isAllowedState(pincodeDetails.state);
-
-	if (!isAllowed) {
-		logger.warn("Pickup from state not allowed", {
-			...logData,
-			canonicalState: pincodeDetails.state,
-		});
-	}
-
 	return isAllowed;
 }
