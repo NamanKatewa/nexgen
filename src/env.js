@@ -24,6 +24,7 @@ export const env = createEnv({
 		SHIPWAY_USERNAME: z.string().email(),
 		SHIPWAY_PASSWORD: z.string(),
 		SHIPWAY_HASH: z.string(),
+		SHIPWAY_HASH_TEMP: z.string(),
 	},
 
 	client: {},
@@ -45,6 +46,7 @@ export const env = createEnv({
 		SHIPWAY_USERNAME: process.env.SHIPWAY_USERNAME,
 		SHIPWAY_PASSWORD: process.env.SHIPWAY_PASSWORD,
 		SHIPWAY_HASH: process.env.SHIPWAY_HASH,
+		SHIPWAY_HASH_TEMP: process.env.SHIPWAY_HASH_TEMP,
 	},
 
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
