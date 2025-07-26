@@ -20,9 +20,6 @@ export const userDashRouter = createTRPCRouter({
 		const sixMonthsAgo = new Date();
 		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-		const sixMonthsAgoAvg = new Date();
-		sixMonthsAgoAvg.setMonth(sixMonthsAgoAvg.getMonth() - 6);
-
 		const [
 			user,
 			totalShipments,
@@ -34,7 +31,7 @@ export const userDashRouter = createTRPCRouter({
 			shippingCostsDeclaredValue,
 			topDestinationStatesRaw,
 			topCouriers,
-			shipmentsForAvgDelivery,
+			avgDeliveryTime,
 		] = await Promise.all([
 			ctx.db.user.findUnique({
 				where: { user_id: userId },
@@ -95,20 +92,17 @@ export const userDashRouter = createTRPCRouter({
 				orderBy: { _count: { courier_id: "desc" } },
 				take: 5,
 			}),
-			ctx.db.shipment.findMany({
-				where: {
-					user_id: userId,
-					created_at: { gte: sixMonthsAgoAvg },
-				},
-				include: {
-					tracking: {
-						where: {
-							status_description: { in: ["DELIVERED", "PICKED_UP"] },
-						},
-						select: { timestamp: true, status_description: true },
-					},
-				},
-			}),
+			ctx.db.$queryRaw`
+				SELECT
+					TO_CHAR(s.created_at, 'YYYY-MM') as month,
+					AVG(EXTRACT(EPOCH FROM (t_delivered.timestamp - t_picked_up.timestamp))) / (3600 * 24) as "averageDeliveryTimeDays"
+				FROM "Shipment" s
+				JOIN "Tracking" t_picked_up ON s.shipment_id = t_picked_up.shipment_id AND t_picked_up.status_description = 'PICKED_UP'
+				JOIN "Tracking" t_delivered ON s.shipment_id = t_delivered.shipment_id AND t_delivered.status_description = 'DELIVERED'
+				WHERE s.user_id = ${userId} AND s.created_at >= ${sixMonthsAgo}
+				GROUP BY month
+				ORDER BY month ASC
+			`,
 		]);
 
 		if (!user) {
@@ -240,46 +234,6 @@ export const userDashRouter = createTRPCRouter({
 				...formattedStatusCounts,
 			};
 		});
-
-		const monthlyDeliveryTimes: Record<string, number[]> = {};
-
-		for (const shipment of shipmentsForAvgDelivery) {
-			const deliveredTracking = shipment.tracking.find(
-				(t: { status_description: string; timestamp: Date }) =>
-					t.status_description === "DELIVERED",
-			);
-			const pickedUpTracking = shipment.tracking.find(
-				(t: { status_description: string; timestamp: Date }) =>
-					t.status_description === "PICKED_UP",
-			);
-
-			if (deliveredTracking && pickedUpTracking) {
-				const deliveryTimeMs =
-					deliveredTracking.timestamp.getTime() -
-					pickedUpTracking.timestamp.getTime();
-				const deliveryTimeDays = deliveryTimeMs / (1000 * 60 * 60 * 24);
-
-				const month = shipment.created_at.toISOString().substring(0, 7); // YYYY-MM
-				if (!monthlyDeliveryTimes[month]) {
-					monthlyDeliveryTimes[month] = [];
-				}
-				monthlyDeliveryTimes[month].push(deliveryTimeDays);
-			}
-		}
-
-		const avgDeliveryTime = Object.keys(monthlyDeliveryTimes)
-			.sort()
-			.map((month) => ({
-				month,
-				averageDeliveryTimeDays: Number.parseFloat(
-					(
-						(monthlyDeliveryTimes[month] || []).reduce(
-							(sum, time) => sum + time,
-							0,
-						) / (monthlyDeliveryTimes[month] || []).length
-					).toFixed(2),
-				),
-			}));
 
 		return {
 			user: { name: user.name },
