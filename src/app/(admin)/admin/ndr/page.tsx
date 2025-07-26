@@ -2,7 +2,7 @@
 
 import type { SHIPMENT_STATUS } from "@prisma/client";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ type Shipment =
 	RouterOutputs["shipment"]["getAllTrackingShipments"]["shipments"][number];
 
 function AdminOrdersContent() {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [statusFilter, setStatusFilter] = useState<SHIPMENT_STATUS | undefined>(
@@ -121,34 +122,6 @@ function AdminOrdersContent() {
 			className: "w-40 px-4",
 			render: (item: Shipment) => formatDate(item.created_at),
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-30 px-4",
-			render: (item: Shipment) => (
-				<div className="flex flex-col gap-2">
-					<Button className="cursor-pointer">
-						<Link href={`/admin/shipments/${item.shipment_id}`}>View</Link>
-					</Button>
-					{item.shipment_status === "Approved" && (
-						<>
-							<Button
-								className="cursor-pointer"
-								onClick={() => handleGetLabel(item.shipment_id)}
-								disabled={isGettingLabel}
-							>
-								{isGettingLabel ? "Label..." : "Label"}
-							</Button>
-							<Button>
-								<Link href={`/track/${item.human_readable_shipment_id}`}>
-									Track
-								</Link>
-							</Button>
-						</>
-					)}
-				</div>
-			),
-		},
 	];
 
 	const { mutateAsync: getLabel, isPending: isGettingLabel } =
@@ -243,6 +216,32 @@ function AdminOrdersContent() {
 				idKey="shipment_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: Shipment) => {
+					const currentActions = [
+						{
+							label: "View",
+							onClick: () => {
+								router.push(`/admin/shipments/${item.shipment_id}`);
+							},
+						},
+					];
+
+					if (item.shipment_status === "Approved") {
+						currentActions.push(
+							{
+								label: isGettingLabel ? "Label..." : "Label",
+								onClick: () => handleGetLabel(item.shipment_id),
+							},
+							{
+								label: "Track",
+								onClick: () => {
+									router.push(`/track/${item.human_readable_shipment_id}`);
+								},
+							},
+						);
+					}
+					return currentActions;
+				}}
 			/>
 
 			<PaginationButtons

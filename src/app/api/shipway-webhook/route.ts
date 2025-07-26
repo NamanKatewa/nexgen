@@ -1,7 +1,7 @@
+import type { inferRouterOutputs } from "@trpc/server";
 import { NextResponse } from "next/server";
 import logger from "~/lib/logger";
-import { appRouter, type AppRouter } from "~/server/api/root";
-import type { inferRouterOutputs } from "@trpc/server";
+import { type AppRouter, appRouter } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 
 export async function POST(req: Request) {

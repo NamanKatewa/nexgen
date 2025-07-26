@@ -1,6 +1,7 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
+import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import Copyable from "~/components/Copyable";
@@ -23,6 +24,7 @@ import { Button } from "~/components/ui/button";
 import { paymentStatusTypes, transactionTypes } from "~/constants";
 
 const PassbookPage = () => {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
@@ -184,6 +186,18 @@ const PassbookPage = () => {
 				isLoading={isLoading}
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: Transaction) => {
+					const currentActions = [];
+					if (item.shipment_id) {
+						currentActions.push({
+							label: "View Shipment",
+							onClick: () => {
+								router.push(`/dashboard/shipments/${item.shipment_id}`);
+							},
+						});
+					}
+					return currentActions;
+				}}
 			/>
 
 			<PaginationButtons

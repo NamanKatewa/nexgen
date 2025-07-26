@@ -133,43 +133,6 @@ function PendingAddressesContent() {
 			className: "w-30 px-4 whitespace-normal",
 			render: (item) => item.zip_code,
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-30",
-			render: (row: PendingAddress) => (
-				<div className="flex flex-col gap-2">
-					<Button
-						className="bg-green-600"
-						onClick={() =>
-							approveMutation.mutate({
-								pendingAddressId: row.pending_address_id,
-							})
-						}
-						disabled={processingAddressId === row.pending_address_id}
-					>
-						{processingAddressId === row.pending_address_id &&
-						approveMutation.isPending
-							? "Approving..."
-							: "Approve"}
-					</Button>
-					<Button
-						className="bg-red-600"
-						onClick={() =>
-							rejectMutation.mutate({
-								pendingAddressId: row.pending_address_id,
-							})
-						}
-						disabled={processingAddressId === row.pending_address_id}
-					>
-						{processingAddressId === row.pending_address_id &&
-						rejectMutation.isPending
-							? "Rejecting..."
-							: "Reject"}
-					</Button>
-				</div>
-			),
-		},
 	];
 
 	return (
@@ -192,6 +155,30 @@ function PendingAddressesContent() {
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
 				onClearFilters={handleClearFilters}
+				actions={(item: PendingAddress) => [
+					{
+						label:
+							processingAddressId === item.pending_address_id &&
+							approveMutation.isPending
+								? "Approving..."
+								: "Approve",
+						onClick: () =>
+							approveMutation.mutate({
+								pendingAddressId: item.pending_address_id,
+							}),
+					},
+					{
+						label:
+							processingAddressId === item.pending_address_id &&
+							rejectMutation.isPending
+								? "Rejecting..."
+								: "Reject",
+						onClick: () =>
+							rejectMutation.mutate({
+								pendingAddressId: item.pending_address_id,
+							}),
+					},
+				]}
 			/>
 
 			<PaginationButtons

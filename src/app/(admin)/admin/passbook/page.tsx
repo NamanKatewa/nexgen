@@ -1,7 +1,7 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import * as XLSX from "xlsx";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
@@ -26,6 +26,7 @@ import PaginationButtons from "~/components/PaginationButtons";
 import { Button } from "~/components/ui/button";
 
 function PassbookContent() {
+	const router = useRouter();
 	const searchParams = useSearchParams();
 	const initialUserId = searchParams.get("userId") || "";
 	const [page, setPage] = useState(1);
@@ -156,20 +157,6 @@ function PassbookContent() {
 			render: (item: Transaction) =>
 				item.description ? item.description : "N/A",
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-50 px-4 text-blue-950",
-			render: (item: Transaction) => {
-				return item.shipment_id ? (
-					<div className="flex flex-col gap-2">
-						<Button>
-							<Link href={`/shipments/${item.shipment_id}`}>View Shipment</Link>
-						</Button>
-					</div>
-				) : null;
-			},
-		},
 	];
 
 	const filters = [
@@ -223,6 +210,18 @@ function PassbookContent() {
 				idKey="transaction_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: Transaction) => {
+					const currentActions = [];
+					if (item.shipment_id) {
+						currentActions.push({
+							label: "View Shipment",
+							onClick: () => {
+								router.push(`/shipments/${item.shipment_id}`);
+							},
+						});
+					}
+					return currentActions;
+				}}
 			/>
 
 			<PaginationButtons

@@ -2,7 +2,7 @@
 
 import type { SupportTicket } from "@prisma/client";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import Copyable from "~/components/Copyable";
@@ -17,6 +17,7 @@ import { formatDate } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 function AdminSupportContent() {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [statusFilter, setStatusFilter] = useState<
@@ -124,18 +125,6 @@ function AdminSupportContent() {
 			className: "p-4 w-50",
 			render: (item: SupportTicket) => formatDate(item.updated_at),
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-30 px-4",
-			render: (item: SupportTicket) => (
-				<div className="flex flex-col gap-2">
-					<Button className="cursor-pointer">
-						<Link href={`/admin/support/${item.ticket_id}`}>View Ticket</Link>
-					</Button>
-				</div>
-			),
-		},
 	];
 
 	const filters = [
@@ -191,6 +180,14 @@ function AdminSupportContent() {
 				idKey="ticket_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: SupportTicket) => [
+					{
+						label: "View Ticket",
+						onClick: () => {
+							router.push(`/admin/support/${item.ticket_id}`);
+						},
+					},
+				]}
 			/>
 
 			<PaginationButtons

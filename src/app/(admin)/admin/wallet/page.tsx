@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { Badge } from "~/components/ui/badge";
 import useDebounce from "~/lib/hooks/useDebounce";
@@ -28,6 +29,7 @@ type Transaction = Transactions extends { transactions: Array<infer T> }
 	: never;
 
 const WalletTopupPage = () => {
+	const router = useRouter();
 	const [filterType, setFilterType] = useState("ALL");
 	const [searchText, setSearchText] = useState("");
 	const debouncedSearchFilter = useDebounce(searchText, 500);
@@ -175,6 +177,18 @@ const WalletTopupPage = () => {
 				idKey="transaction_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: Transaction) => {
+					const currentActions = [];
+					if (item.shipment_id) {
+						currentActions.push({
+							label: "View Shipment",
+							onClick: () => {
+								router.push(`/shipments/${item.shipment_id}`);
+							},
+						});
+					}
+					return currentActions;
+				}}
 			/>
 			<PaginationButtons
 				isLoading={isLoading}

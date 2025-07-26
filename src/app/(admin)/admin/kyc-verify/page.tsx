@@ -89,26 +89,6 @@ const VerifyKycPage = () => {
 			render: (item: KycItem) =>
 				item.submission_date ? formatDate(new Date(item.submission_date)) : "",
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-50 px-4 text-blue-950",
-			render: (item: KycItem) => (
-				<div className="flex flex-col gap-2">
-					<Button
-						size="sm"
-						variant="default"
-						onClick={() => {
-							setSelectedKycItem(item);
-							setShowKycDetailsModal(true);
-						}}
-						className="cursor-pointer"
-					>
-						View Details
-					</Button>
-				</div>
-			),
-		},
 	];
 
 	const filters = [
@@ -158,6 +138,15 @@ const VerifyKycPage = () => {
 				}}
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: KycItem) => [
+					{
+						label: "View Details",
+						onClick: () => {
+							setSelectedKycItem(item);
+							setShowKycDetailsModal(true);
+						},
+					},
+				]}
 			/>
 
 			<PaginationButtons

@@ -1,6 +1,5 @@
 "use client";
-
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import Copyable from "~/components/Copyable";
@@ -8,7 +7,6 @@ import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { type RouterOutputs, api } from "~/trpc/react";
 
@@ -16,6 +14,7 @@ type User =
 	RouterOutputs["admin"]["getUsersWithPendingShipments"]["users"][number];
 
 export default function AdminUsersPage() {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [searchFilter, setSearchFilter] = useState("");
@@ -69,20 +68,6 @@ export default function AdminUsersPage() {
 			className: "w-40 px-4 whitespace-normal text-center",
 			render: (item: User) => <Badge>{item.pendingShipmentCount}</Badge>,
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-60 px-4 text-center",
-			render: (item: User) => (
-				<div className="flex flex-col items-center gap-2">
-					<Button className="cursor-pointer">
-						<Link href={`/admin/shipment-approve?userId=${item.user_id}`}>
-							View Pending Shipments
-						</Link>
-					</Button>
-				</div>
-			),
-		},
 	];
 
 	const filters = [
@@ -107,6 +92,14 @@ export default function AdminUsersPage() {
 				idKey="user_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: User) => [
+					{
+						label: "View Pending Shipments",
+						onClick: () => {
+							router.push(`/admin/shipment-approve?userId=${item.user_id}`);
+						},
+					},
+				]}
 			/>
 
 			<PaginationButtons

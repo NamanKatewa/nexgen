@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
@@ -9,7 +9,6 @@ import { DataTable } from "~/components/DataTable";
 import type { ColumnConfig } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 import { SHIPMENT_STATUS_MAP } from "~/constants";
 import useDebounce from "~/lib/hooks/useDebounce";
 import { generateAndDownloadLabel } from "~/lib/pdf-generator";
@@ -21,6 +20,7 @@ type Shipment =
 	RouterOutputs["shipment"]["getUserShipments"]["shipments"][number];
 
 export default function UserOrdersPage() {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [statusFilter, setStatusFilter] = useState<
@@ -123,34 +123,6 @@ export default function UserOrdersPage() {
 			className: "px-4 w-40",
 			render: (item) => formatDate(item.created_at),
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-30 px-4",
-			render: (item) => (
-				<div className="flex flex-col gap-2">
-					<Button className="cursor-pointer">
-						<Link href={`/dashboard/shipments/${item.shipment_id}`}>View</Link>
-					</Button>
-					{item.shipment_status === "Approved" && (
-						<>
-							<Button
-								className="cursor-pointer"
-								onClick={() => handleGetLabel(item.shipment_id)}
-								disabled={isGettingLabel}
-							>
-								{isGettingLabel ? "Label..." : "Label"}
-							</Button>
-							<Button>
-								<Link href={`/track/${item.human_readable_shipment_id}`}>
-									Track
-								</Link>
-							</Button>
-						</>
-					)}
-				</div>
-			),
-		},
 	];
 
 	const { mutateAsync: getLabel, isPending: isGettingLabel } =
@@ -210,6 +182,32 @@ export default function UserOrdersPage() {
 				idKey="shipment_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: Shipment) => {
+					const currentActions = [
+						{
+							label: "View",
+							onClick: () => {
+								router.push(`/dashboard/shipments/${item.shipment_id}`);
+							},
+						},
+					];
+
+					if (item.shipment_status === "Approved") {
+						currentActions.push(
+							{
+								label: isGettingLabel ? "Label..." : "Label",
+								onClick: () => handleGetLabel(item.shipment_id),
+							},
+							{
+								label: "Track",
+								onClick: () => {
+									router.push(`/track/${item.human_readable_shipment_id}`);
+								},
+							},
+						);
+					}
+					return currentActions;
+				}}
 			/>
 
 			<PaginationButtons

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { type RouterOutputs, api } from "~/trpc/react";
 type User = RouterOutputs["admin"]["getAllUsers"]["users"][number];
 
 export default function AdminUsersPage() {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [searchFilter, setSearchFilter] = useState("");
@@ -161,18 +162,6 @@ export default function AdminUsersPage() {
 			className: "w-40 px-4",
 			render: (item: User) => formatDate(item.created_at),
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-30 px-4",
-			render: (item: User) => (
-				<div className="flex flex-col gap-2">
-					<Button className="cursor-pointer">
-						<Link href={`/admin/user/${item.user_id}`}>View User</Link>
-					</Button>
-				</div>
-			),
-		},
 	];
 
 	const filters = [
@@ -258,6 +247,14 @@ export default function AdminUsersPage() {
 				idKey="user_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: User) => [
+					{
+						label: "View User",
+						onClick: () => {
+							router.push(`/admin/user/${item.user_id}`);
+						},
+					},
+				]}
 			/>
 			<PaginationButtons
 				isLoading={isLoading}

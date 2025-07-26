@@ -239,6 +239,7 @@ export const walletRouter = createTRPCRouter({
 					db.transaction.findMany({
 						where: whereClause,
 						select: {
+							shipment_id: true,
 							transaction_id: true,
 							created_at: true,
 							amount: true,

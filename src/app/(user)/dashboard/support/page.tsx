@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { SupportTicket } from "@prisma/client";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { useForm } from "react-hook-form";
@@ -31,6 +31,7 @@ import type { CreateTicketInput } from "~/schemas/support";
 import { api } from "~/trpc/react";
 
 export default function SupportPage() {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [statusFilter, setStatusFilter] = useState<
@@ -129,20 +130,6 @@ export default function SupportPage() {
 			header: "Last Updated",
 			className: "p-4 w-30",
 			render: (item: SupportTicket) => formatDate(item.updated_at),
-		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-30 px-4",
-			render: (item: SupportTicket) => (
-				<div className="flex flex-col gap-2">
-					<Button className="cursor-pointer">
-						<Link href={`/dashboard/support/${item.ticket_id}`}>
-							View Ticket
-						</Link>
-					</Button>
-				</div>
-			),
 		},
 	];
 
@@ -254,6 +241,14 @@ export default function SupportPage() {
 				onClearFilters={handleClearFilters}
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: SupportTicket) => [
+					{
+						label: "View Ticket",
+						onClick: () => {
+							router.push(`/dashboard/support/${item.ticket_id}`);
+						},
+					},
+				]}
 			/>
 
 			<PaginationButtons

@@ -20,6 +20,8 @@ import {
 	TableRow,
 } from "~/components/ui/table";
 import { formatDateOnly } from "~/lib/utils";
+import type { Action } from "./DataTableActions";
+import { DataTableActions } from "./DataTableActions";
 
 interface FilterOption {
 	label: string;
@@ -48,6 +50,7 @@ interface DataTableProps<T> {
 	title: string;
 	data: T[];
 	columns: ColumnConfig<T>[];
+	actions?: (item: T) => Action[];
 	filters?: FilterConfig[];
 	onClearFilters?: () => void;
 	isLoading: boolean;
@@ -62,6 +65,7 @@ const DataTable = <T,>({
 	title,
 	data,
 	columns,
+	actions,
 	filters = [],
 	onClearFilters,
 	isLoading,
@@ -243,6 +247,9 @@ const DataTable = <T,>({
 										{column.header}
 									</TableHead>
 								))}
+								{actions && (
+									<TableHead className="w-20 text-center">Actions</TableHead>
+								)}
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -261,6 +268,11 @@ const DataTable = <T,>({
 												: String(item[column.key as keyof T])}
 										</TableCell>
 									))}
+									{actions && (
+										<TableCell className="text-center">
+											<DataTableActions actions={actions(item)} />
+										</TableCell>
+									)}
 								</TableRow>
 							))}
 						</TableBody>

@@ -84,27 +84,6 @@ function ApproveOrderContent() {
 			render: (item: ShipmentListItem) =>
 				item.created_at ? formatDate(item.created_at) : "-",
 		},
-		{
-			key: "actions",
-			header: "Actions",
-			className: "w-50 px-4",
-			render: (item: ShipmentListItem) => (
-				<div className="flex flex-col gap-2">
-					<Button
-						type="button"
-						size="sm"
-						variant="default"
-						onClick={() => {
-							setSelectedShipmentItem(item);
-							setShowOrderDetailsModal(true);
-						}}
-						className="cursor-pointer"
-					>
-						View Details
-					</Button>
-				</div>
-			),
-		},
 	];
 
 	const filters = [
@@ -129,6 +108,15 @@ function ApproveOrderContent() {
 				idKey="shipment_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
+				actions={(item: ShipmentListItem) => [
+					{
+						label: "View Details",
+						onClick: () => {
+							setSelectedShipmentItem(item);
+							setShowOrderDetailsModal(true);
+						},
+					},
+				]}
 			/>
 
 			<PaginationButtons

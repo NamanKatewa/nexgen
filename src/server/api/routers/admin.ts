@@ -239,6 +239,7 @@ export const adminRouter = createTRPCRouter({
 					db.transaction.findMany({
 						where: whereClause,
 						select: {
+							shipment_id: true,
 							user_id: true,
 							transaction_id: true,
 							user: {

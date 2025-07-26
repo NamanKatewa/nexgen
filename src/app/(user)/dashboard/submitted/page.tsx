@@ -8,13 +8,10 @@ import {
 } from "~/components/ui/card";
 
 import { LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 
 export default function SubmittedPage() {
-	const router = useRouter();
-	const utils = api.useUtils();
 	const logoutMutation = api.auth.logout.useMutation();
 
 	const handleLogout = () => {
