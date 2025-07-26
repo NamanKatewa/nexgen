@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import {
 	BUSINESS_TYPE,
 	PrismaClient,
@@ -5,9 +6,8 @@ import {
 	USER_STATUS,
 } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
-import { faker } from "@faker-js/faker";
-import { seedRates } from "./seedRates";
 import { seedCouriers } from "./seedCouriers";
+import { seedRates } from "./seedRates";
 
 const prisma = new PrismaClient();
 

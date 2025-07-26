@@ -6,10 +6,64 @@ import { checkIMBOrderStatus, createIMBPaymentOrder } from "~/lib/imb";
 import logger from "~/lib/logger";
 import { getEndOfDay } from "~/lib/utils";
 import { addFundsSchema, paymentSuccessSchema } from "~/schemas/wallet";
+import { adminProcedure } from "~/server/api/trpc";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
 export const walletRouter = createTRPCRouter({
+	addFundsToWallet: adminProcedure
+		.input(
+			z.object({
+				userId: z.string(),
+				amount: z.number().min(1, "Amount must be at least 1"),
+				description: z.string().min(1, "Description is required"),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				const { userId, amount, description } = input;
+
+				const userWallet = await db.wallet.findUnique({
+					where: { user_id: userId },
+				});
+
+				if (!userWallet) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "User wallet not found",
+					});
+				}
+
+				await db.$transaction(async (prisma) => {
+					await prisma.transaction.create({
+						data: {
+							user_id: userId,
+							transaction_type: "Credit",
+							payment_status: "Completed",
+							amount: amount,
+							description: description,
+						},
+					});
+
+					await prisma.wallet.update({
+						where: { wallet_id: userWallet.wallet_id },
+						data: {
+							balance: {
+								increment: amount,
+							},
+						},
+					});
+				});
+
+				return { success: true, message: "Funds added successfully" };
+			} catch (error) {
+				logger.error("wallet.addFundsToWallet", { input, error });
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to add funds",
+				});
+			}
+		}),
 	addFunds: protectedProcedure
 		.input(addFundsSchema)
 		.mutation(async ({ input, ctx }) => {
