@@ -324,7 +324,7 @@ const Navbar = () => {
 										whileHover={{ scale: 1.05 }}
 										whileTap={{ scale: 0.95 }}
 									>
-										<Link href="/signup">
+										<Link href="/register">
 											<Button
 												variant="outline"
 												className="flex cursor-pointer items-center gap-2 border-green-200 text-green-500 transition-colors duration-200 ease-in-out hover:bg-green-50 hover:text-green-600"
