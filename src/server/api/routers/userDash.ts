@@ -6,29 +6,114 @@ export const userDashRouter = createTRPCRouter({
 	getDashboardData: protectedProcedure.query(async ({ ctx }) => {
 		const userId = ctx.user.user_id;
 
-		// Fetch KPIs
-		const user = await ctx.db.user.findUnique({
-			where: { user_id: userId },
-			include: { wallet: true },
-		});
+		const userShipmentStatusStages = [
+			SHIPMENT_STATUS.SHIPMENT_BOOKED,
+			SHIPMENT_STATUS.IN_TRANSIT,
+			SHIPMENT_STATUS.DELIVERED,
+			SHIPMENT_STATUS.RTO,
+			SHIPMENT_STATUS.CANCELLED,
+		];
+
+		const thirtyDaysAgo = new Date();
+		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+		const sixMonthsAgo = new Date();
+		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+		const sixMonthsAgoAvg = new Date();
+		sixMonthsAgoAvg.setMonth(sixMonthsAgoAvg.getMonth() - 6);
+
+		const [
+			user,
+			totalShipments,
+			deliveredShipments,
+			totalShippingCostResult,
+			openSupportTickets,
+			shipmentStatusCounts,
+			shipmentsOverTime,
+			shippingCostsDeclaredValue,
+			topDestinationStatesRaw,
+			topCouriers,
+			shipmentsForAvgDelivery,
+		] = await Promise.all([
+			ctx.db.user.findUnique({
+				where: { user_id: userId },
+				include: { wallet: true },
+			}),
+			ctx.db.shipment.count({
+				where: { user_id: userId },
+			}),
+			ctx.db.shipment.count({
+				where: { user_id: userId, current_status: SHIPMENT_STATUS.DELIVERED },
+			}),
+			ctx.db.shipment.aggregate({
+				where: { user_id: userId },
+				_sum: { shipping_cost: true },
+				_count: { shipping_cost: true },
+			}),
+			ctx.db.supportTicket.count({
+				where: { user_id: userId, status: "Open" },
+			}),
+			ctx.db.shipment.groupBy({
+				by: ["current_status"],
+				where: {
+					user_id: userId,
+					current_status: { in: userShipmentStatusStages },
+				},
+				_count: { current_status: true },
+			}),
+			ctx.db.$queryRaw`
+				SELECT
+					DATE(created_at) as date,
+					COUNT(*) as "shipmentCount"
+				FROM "Shipment"
+				WHERE user_id = ${userId} AND created_at >= ${thirtyDaysAgo}
+				GROUP BY DATE(created_at)
+				ORDER BY date ASC
+			`,
+			ctx.db.$queryRaw`
+				SELECT
+					TO_CHAR(created_at, 'Mon') as month,
+					SUM(shipping_cost) as "totalShippingCost",
+					SUM(declared_value) as "totalDeclaredValue"
+				FROM "Shipment"
+				WHERE user_id = ${userId} AND created_at >= ${sixMonthsAgo}
+				GROUP BY month
+				ORDER BY MIN(created_at) ASC
+			`,
+			ctx.db.shipment.groupBy({
+				by: ["destination_address_id"],
+				where: { user_id: userId },
+				_count: { destination_address_id: true },
+				orderBy: { _count: { destination_address_id: "desc" } },
+				take: 5,
+			}),
+			ctx.db.shipment.groupBy({
+				by: ["courier_id"],
+				where: { user_id: userId, courier_id: { not: null } },
+				_count: { courier_id: true },
+				orderBy: { _count: { courier_id: "desc" } },
+				take: 5,
+			}),
+			ctx.db.shipment.findMany({
+				where: {
+					user_id: userId,
+					created_at: { gte: sixMonthsAgoAvg },
+				},
+				include: {
+					tracking: {
+						where: {
+							status_description: { in: ["DELIVERED", "PICKED_UP"] },
+						},
+						select: { timestamp: true, status_description: true },
+					},
+				},
+			}),
+		]);
 
 		if (!user) {
 			throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 		}
-
-		const totalShipments = await ctx.db.shipment.count({
-			where: { user_id: userId },
-		});
-
-		const deliveredShipments = await ctx.db.shipment.count({
-			where: { user_id: userId, current_status: SHIPMENT_STATUS.DELIVERED },
-		});
-
-		const totalShippingCostResult = await ctx.db.shipment.aggregate({
-			where: { user_id: userId },
-			_sum: { shipping_cost: true },
-			_count: { shipping_cost: true },
-		});
 
 		const avgShippingCost = totalShippingCostResult._sum.shipping_cost
 			? totalShippingCostResult._sum.shipping_cost.toNumber() /
@@ -38,10 +123,6 @@ export const userDashRouter = createTRPCRouter({
 		const deliveredRate =
 			totalShipments > 0 ? (deliveredShipments / totalShipments) * 100 : 0;
 
-		const openSupportTickets = await ctx.db.supportTicket.count({
-			where: { user_id: userId, status: "Open" },
-		});
-
 		const kpis = {
 			walletBalance: user.wallet?.balance.toNumber() || 0,
 			totalShipments,
@@ -49,24 +130,6 @@ export const userDashRouter = createTRPCRouter({
 			deliveredRate: Number.parseFloat(deliveredRate.toFixed(2)),
 			openSupportTickets,
 		};
-
-		// Shipment Status Distribution
-		const userShipmentStatusStages = [
-			SHIPMENT_STATUS.SHIPMENT_BOOKED,
-			SHIPMENT_STATUS.IN_TRANSIT,
-			SHIPMENT_STATUS.DELIVERED,
-			SHIPMENT_STATUS.RTO,
-			SHIPMENT_STATUS.CANCELLED,
-		];
-
-		const shipmentStatusCounts = await ctx.db.shipment.groupBy({
-			by: ["current_status"],
-			where: {
-				user_id: userId,
-				current_status: { in: userShipmentStatusStages },
-			},
-			_count: { current_status: true },
-		});
 
 		const shipmentStatusDistribution = userShipmentStatusStages.map(
 			(status) => {
@@ -87,20 +150,6 @@ export const userDashRouter = createTRPCRouter({
 			}),
 		);
 
-		// Shipments Over Time (last 30 days)
-		const thirtyDaysAgo = new Date();
-		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-		const shipmentsOverTime = await ctx.db.$queryRaw`
-      SELECT
-        DATE(created_at) as date,
-        COUNT(*) as "shipmentCount"
-      FROM "Shipment"
-      WHERE user_id = ${userId} AND created_at >= ${thirtyDaysAgo}
-      GROUP BY DATE(created_at)
-      ORDER BY date ASC
-    `;
-
 		const formattedShipmentsOverTime = (
 			shipmentsOverTime as { date: Date; shipmentCount: bigint }[]
 		).map((s) => ({
@@ -108,31 +157,7 @@ export const userDashRouter = createTRPCRouter({
 			shipmentCount: Number(s.shipmentCount),
 		}));
 
-		// Shipping Costs vs. Declared Value (last 6 months)
-		const sixMonthsAgo = new Date();
-		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-		const shippingCostsDeclaredValue = await ctx.db.$queryRaw`
-      SELECT
-        TO_CHAR(created_at, 'Mon') as month,
-        SUM(shipping_cost) as "totalShippingCost",
-        SUM(declared_value) as "totalDeclaredValue"
-      FROM "Shipment"
-      WHERE user_id = ${userId} AND created_at >= ${sixMonthsAgo}
-      GROUP BY month
-      ORDER BY MIN(created_at) ASC
-    `;
-
-		// Top 5 Destination States
-		const topDestinationStates = await ctx.db.shipment.groupBy({
-			by: ["destination_address_id"],
-			where: { user_id: userId },
-			_count: { destination_address_id: true },
-			orderBy: { _count: { destination_address_id: "desc" } },
-			take: 5,
-		});
-
-		const destinationAddressIds = topDestinationStates.map(
+		const destinationAddressIds = topDestinationStatesRaw.map(
 			(s) => s.destination_address_id,
 		);
 		const addresses = await ctx.db.address.findMany({
@@ -143,19 +168,10 @@ export const userDashRouter = createTRPCRouter({
 			addresses.map((address) => [address.address_id, address.state]),
 		);
 
-		const formattedTopDestinationStates = topDestinationStates.map((s) => ({
+		const formattedTopDestinationStates = topDestinationStatesRaw.map((s) => ({
 			state: addressMap.get(s.destination_address_id) || "Unknown",
 			shipmentCount: s._count.destination_address_id,
 		}));
-
-		// Courier Performance (for top 5 couriers by shipment count)
-		const topCouriers = await ctx.db.shipment.groupBy({
-			by: ["courier_id"],
-			where: { user_id: userId, courier_id: { not: null } },
-			_count: { courier_id: true },
-			orderBy: { _count: { courier_id: "desc" } },
-			take: 5,
-		});
 
 		const relevantShipmentStatuses: SHIPMENT_STATUS[] = [
 			SHIPMENT_STATUS.DELIVERED,
@@ -176,62 +192,94 @@ export const userDashRouter = createTRPCRouter({
 			couriers.map((courier) => [courier.id, courier.name]),
 		);
 
-		const courierPerformance = await Promise.all(
-			topCouriers.map(async (c) => {
-				if (c.courier_id === null) {
-					return {
-						courierName: "Unknown Courier",
-						DELIVERED: 0,
-						IN_TRANSIT: 0,
-						RTO: 0,
-						CANCELLED: 0,
-						SHIPMENT_BOOKED: 0,
-					}; // Or handle as appropriate
-				}
+		const allCourierStatusCounts = await ctx.db.shipment.groupBy({
+			by: ["courier_id", "current_status"],
+			where: {
+				user_id: userId,
+				courier_id: { in: courierIds },
+				current_status: { in: relevantShipmentStatuses },
+			},
+			_count: { current_status: true },
+		});
 
-				const statusCounts = await ctx.db.shipment.groupBy({
-					by: ["current_status"],
-					where: {
-						user_id: userId,
-						courier_id: c.courier_id,
-						current_status: { not: null },
-					},
-					_count: { current_status: true },
-				});
+		const courierPerformance = topCouriers.map((c) => {
+			if (c.courier_id === null) {
+				return {
+					courierName: "Unknown Courier",
+					DELIVERED: 0,
+					IN_TRANSIT: 0,
+					RTO: 0,
+					CANCELLED: 0,
+					SHIPMENT_BOOKED: 0,
+				}; // Or handle as appropriate
+			}
 
-				const initialStatusCounts = relevantShipmentStatuses.reduce(
-					(acc, status) => {
-						acc[status] = 0;
-						return acc;
-					},
-					{} as Record<SHIPMENT_STATUS, number>,
-				);
+			const initialStatusCounts = relevantShipmentStatuses.reduce(
+				(acc, status) => {
+					acc[status] = 0;
+					return acc;
+				},
+				{} as Record<SHIPMENT_STATUS, number>,
+			);
 
-				const formattedStatusCounts = statusCounts.reduce((acc, curr) => {
+			const courierSpecificCounts = allCourierStatusCounts.filter(
+				(s) => s.courier_id === c.courier_id,
+			);
+
+			const formattedStatusCounts = courierSpecificCounts.reduce(
+				(acc, curr) => {
 					acc[curr.current_status as SHIPMENT_STATUS] =
 						curr._count.current_status;
 					return acc;
-				}, initialStatusCounts);
+				},
+				initialStatusCounts,
+			);
 
-				return {
-					courierName: courierMap.get(c.courier_id) || "Unknown Courier",
-					...formattedStatusCounts,
-				};
-			}),
-		);
+			return {
+				courierName: courierMap.get(c.courier_id) || "Unknown Courier",
+				...formattedStatusCounts,
+			};
+		});
 
-		// Average Delivery Time (last 6 months)
-		const avgDeliveryTime = await ctx.db.$queryRaw`
-      SELECT
-        TO_CHAR(created_at, 'YYYY-MM') as month,
-        AVG(EXTRACT(EPOCH FROM (SELECT timestamp FROM "Tracking" WHERE "shipment_id" = s.shipment_id AND status_description = 'DELIVERED' LIMIT 1)) - EXTRACT(EPOCH FROM (SELECT timestamp FROM "Tracking" WHERE "shipment_id" = s.shipment_id AND status_description = 'PICKED_UP' LIMIT 1))) / (60 * 60 * 24) as "averageDeliveryTimeDays"
-      FROM "Shipment" s
-      WHERE user_id = ${userId} AND created_at >= ${sixMonthsAgo}
-        AND EXISTS (SELECT 1 FROM "Tracking" WHERE "shipment_id" = s.shipment_id AND status_description = 'DELIVERED')
-        AND EXISTS (SELECT 1 FROM "Tracking" WHERE "shipment_id" = s.shipment_id AND status_description = 'PICKED_UP')
-      GROUP BY month
-      ORDER BY month ASC
-    `;
+		const monthlyDeliveryTimes: Record<string, number[]> = {};
+
+		for (const shipment of shipmentsForAvgDelivery) {
+			const deliveredTracking = shipment.tracking.find(
+				(t: { status_description: string; timestamp: Date }) =>
+					t.status_description === "DELIVERED",
+			);
+			const pickedUpTracking = shipment.tracking.find(
+				(t: { status_description: string; timestamp: Date }) =>
+					t.status_description === "PICKED_UP",
+			);
+
+			if (deliveredTracking && pickedUpTracking) {
+				const deliveryTimeMs =
+					deliveredTracking.timestamp.getTime() -
+					pickedUpTracking.timestamp.getTime();
+				const deliveryTimeDays = deliveryTimeMs / (1000 * 60 * 60 * 24);
+
+				const month = shipment.created_at.toISOString().substring(0, 7); // YYYY-MM
+				if (!monthlyDeliveryTimes[month]) {
+					monthlyDeliveryTimes[month] = [];
+				}
+				monthlyDeliveryTimes[month].push(deliveryTimeDays);
+			}
+		}
+
+		const avgDeliveryTime = Object.keys(monthlyDeliveryTimes)
+			.sort()
+			.map((month) => ({
+				month,
+				averageDeliveryTimeDays: Number.parseFloat(
+					(
+						(monthlyDeliveryTimes[month] || []).reduce(
+							(sum, time) => sum + time,
+							0,
+						) / (monthlyDeliveryTimes[month] || []).length
+					).toFixed(2),
+				),
+			}));
 
 		return {
 			user: { name: user.name },

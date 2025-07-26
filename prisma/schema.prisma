@@ -352,6 +352,7 @@ model Tracking {
   courier  Courier  @relation(fields: [courier_id], references: [id])
 
   @@index([shipment_id, courier_id, timestamp, location, status_description])
+  @@index([shipment_id, status_description, timestamp])
 }
 
 model SupportTicket {
