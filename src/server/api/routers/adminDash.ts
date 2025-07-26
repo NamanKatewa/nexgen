@@ -7,34 +7,104 @@ import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const adminDashRouter = createTRPCRouter({
 	getDashboardData: adminProcedure.query(async ({ ctx }) => {
-		const totalUsers = await ctx.db.user.count();
-		const pendingKycApprovals = await ctx.db.kyc.count({
-			where: { kyc_status: "Pending" },
-		});
-		const pendingShipments = await ctx.db.shipment.count({
-			where: { shipment_status: "PendingApproval" },
-		});
-
 		const thirtyDaysAgo = new Date();
 		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-		const totalRevenueLast30DaysResult = await ctx.db.transaction.aggregate({
-			where: {
-				transaction_type: "Credit",
-				created_at: { gte: thirtyDaysAgo },
-			},
-			_sum: { amount: true },
-		});
+		const twelveMonthsAgo = new Date();
+		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+		const sixMonthsAgo = new Date();
+		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+		const [
+			totalUsers,
+			pendingKycApprovals,
+			pendingShipments,
+			totalRevenueLast30DaysResult,
+			highPriorityTickets,
+			totalUserBalanceResult,
+			userGrowth,
+			revenueRefunds,
+			userDemographics,
+			shipmentFunnel,
+			topUsersByShipmentVolume,
+			totalShipmentsAll,
+			courierUsageDistribution,
+		] = await Promise.all([
+			ctx.db.user.count(),
+			ctx.db.kyc.count({
+				where: { kyc_status: "Pending" },
+			}),
+			ctx.db.shipment.count({
+				where: { shipment_status: "PendingApproval" },
+			}),
+			ctx.db.transaction.aggregate({
+				where: {
+					transaction_type: "Credit",
+					created_at: { gte: thirtyDaysAgo },
+				},
+				_sum: { amount: true },
+			}),
+			ctx.db.supportTicket.count({
+				where: { status: "Open", priority: "High" },
+			}),
+			ctx.db.wallet.aggregate({
+				_sum: { balance: true },
+			}),
+			ctx.db.$queryRaw`
+                SELECT
+                    TO_CHAR(created_at, 'Mon YYYY') as month,
+                    COUNT(user_id) as "newUserCount"
+                FROM "User"
+                WHERE created_at >= ${twelveMonthsAgo}
+                GROUP BY month
+                ORDER BY MIN(created_at) ASC
+            `,
+			ctx.db.$queryRaw`
+                SELECT
+                    TO_CHAR(created_at, 'Mon') as month,
+                    SUM(CASE WHEN transaction_type = 'Credit' THEN amount ELSE 0 END) as "totalRevenue",
+                    SUM(CASE WHEN transaction_type = 'Debit' THEN amount ELSE 0 END) as "totalRefunds"
+                FROM "Transaction"
+                WHERE created_at >= ${sixMonthsAgo}
+                GROUP BY month
+                ORDER BY MIN(created_at) ASC
+            `,
+			ctx.db.user.groupBy({
+				by: ["business_type", "status"],
+				_count: { user_id: true },
+			}),
+			Promise.all(
+				[
+					SHIPMENT_STATUS.SHIPMENT_BOOKED,
+					SHIPMENT_STATUS.PICKED_UP,
+					SHIPMENT_STATUS.IN_TRANSIT,
+					SHIPMENT_STATUS.OUT_FOR_DELIVERY,
+					SHIPMENT_STATUS.DELIVERED,
+				].map(async (stage) => ({
+					stage,
+					count: await ctx.db.shipment.count({
+						where: { current_status: stage },
+					}),
+				})),
+			),
+			ctx.db.shipment.groupBy({
+				by: ["user_id"],
+				where: { created_at: { gte: thirtyDaysAgo } },
+				_count: { user_id: true },
+				orderBy: { _count: { user_id: "desc" } },
+				take: 10,
+			}),
+			ctx.db.shipment.count(),
+			ctx.db.shipment.groupBy({
+				by: ["courier_id"],
+				where: { courier_id: { not: null } },
+				_count: { courier_id: true },
+			}),
+		]);
+
 		const totalRevenueLast30Days =
 			totalRevenueLast30DaysResult._sum.amount?.toNumber() || 0;
-
-		const highPriorityTickets = await ctx.db.supportTicket.count({
-			where: { status: "Open", priority: "High" },
-		});
-
-		const totalUserBalanceResult = await ctx.db.wallet.aggregate({
-			_sum: { balance: true },
-		});
 		const totalUserBalance =
 			totalUserBalanceResult._sum.balance?.toNumber() || 0;
 
@@ -49,7 +119,6 @@ export const adminDashRouter = createTRPCRouter({
 			totalUserBalance: Number.parseFloat(totalUserBalance.toFixed(2)),
 		};
 
-		// Platform Health Overview (Radar Chart)
 		const platformHealthOverviewRaw = [
 			{ metric: "Pending KYCs", value: pendingKycApprovals },
 			{ metric: "Pending Shipments", value: pendingShipments },
@@ -79,20 +148,6 @@ export const adminDashRouter = createTRPCRouter({
 			value: maxLogHealthValue === 0 ? 0 : item.value / maxLogHealthValue, // Normalize log-transformed values
 		}));
 
-		// User Growth (last 12 months)
-		const twelveMonthsAgo = new Date();
-		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
-		const userGrowth = await ctx.db.$queryRaw`
-			SELECT
-				TO_CHAR(created_at, 'Mon YYYY') as month,
-				COUNT(user_id) as "newUserCount"
-			FROM "User"
-			WHERE created_at >= ${twelveMonthsAgo}
-			GROUP BY month
-			ORDER BY MIN(created_at) ASC
-		`;
-
 		const formattedUserGrowth = (
 			userGrowth as { month: string; newUserCount: bigint }[]
 		).map((u) => ({
@@ -100,31 +155,16 @@ export const adminDashRouter = createTRPCRouter({
 			newUserCount: Number(u.newUserCount),
 		}));
 
-		// Revenue vs. Refunds (last 6 months)
-		const sixMonthsAgo = new Date();
-		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-		const revenueRefunds = await ctx.db.$queryRaw`
-      SELECT
-        TO_CHAR(created_at, 'Mon') as month,
-        SUM(CASE WHEN transaction_type = 'Credit' THEN amount ELSE 0 END) as "totalRevenue",
-        SUM(CASE WHEN transaction_type = 'Debit' THEN amount ELSE 0 END) as "totalRefunds"
-      FROM "Transaction"
-      WHERE created_at >= ${sixMonthsAgo}
-      GROUP BY month
-      ORDER BY MIN(created_at) ASC
-    `;
-
-		// User Demographics (Stacked Bar Chart)
-		const userDemographics = await ctx.db.user.groupBy({
-			by: ["business_type", "status"],
-			_count: { user_id: true },
-		});
-
 		const formattedUserDemographics = Object.values(
-			userDemographics.reduce(
+			(
+				userDemographics as {
+					business_type: BUSINESS_TYPE;
+					status: USER_STATUS;
+					_count: { user_id: number };
+				}[]
+			).reduce(
 				(acc, curr) => {
-					const businessType = curr.business_type as BUSINESS_TYPE;
+					const businessType = curr.business_type;
 					if (!acc[businessType]) {
 						acc[businessType] = {
 							businessType,
@@ -150,33 +190,6 @@ export const adminDashRouter = createTRPCRouter({
 			),
 		);
 
-		// Shipment Funnel
-		const shipmentFunnelStages = [
-			SHIPMENT_STATUS.SHIPMENT_BOOKED,
-			SHIPMENT_STATUS.PICKED_UP,
-			SHIPMENT_STATUS.IN_TRANSIT,
-			SHIPMENT_STATUS.OUT_FOR_DELIVERY,
-			SHIPMENT_STATUS.DELIVERED,
-		];
-
-		const shipmentFunnel = await Promise.all(
-			shipmentFunnelStages.map(async (stage) => ({
-				stage,
-				count: await ctx.db.shipment.count({
-					where: { current_status: stage },
-				}),
-			})),
-		);
-
-		// Top Users by Shipment Volume (last 30 days)
-		const topUsersByShipmentVolume = await ctx.db.shipment.groupBy({
-			by: ["user_id"],
-			where: { created_at: { gte: thirtyDaysAgo } },
-			_count: { user_id: true },
-			orderBy: { _count: { user_id: "desc" } },
-			take: 10,
-		});
-
 		const userIds = topUsersByShipmentVolume.map((u) => u.user_id);
 		const users = await ctx.db.user.findMany({
 			where: { user_id: { in: userIds } },
@@ -191,16 +204,12 @@ export const adminDashRouter = createTRPCRouter({
 			}),
 		);
 
-		// Courier Usage Distribution
-		const totalShipmentsAll = await ctx.db.shipment.count();
-
-		const courierUsageDistribution = await ctx.db.shipment.groupBy({
-			by: ["courier_id"],
-			where: { courier_id: { not: null } },
-			_count: { courier_id: true },
-		});
-
-		const courierIds = courierUsageDistribution
+		const courierIds = (
+			courierUsageDistribution as {
+				courier_id: string;
+				_count: { courier_id: number };
+			}[]
+		)
 			.map((c) => c.courier_id)
 			.filter((id) => id !== null) as string[];
 		const couriers = await ctx.db.courier.findMany({
@@ -211,20 +220,23 @@ export const adminDashRouter = createTRPCRouter({
 			couriers.map((courier) => [courier.id, courier.name]),
 		);
 
-		const formattedCourierUsageDistribution = courierUsageDistribution.map(
-			(c) => {
-				if (c.courier_id === null) {
-					return { courierName: "Unknown Courier", shipmentPercentage: 0 }; // Handle null courier_id
-				}
-				return {
-					courierName: courierMap.get(c.courier_id) || "Unknown Courier",
-					shipmentPercentage:
-						totalShipmentsAll > 0
-							? (c._count.courier_id / totalShipmentsAll) * 100
-							: 0,
-				};
-			},
-		);
+		const formattedCourierUsageDistribution = (
+			courierUsageDistribution as {
+				courier_id: string;
+				_count: { courier_id: number };
+			}[]
+		).map((c) => {
+			if (c.courier_id === null) {
+				return { courierName: "Unknown Courier", shipmentPercentage: 0 }; // Handle null courier_id
+			}
+			return {
+				courierName: courierMap.get(c.courier_id) || "Unknown Courier",
+				shipmentPercentage:
+					totalShipmentsAll > 0
+						? (c._count.courier_id / totalShipmentsAll) * 100
+						: 0,
+			};
+		});
 
 		return {
 			kpis,
