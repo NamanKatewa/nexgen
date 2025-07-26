@@ -55,11 +55,10 @@ export const trackingRouter = createTRPCRouter({
 		.input(webhookSchema)
 		.mutation(async ({ input }) => {
 			const { hash, status_feed } = input;
-			const expectedHash = env.SHIPWAY_HASH.replace(/^"|"$/g, "");
-			if (hash !== env.SHIPWAY_HASH || hash !== env.SHIPWAY_HASH_TEMP) {
+			if (hash !== env.SHIPWAY_HASH && hash !== env.SHIPWAY_HASH_TEMP) {
 				logger.warn("Shipway webhook received with invalid hash", {
 					receivedHash: hash,
-					expectedHash,
+					expectedHash: `${env.SHIPWAY_HASH} | ${env.SHIPWAY_HASH_TEMP}`,
 				});
 				throw new TRPCError({
 					code: "UNAUTHORIZED",

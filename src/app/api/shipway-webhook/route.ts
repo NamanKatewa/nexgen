@@ -18,7 +18,10 @@ export async function POST(req: Request) {
 
 		return NextResponse.json(result, { status: 200 });
 	} catch (error) {
-		logger.error("Error processing Shipway webhook at proxy route", { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
+		logger.error("Error processing Shipway webhook at proxy route", {
+			error: error instanceof Error ? error.message : error,
+			stack: error instanceof Error ? error.stack : undefined,
+		});
 		return NextResponse.json(
 			{ status: "error", message: "Internal Server Error" },
 			{ status: 500 },
