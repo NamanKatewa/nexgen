@@ -92,6 +92,7 @@ export default function AdminUsersPage() {
 			key: "name",
 			header: "Name",
 			className: "w-40 px-4 whitespace-normal",
+			render: (item) => item.name,
 		},
 		{
 			key: "email",
@@ -103,11 +104,13 @@ export default function AdminUsersPage() {
 			key: "mobile_number",
 			header: "Mobile Number",
 			className: "w-30 px-4",
+			render: (item) => item.mobile_number,
 		},
 		{
 			key: "company_name",
 			header: "Company Name",
 			className: "w-40 px-4 whitespace-normal",
+			render: (item) => item.company_name,
 		},
 		{
 			key: "business_type",
