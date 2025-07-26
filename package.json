@@ -19,7 +19,8 @@
 		"typecheck": "tsc --noEmit",
 		"seed": "tsx prisma/seed.ts",
 		"seed:rates": "tsx prisma/seedRates.ts",
-		"seed:couriers": "tsx prisma/seedCouriers.ts"
+		"seed:couriers": "tsx prisma/seedCouriers.ts",
+		"seed:fresh": "tsx prisma/seedFresh.ts"
 	},
 	"dependencies": {
 		"@auth/prisma-adapter": "^2.7.2",
