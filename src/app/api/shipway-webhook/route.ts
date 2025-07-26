@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import logger from "~/lib/logger";
-import { appRouter } from "~/server/api/root";
+import { appRouter, type AppRouter } from "~/server/api/root";
+import type { inferRouterOutputs } from "@trpc/server";
 import { createTRPCContext } from "~/server/api/trpc";
 
 export async function POST(req: Request) {
@@ -14,9 +15,13 @@ export async function POST(req: Request) {
 		});
 		const caller = appRouter.createCaller(createContext);
 
-		const result = await caller.tracking.receiveShipwayWebhook(webhookData);
+		const result: inferRouterOutputs<AppRouter>["tracking"]["receiveShipwayWebhook"] =
+			await caller.tracking.receiveShipwayWebhook(webhookData);
 
-		return NextResponse.json(result, { status: 200 });
+		return NextResponse.json(
+			{ status: result.status, message: result.message },
+			{ status: 200 },
+		);
 	} catch (error) {
 		logger.error("Error processing Shipway webhook at proxy route", {
 			error: error instanceof Error ? error.message : error,

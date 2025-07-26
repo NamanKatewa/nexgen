@@ -74,7 +74,7 @@ export const trackingRouter = createTRPCRouter({
 				});
 			}
 
-			await db.$transaction(async (tx) => {
+			const result = await db.$transaction(async (tx) => {
 				for (const update of status_feed) {
 					const { awbno, current_status, status_time, carrier_id, scans } =
 						update;
@@ -201,14 +201,14 @@ export const trackingRouter = createTRPCRouter({
 								to: user.email,
 								subject: `Shipment ${shipment.human_readable_shipment_id} - Non-Delivery Update`,
 								html: `
-									<p>Dear ${user.name || "User"},</p>
-									<p>Your shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has an important update.</p>
-									<p>The current status is: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
-									<p>Please visit our tracking page for more details: <a href="${env.BASE_URL}/track?id=${awbno}">${env.BASE_URL}/track?id=${awbno}</a></p>
-									<p>If you have any concerns, please contact our support team.</p>
-									<p>Thank you,</p>
-									<p>Nexgen Courier Services</p>
-								`,
+								<p>Dear ${user.name || "User"},</p>
+								<p>Your shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has an important update.</p>
+								<p>The current status is: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
+								<p>Please visit our tracking page for more details: <a href="${env.BASE_URL}/track?id=${awbno}">${env.BASE_URL}/track?id=${awbno}</a></p>
+								<p>If you have any concerns, please contact our support team.</p>
+								<p>Thank you,</p>
+								<p>Nexgen Courier Services</p>
+							`,
 							});
 						}
 
@@ -218,14 +218,14 @@ export const trackingRouter = createTRPCRouter({
 									to: admin.email,
 									subject: `ADMIN ALERT: Shipment ${shipment.human_readable_shipment_id} - Non-Delivery Update`,
 									html: `
-										<p>Dear Admin,</p>
-										<p>Shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has a non-delivery status update.</p>
-										<p>User Email: ${user?.email || "N/A"}</p>
-										<p>Current Status: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
-										<p>Please investigate and take necessary action.</p>
-										<p>Thank you,</p>
-										<p>Nexgen Courier Services</p>
-									`,
+									<p>Dear Admin,</p>
+									<p>Shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has a non-delivery status update.</p>
+									<p>User Email: ${user?.email || "N/A"}</p>
+									<p>Current Status: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
+									<p>Please investigate and take necessary action.</p>
+									<p>Thank you,</p>
+									<p>Nexgen Courier Services</p>
+								`,
 								});
 							}
 						}
@@ -237,5 +237,7 @@ export const trackingRouter = createTRPCRouter({
 					message: "Webhook received and processed",
 				};
 			});
+
+			return result;
 		}),
 });
