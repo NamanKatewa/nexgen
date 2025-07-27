@@ -136,27 +136,36 @@ export const walletRouter = createTRPCRouter({
 					});
 				}
 
-				const transaction = await db.transaction.update({
-					where: {
-						transaction_id: input.transaction_id,
-						user_id: ctx.user.user_id,
-					},
-					data: {
-						payment_status: "Completed",
-					},
-					select: { amount: true },
-				});
+				const userWallet = dbUser.wallet;
 
-				if (!transaction) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Transaction not found",
+				await db.$transaction(async (prisma) => {
+					const transaction = await prisma.transaction.findUnique({
+						where: {
+							transaction_id: input.transaction_id,
+							user_id: ctx.user.user_id,
+						},
+						select: { amount: true, payment_status: true },
 					});
-				}
 
-				await db.wallet.update({
-					where: { wallet_id: dbUser.wallet.wallet_id },
-					data: { balance: dbUser.wallet.balance.add(transaction.amount) },
+					if (!transaction) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Transaction not found",
+						});
+					}
+
+					// Only update if the transaction is still pending
+					if (transaction.payment_status === "Pending") {
+						await prisma.transaction.update({
+							where: { transaction_id: input.transaction_id },
+							data: { payment_status: "Completed" },
+						});
+
+						await prisma.wallet.update({
+							where: { wallet_id: userWallet.wallet_id },
+							data: { balance: userWallet.balance.add(transaction.amount) },
+						});
+					}
 				});
 			} catch (error) {
 				logger.error("support.updateTransaction", { ctx, input, error });
@@ -199,27 +208,44 @@ export const walletRouter = createTRPCRouter({
 					});
 
 					if (imbStatus.result.status === "SUCCESS") {
-						await db.transaction.update({
-							where: { transaction_id: transaction.transaction_id },
-							data: { payment_status: "Completed" },
-						});
-
-						if (transaction.user.wallet) {
-							await db.wallet.update({
-								where: { wallet_id: transaction.user.wallet.wallet_id },
-								data: {
-									balance: transaction.user.wallet.balance.add(
-										transaction.amount,
-									),
+						// Use a transaction to ensure atomicity of status update and wallet balance update
+						await db.$transaction(async (prisma) => {
+							// Re-fetch the transaction within the transaction block to get its latest state
+							const currentTransaction = await prisma.transaction.findUnique({
+								where: { transaction_id: transaction.transaction_id },
+								select: {
+									payment_status: true,
+									amount: true,
+									user: { select: { wallet: true } },
 								},
 							});
-						}
+
+							// Only proceed if the transaction is still pending
+							if (currentTransaction?.payment_status === "Pending") {
+								await prisma.transaction.update({
+									where: { transaction_id: transaction.transaction_id },
+									data: { payment_status: "Completed" },
+								});
+
+								if (currentTransaction.user?.wallet) {
+									await prisma.wallet.update({
+										where: {
+											wallet_id: currentTransaction.user.wallet.wallet_id,
+										},
+										data: {
+											balance: currentTransaction.user.wallet.balance.add(
+												currentTransaction.amount,
+											),
+										},
+									});
+								}
+							}
+						});
 					} else if (imbStatus.result.status === "FAILED") {
 						await db.transaction.update({
 							where: { transaction_id: transaction.transaction_id },
 							data: { payment_status: "Failed" },
 						});
-					} else {
 					}
 				} catch (imbError) {
 					logger.error("wallet.checkPendingTransactions", {

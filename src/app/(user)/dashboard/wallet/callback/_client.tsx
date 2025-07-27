@@ -18,7 +18,13 @@ function WalletCallbackClientContent() {
 		isSuccess,
 		error,
 	} = api.wallet.updateTransaction.useMutation({
-		onSuccess: () => utils.auth.me.invalidate(),
+		onSuccess: () => {
+			utils.auth.me.invalidate();
+			// Redirect to dashboard after 10 seconds
+			setTimeout(() => {
+				router.push("/dashboard");
+			}, 10000);
+		},
 		onError: (error) => {
 			console.error(error);
 		},
@@ -29,6 +35,15 @@ function WalletCallbackClientContent() {
 			confirmTransaction({ transaction_id });
 		}
 	}, [transaction_id, confirmTransaction]);
+
+	// Clear timeout if component unmounts or transaction is not successful
+	useEffect(() => {
+		if (!isSuccess) return;
+		const timer = setTimeout(() => {
+			router.push("/dashboard");
+		}, 10000);
+		return () => clearTimeout(timer);
+	}, [isSuccess, router]);
 
 	if (!transaction_id)
 		return (
