@@ -106,20 +106,15 @@ export default function KycFormPage() {
 					type: file.type,
 					size: file.size,
 				});
-				clearErrors(fieldName); // Clear error for this field
+				await trigger(fieldName);
 			} catch (error) {
-				console.error("Error converting file to Base64:", error);
 				toast.error("Failed to process image file");
 				setValue(fieldName, undefined);
 				setPreview(null);
-			} finally {
-				// Ensure errors are cleared even if there's an issue with file processing
-				clearErrors(fieldName);
 			}
 		} else {
 			setValue(fieldName, undefined);
 			setPreview(null);
-			clearErrors(fieldName); // Clear error if file is unselected
 		}
 	};
 
@@ -422,7 +417,11 @@ export default function KycFormPage() {
 											)}
 										</div>
 										<FieldError
-											message={errors.aadharImageFront?.message as string}
+											message={
+												Array.isArray(errors.aadharImageFront?.size?.message)
+													? errors.aadharImageFront?.size?.message.join(", ")
+													: errors.aadharImageFront?.size?.message
+											}
 										/>
 									</div>
 
@@ -450,7 +449,11 @@ export default function KycFormPage() {
 											)}
 										</div>
 										<FieldError
-											message={errors.aadharImageBack?.message as string}
+											message={
+												Array.isArray(errors.aadharImageBack?.size?.message)
+													? errors.aadharImageBack?.size?.message.join(", ")
+													: errors.aadharImageBack?.size?.message
+											}
 										/>
 									</div>
 
@@ -499,7 +502,11 @@ export default function KycFormPage() {
 											)}
 										</div>
 										<FieldError
-											message={errors.panImageFront?.message as string}
+											message={
+												Array.isArray(errors.panImageFront?.size?.message)
+													? errors.panImageFront?.size?.message.join(", ")
+													: errors.panImageFront?.size?.message
+											}
 										/>
 									</div>
 								</div>
