@@ -931,7 +931,6 @@ export const shipmentRouter = createTRPCRouter({
 						created_at: true,
 						shipment_id: true,
 						shipment_status: true,
-						payment_status: true,
 						user: {
 							select: {
 								name: true,

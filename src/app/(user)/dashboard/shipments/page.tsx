@@ -52,13 +52,13 @@ export default function UserOrdersPage() {
 		},
 		{
 			key: "client_name",
-			header: "Client Name",
+			header: "Customer Name",
 			className: "px-4 w-40 whitespace-normal",
 			render: (item) => item.recipient_name,
 		},
 		{
 			key: "client_contact",
-			header: "Client Contact",
+			header: "Customer Contact",
 			className: "px-4 w-30 whitespace-normal",
 			render: (item) => item.recipient_mobile,
 		},
@@ -81,39 +81,6 @@ export default function UserOrdersPage() {
 					})}
 				>
 					{item.shipment_status}
-				</Badge>
-			),
-		},
-		{
-			key: "shipment_status",
-			header: "Status",
-			className: "px-4 w-60 text-center",
-			render: (item) => {
-				const statusInfo = SHIPMENT_STATUS_MAP[
-					item.current_status as keyof typeof SHIPMENT_STATUS_MAP
-				] || {
-					displayName: item.current_status,
-					color: "bg-gray-200 text-gray-800",
-				};
-				return (
-					<Badge className={cn("w-fit capitalize", statusInfo.color)}>
-						{statusInfo.displayName ? statusInfo.displayName : "N/A"}
-					</Badge>
-				);
-			},
-		},
-		{
-			key: "payment_status",
-			header: "Payment Status",
-			className: "px-4 w-40 text-center",
-			render: (item) => (
-				<Badge
-					className={cn("text-950", {
-						"bg-green-200": item.payment_status === "Paid",
-						"bg-yellow-200": item.payment_status === "Pending",
-					})}
-				>
-					{item.payment_status}
 				</Badge>
 			),
 		},
