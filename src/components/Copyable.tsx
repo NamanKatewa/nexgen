@@ -7,9 +7,10 @@ import { Button } from "~/components/ui/button";
 
 interface CopyableIdProps {
 	content: string;
+	children?: React.ReactNode;
 }
 
-const Copyable: React.FC<CopyableIdProps> = ({ content }) => {
+const Copyable: React.FC<CopyableIdProps> = ({ content, children }) => {
 	const handleCopy = async () => {
 		try {
 			await navigator.clipboard.writeText(content);
@@ -31,7 +32,7 @@ const Copyable: React.FC<CopyableIdProps> = ({ content }) => {
             display: none;
           }
         `}</style>
-				{content}
+				{children || content}
 			</div>
 			<Button
 				variant="ghost"

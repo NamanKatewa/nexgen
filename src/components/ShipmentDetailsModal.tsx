@@ -2,7 +2,9 @@ import Image from "next/image";
 import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import Copyable from "~/components/Copyable";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -236,131 +238,181 @@ const ShipmentDetailsModal: React.FC<ShipmentDetailsModalProps> = ({
 							Details of the selected shipment.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="grid grid-cols-2 gap-4 overflow-y-auto py-4">
+					<div className="grid grid-cols-1 gap-4 overflow-y-auto py-4">
+						<Card>
+							<CardHeader>
+								<CardTitle>Recipient Information</CardTitle>
+							</CardHeader>
+							<CardContent className="grid grid-cols-2 gap-4">
+								<div className="font-semibold text-gray-700">
+									Recipient Name
+								</div>
+								<Copyable content={shipmentItem.recipient_name} />
+
+								<div className="font-semibold text-gray-700">
+									Recipient Mobile
+								</div>
+								<Copyable content={shipmentItem.recipient_mobile} />
+							</CardContent>
+						</Card>
+
+						<Card>
+							<CardHeader>
+								<CardTitle>Destination Address</CardTitle>
+							</CardHeader>
+							<CardContent className="grid grid-cols-2 gap-4">
+								<div className="font-semibold text-gray-700">Address Line</div>
+								<Copyable
+									content={shipmentItem.destination_address.address_line}
+								/>
+
+								{shipmentItem.destination_address.landmark && (
+									<>
+										<div className="font-semibold text-gray-700">Landmark</div>
+										<Copyable
+											content={shipmentItem.destination_address.landmark}
+										/>
+									</>
+								)}
+
+								<div className="font-semibold text-gray-700">City</div>
+								<Copyable content={shipmentItem.destination_address.city} />
+
+								<div className="font-semibold text-gray-700">State</div>
+								<Copyable content={shipmentItem.destination_address.state} />
+
+								<div className="font-semibold text-gray-700">PIN Code</div>
+								<Copyable
+									content={String(shipmentItem.destination_address.zip_code)}
+								/>
+							</CardContent>
+						</Card>
+
+						<Card>
+							<CardHeader>
+								<CardTitle>Package Details</CardTitle>
+							</CardHeader>
+							<CardContent className="grid grid-cols-2 gap-4">
+								<div className="font-semibold text-gray-700">
+									Package Weight
+								</div>
+								<Copyable
+									content={String(
+										Number(shipmentItem.package_weight).toFixed(2),
+									)}
+								>
+									{Number(shipmentItem.package_weight).toFixed(2)} Kg
+								</Copyable>
+
+								<div className="font-semibold text-gray-700">
+									Package Dimensions
+								</div>
+								<div className="space-y-1">
+									<Copyable
+										content={
+											shipmentItem.package_dimensions.split(/\s*x\s*/i)[0] ?? ""
+										}
+									>
+										<span className="text-gray-600">Breadth:</span>{" "}
+										{shipmentItem.package_dimensions.split(/\s*x\s*/i)[0]} cm
+									</Copyable>
+									<Copyable
+										content={
+											shipmentItem.package_dimensions.split(/\s*x\s*/i)[1] ?? ""
+										}
+									>
+										<span className="text-gray-600">Height:</span>{" "}
+										{shipmentItem.package_dimensions.split(/\s*x\s*/i)[1]} cm
+									</Copyable>
+									<Copyable
+										content={
+											shipmentItem.package_dimensions.split(/\s*x\s*/i)[2] ?? ""
+										}
+									>
+										<span className="text-gray-600">Length:</span>{" "}
+										{shipmentItem.package_dimensions.split(/\s*x\s*/i)[2]} cm
+									</Copyable>
+								</div>
+								{shipmentItem.package_image_url && (
+									<>
+										<div className="font-semibold text-gray-700">
+											Package Image
+										</div>
+										<div>
+											<a
+												href={shipmentItem.package_image_url}
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												<Image
+													src={shipmentItem.package_image_url}
+													alt="Package Image"
+													width={200}
+													height={200}
+													className="h-48 w-48 rounded-md object-cover"
+												/>
+											</a>
+										</div>
+									</>
+								)}
+							</CardContent>
+						</Card>
+
+						<Card>
+							<CardHeader>
+								<CardTitle>Origin Address</CardTitle>
+							</CardHeader>
+							<CardContent className="grid grid-cols-2 gap-4">
+								<div className="font-semibold text-gray-700">Address Line</div>
+								<Copyable content={shipmentItem.origin_address.address_line} />
+
+								{shipmentItem.origin_address.landmark && (
+									<>
+										<div className="font-semibold text-gray-700">Landmark</div>
+										<Copyable content={shipmentItem.origin_address.landmark} />
+									</>
+								)}
+
+								<div className="font-semibold text-gray-700">City</div>
+								<Copyable content={shipmentItem.origin_address.city} />
+
+								<div className="font-semibold text-gray-700">State</div>
+								<Copyable content={shipmentItem.origin_address.state} />
+
+								<div className="font-semibold text-gray-700">PIN Code</div>
+								<Copyable
+									content={String(shipmentItem.origin_address.zip_code)}
+								/>
+							</CardContent>
+						</Card>
+
 						<div className="font-semibold text-gray-700">User</div>
-						<div>{shipmentItem.user.name}</div>
+						<Copyable content={shipmentItem.user.name} />
 
 						<div className="font-semibold text-gray-700">Email</div>
-						<div>{shipmentItem.user.email}</div>
+						<Copyable content={shipmentItem.user.email} />
 
 						<div className="font-semibold text-gray-700">Created At</div>
-						<div>{formatDate(shipmentItem.created_at)}</div>
+						{formatDate(shipmentItem.created_at)}
 
 						<div className="font-semibold text-gray-700">Shipment ID</div>
-						<div>{shipmentItem.human_readable_shipment_id}</div>
-
-						<div className="font-semibold text-gray-700">Recipient Name</div>
-						<div>{shipmentItem.recipient_name}</div>
-
-						<div className="font-semibold text-gray-700">Recipient Mobile</div>
-						<div>{shipmentItem.recipient_mobile}</div>
-
-						<div className="font-semibold text-gray-700">Package Weight</div>
-						<div>{Number(shipmentItem.package_weight).toFixed(2)} Kg</div>
-
-						<div className="font-semibold text-gray-700">
-							Package Dimensions
-						</div>
-						<div className="space-y-1">
-							<div>
-								<span className="text-gray-600">Breadth:</span>{" "}
-								{shipmentItem.package_dimensions.split(/\s*x\s*/i)[0]} cm
-							</div>
-							<div>
-								<span className="text-gray-600">Height:</span>{" "}
-								{shipmentItem.package_dimensions.split(/\s*x\s*/i)[1]} cm
-							</div>
-							<div>
-								<span className="text-gray-600">Length:</span>{" "}
-								{shipmentItem.package_dimensions.split(/\s*x\s*/i)[2]} cm
-							</div>
-						</div>
-
-						<div className="font-semibold text-gray-700">Origin Address</div>
-						<div className="space-y-1">
-							<div>
-								<span className="text-gray-600">Address Line:</span>{" "}
-								{shipmentItem.origin_address.address_line}
-							</div>
-							<div>
-								<span className="text-gray-600">Landmark:</span>{" "}
-								{shipmentItem.origin_address.landmark}
-							</div>
-							<div>
-								<span className="text-gray-600">City:</span>{" "}
-								{shipmentItem.origin_address.city}
-							</div>
-							<div>
-								<span className="text-gray-600">State:</span>{" "}
-								{shipmentItem.origin_address.state}
-							</div>
-							<div>
-								<span className="text-gray-600">PIN Code:</span>{" "}
-								{shipmentItem.origin_address.zip_code}
-							</div>
-						</div>
-						<div className="font-semibold text-gray-700">
-							Destination Address
-						</div>
-						<div className="space-y-1">
-							<div>
-								<span className="text-gray-600">Address Line:</span>{" "}
-								{shipmentItem.destination_address.address_line}
-							</div>
-							<div>
-								<span className="text-gray-600">Landmark:</span>{" "}
-								{shipmentItem.destination_address.landmark}
-							</div>
-							<div>
-								<span className="text-gray-600">City:</span>{" "}
-								{shipmentItem.destination_address.city}
-							</div>
-							<div>
-								<span className="text-gray-600">State:</span>{" "}
-								{shipmentItem.destination_address.state}
-							</div>
-							<div>
-								<span className="text-gray-600">PIN Code:</span>{" "}
-								{shipmentItem.destination_address.zip_code}
-							</div>
-						</div>
-
-						{shipmentItem.package_image_url && (
-							<>
-								<div className="font-semibold text-gray-700">Package Image</div>
-								<div>
-									<a
-										href={shipmentItem.package_image_url}
-										target="_blank"
-										rel="noopener noreferrer"
-									>
-										<Image
-											src={shipmentItem.package_image_url}
-											alt="Package Image"
-											width={200}
-											height={200}
-											className="h-48 w-48 rounded-md object-cover"
-										/>
-									</a>
-								</div>
-							</>
-						)}
+						<Copyable content={shipmentItem.human_readable_shipment_id} />
 
 						<div className="font-semibold text-gray-700">Amount</div>
-						<div>₹{Number(shipmentItem.shipping_cost).toFixed(2)}</div>
+						{Number(shipmentItem.shipping_cost).toFixed(2)}
 
 						<div className="font-semibold text-gray-700">Payment Status</div>
-						<div>{shipmentItem.payment_status}</div>
+						{shipmentItem.payment_status}
 
 						<div className="font-semibold text-gray-700">Approval Status</div>
-						<div>{shipmentItem.shipment_status}</div>
+						{shipmentItem.shipment_status}
 
 						{shipmentItem.rejection_reason && (
 							<>
 								<div className="font-semibold text-gray-700">
 									Rejection Reason
 								</div>
-								<div>{shipmentItem.rejection_reason}</div>
+								{shipmentItem.rejection_reason}
 							</>
 						)}
 					</div>
