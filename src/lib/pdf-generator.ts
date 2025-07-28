@@ -60,7 +60,7 @@ export async function generateAndDownloadLabel(
 	});
 
 	try {
-		const canvas = await html2canvas(iframeDoc.body, { scale: 10 });
+				const canvas = await html2canvas(iframeDoc.body, { scale: 10, allowTaint: true, useCORS: true });
 		imgData = canvas.toDataURL("image/png");
 		document.body.removeChild(iframe);
 	} catch (html2canvasError) {
@@ -72,7 +72,7 @@ export async function generateAndDownloadLabel(
 		content: [
 			{
 				image: imgData,
-				width: 550,
+				width: 595.28, // A4 width in points (1pt = 1/72 inch, A4 width = 210mm = 8.27 inch)
 			},
 		],
 	};

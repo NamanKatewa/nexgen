@@ -23,21 +23,21 @@ export const getLabelHTML = (
         <style>
           body {
             font-family: sans-serif;
-            font-size: 8px; /* Reduced base font size */
-            line-height: 1.2;
+            font-size: 12px; /* Base font size for A4 */
+            line-height: 1.4;
             color: #000000;
             background-color: #ffffff;
           }
           .label-container {
-            width: 80mm;
-            min-height: 100mm;
+            width: 794px; /* A4 width */
+            height: 1123px; /* A4 height */
             border: 1px solid black;
-            padding: 0.5rem; /* Reduced padding */
-            box-sizing: border-box; /* Include padding in width/height */
+            padding: 15mm; /* A4 appropriate padding */
+            box-sizing: border-box;
           }
           .header {
             width: 100%;
-            margin-bottom: 0.2rem; /* Reduced margin */
+            margin-bottom: 10mm;
           }
           .header-table {
             width: 100%;
@@ -52,31 +52,31 @@ export const getLabelHTML = (
           }
           .awb-section {
             text-align: center;
-            margin-bottom: 0.2rem; /* Reduced margin */
+            margin-bottom: 10mm;
           }
           .awb-section img {
             max-width: 100%;
-            height: auto; /* Ensure image scales */
+            height: auto;
           }
           .details-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 0.2rem; /* Reduced margin */
+            margin-bottom: 10mm;
           }
           .details-table td {
             padding: 0;
-            width: 50%; /* Two columns */
+            width: 50%;
           }
           .address-section {
             border-top: 1px solid black;
             border-bottom: 1px solid black;
-            padding: 0.2rem 0; /* Reduced padding */
-            margin-bottom: 0.2rem; /* Reduced margin */
+            padding: 5mm 0;
+            margin-bottom: 10mm;
           }
           .seller-section {
             border-bottom: 1px solid black;
-            padding-bottom: 0.2rem; /* Reduced padding */
-            margin-bottom: 0.2rem; /* Reduced margin */
+            padding-bottom: 5mm;
+            margin-bottom: 10mm;
           }
           .return-section-table {
             width: 100%;
@@ -91,39 +91,39 @@ export const getLabelHTML = (
           }
           .qr-barcode-section img {
             max-width: 100%;
-            height: auto; /* Ensure image scales */
+            height: auto;
           }
           .font-bold {
             font-weight: bold;
           }
           .text-lg {
-            font-size: 10px; /* Adjusted from 1.125rem */
+            font-size: 18px; /* Adjusted for A4 */
           }
           .text-xl {
-            font-size: 12px; /* Adjusted from 1.25rem */
+            font-size: 24px; /* Adjusted for A4 */
           }
           .text-sm {
-            font-size: 8px; /* Adjusted from 0.875rem */
+            font-size: 14px; /* Adjusted for A4 */
           }
           .text-xs {
-            font-size: 7px; /* Adjusted from 0.75rem */
+            font-size: 10px; /* Adjusted for A4 */
           }
           .h-8 {
-            height: 50px; /* Fixed height for courier image */
-            width: 100px; /* Fixed width for courier image */
+            height: 80px; /* Adjusted for A4 */
+            width: 160px; /* Adjusted for A4 */
             object-fit: contain;
           }
           .mb-1 {
-            margin-bottom: 0.1rem;
+            margin-bottom: 5mm;
           }
           .mb-2 {
-            margin-bottom: 0.2rem;
+            margin-bottom: 10mm;
           }
           .mt-1 {
-            margin-top: 0.1rem;
+            margin-top: 5mm;
           }
           .p-4 {
-            padding: 0.5rem;
+            padding: 10mm;
           }
           .text-right {
             text-align: right;

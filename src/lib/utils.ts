@@ -61,7 +61,8 @@ export function formatDateOnly(date: Date): string {
 }
 
 export async function imageUrlToBase64(url: string): Promise<string> {
-	const response = await fetch(url);
+	const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+	const response = await fetch(proxyUrl);
 	const blob = await response.blob();
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader();
