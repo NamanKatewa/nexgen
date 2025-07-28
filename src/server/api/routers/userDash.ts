@@ -14,6 +14,11 @@ export const userDashRouter = createTRPCRouter({
 			SHIPMENT_STATUS.CANCELLED,
 		];
 
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const yesterday = new Date(today);
+		yesterday.setDate(today.getDate() - 1);
+
 		const thirtyDaysAgo = new Date();
 		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -26,6 +31,10 @@ export const userDashRouter = createTRPCRouter({
 			deliveredShipments,
 			totalShippingCostResult,
 			openSupportTickets,
+			todayShipments,
+			yesterdayShipments,
+			todayWalletRechargesResult,
+			yesterdayWalletRechargesResult,
 			shipmentStatusCounts,
 			shipmentsOverTime,
 			shippingCostsDeclaredValue,
@@ -50,6 +59,46 @@ export const userDashRouter = createTRPCRouter({
 			}),
 			ctx.db.supportTicket.count({
 				where: { user_id: userId, status: "Open" },
+			}),
+			ctx.db.shipment.count({
+				where: {
+					user_id: userId,
+					created_at: {
+						gte: today,
+						lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+					},
+				},
+			}),
+			ctx.db.shipment.count({
+				where: {
+					user_id: userId,
+					created_at: {
+						gte: yesterday,
+						lt: today,
+					},
+				},
+			}),
+			ctx.db.transaction.aggregate({
+				where: {
+					user_id: userId,
+					transaction_type: "Credit",
+					created_at: {
+						gte: today,
+						lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+					},
+				},
+				_sum: { amount: true },
+			}),
+			ctx.db.transaction.aggregate({
+				where: {
+					user_id: userId,
+					transaction_type: "Credit",
+					created_at: {
+						gte: yesterday,
+						lt: today,
+					},
+				},
+				_sum: { amount: true },
 			}),
 			ctx.db.shipment.groupBy({
 				by: ["current_status"],
@@ -117,12 +166,23 @@ export const userDashRouter = createTRPCRouter({
 		const deliveredRate =
 			totalShipments > 0 ? (deliveredShipments / totalShipments) * 100 : 0;
 
+		const todayWalletRecharges =
+			todayWalletRechargesResult._sum.amount?.toNumber() || 0;
+		const yesterdayWalletRecharges =
+			yesterdayWalletRechargesResult._sum.amount?.toNumber() || 0;
+
 		const kpis = {
 			walletBalance: user.wallet?.balance.toNumber() || 0,
 			totalShipments,
 			avgShippingCost: Number.parseFloat(avgShippingCost.toFixed(2)),
 			deliveredRate: Number.parseFloat(deliveredRate.toFixed(2)),
 			openSupportTickets,
+			todayShipments,
+			yesterdayShipments,
+			todayWalletRecharges: Number.parseFloat(todayWalletRecharges.toFixed(2)),
+			yesterdayWalletRecharges: Number.parseFloat(
+				yesterdayWalletRecharges.toFixed(2),
+			),
 		};
 
 		const shipmentStatusDistribution = userShipmentStatusStages.map(

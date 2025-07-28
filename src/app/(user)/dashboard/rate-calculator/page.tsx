@@ -114,6 +114,32 @@ const RateCalculator = () => {
 						/>
 						<FieldError message={errors.packageWeight?.message} />
 					</div>
+					<div className="space-y-4">
+						<Label htmlFor="packageHeight">Package Height (in cm)</Label>
+						<Input
+							id="packageHeight"
+							type="number"
+							step="1"
+							placeholder="e.g., 10"
+							disabled={isFetching}
+						/>
+						<Label htmlFor="packageLength">Package Length (in cm)</Label>
+						<Input
+							id="packageLength"
+							type="number"
+							step="1"
+							placeholder="e.g., 10"
+							disabled={isFetching}
+						/>
+						<Label htmlFor="packageBreadth">Package Breadth (in cm)</Label>
+						<Input
+							id="packageBreadth"
+							type="number"
+							step="1"
+							placeholder="e.g., 10"
+							disabled={isFetching}
+						/>
+					</div>
 
 					<Button type="submit" className="w-full" disabled={isFetching}>
 						{isFetching ? "Calculating..." : "Calculate Rate"}

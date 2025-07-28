@@ -7,6 +7,11 @@ import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const adminDashRouter = createTRPCRouter({
 	getDashboardData: adminProcedure.query(async ({ ctx }) => {
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const yesterday = new Date(today);
+		yesterday.setDate(today.getDate() - 1);
+
 		const thirtyDaysAgo = new Date();
 		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -23,6 +28,10 @@ export const adminDashRouter = createTRPCRouter({
 			totalRevenueLast30DaysResult,
 			highPriorityTickets,
 			totalUserBalanceResult,
+			todayShipments,
+			yesterdayShipments,
+			todayWalletRechargesResult,
+			yesterdayWalletRechargesResult,
 			userGrowth,
 			revenueRefunds,
 			userDemographics,
@@ -50,6 +59,42 @@ export const adminDashRouter = createTRPCRouter({
 			}),
 			ctx.db.wallet.aggregate({
 				_sum: { balance: true },
+			}),
+			ctx.db.shipment.count({
+				where: {
+					created_at: {
+						gte: today,
+						lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+					},
+				},
+			}),
+			ctx.db.shipment.count({
+				where: {
+					created_at: {
+						gte: yesterday,
+						lt: today,
+					},
+				},
+			}),
+			ctx.db.transaction.aggregate({
+				where: {
+					transaction_type: "Credit",
+					created_at: {
+						gte: today,
+						lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+					},
+				},
+				_sum: { amount: true },
+			}),
+			ctx.db.transaction.aggregate({
+				where: {
+					transaction_type: "Credit",
+					created_at: {
+						gte: yesterday,
+						lt: today,
+					},
+				},
+				_sum: { amount: true },
 			}),
 			ctx.db.$queryRaw`
                 SELECT
@@ -107,6 +152,10 @@ export const adminDashRouter = createTRPCRouter({
 			totalRevenueLast30DaysResult._sum.amount?.toNumber() || 0;
 		const totalUserBalance =
 			totalUserBalanceResult._sum.balance?.toNumber() || 0;
+		const todayWalletRecharges =
+			todayWalletRechargesResult._sum.amount?.toNumber() || 0;
+		const yesterdayWalletRecharges =
+			yesterdayWalletRechargesResult._sum.amount?.toNumber() || 0;
 
 		const kpis = {
 			totalUsers,
@@ -117,6 +166,12 @@ export const adminDashRouter = createTRPCRouter({
 			),
 			highPriorityTickets,
 			totalUserBalance: Number.parseFloat(totalUserBalance.toFixed(2)),
+			todayShipments,
+			yesterdayShipments,
+			todayWalletRecharges: Number.parseFloat(todayWalletRecharges.toFixed(2)),
+			yesterdayWalletRecharges: Number.parseFloat(
+				yesterdayWalletRecharges.toFixed(2),
+			),
 		};
 
 		const platformHealthOverviewRaw = [
