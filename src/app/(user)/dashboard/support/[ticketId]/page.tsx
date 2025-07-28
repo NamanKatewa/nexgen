@@ -151,6 +151,8 @@ export default function TicketDetailsPage() {
 						</Badge>
 						<p className="font-medium text-sm">Created At:</p>
 						<p className="text-sm">{format(ticket.created_at, "PPP p")}</p>
+						<p className="font-medium text-sm">Last Updated At:</p>
+						<p className="text-sm">{format(ticket.updated_at, "PPP p")}</p>
 						{ticket.awb && (
 							<>
 								<p className="font-medium text-sm">AWB:</p>

@@ -207,6 +207,7 @@ export const supportRouter = createTRPCRouter({
 						status: true,
 						priority: true,
 						created_at: true,
+						updated_at: true,
 						resolved_at: true,
 						awb: true,
 						assigned_to_employee_id: true,
