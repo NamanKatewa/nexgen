@@ -33,7 +33,7 @@ export const adminDashRouter = createTRPCRouter({
 		] = await Promise.all([
 			ctx.db.user.count(),
 			ctx.db.kyc.count({
-				where: { kyc_status: "Pending" },
+				where: { kyc_status: "Submitted" },
 			}),
 			ctx.db.shipment.count({
 				where: { shipment_status: "PendingApproval" },
