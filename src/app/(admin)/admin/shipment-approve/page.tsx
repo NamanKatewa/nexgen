@@ -78,6 +78,18 @@ function ApproveOrderContent() {
 			render: (item: ShipmentListItem) => `₹${item.shipping_cost}`,
 		},
 		{
+			key: "recipient_name",
+			header: "Recipient Name",
+			className: "w-40 px-4 text-center whitespace-normal",
+			render: (item: ShipmentListItem) => item.recipient_name,
+		},
+		{
+			key: "recipient Contact",
+			header: "Recipient Contact",
+			className: "w-30 px-4 text-center whitespace-normal",
+			render: (item: ShipmentListItem) => item.recipient_mobile,
+		},
+		{
 			key: "date",
 			header: "Date",
 			className: "w-30 px-4",
