@@ -120,6 +120,52 @@ export default function UserDashboardPage() {
 						<div className="font-bold text-2xl">{kpis.openSupportTickets}</div>
 					</CardContent>
 				</Card>
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="font-medium text-sm">Today's Shipments</CardTitle>
+						<Package className="h-4 w-4 text-muted-foreground" />
+					</CardHeader>
+					<CardContent>
+						<div className="font-bold text-2xl">{kpis.todayShipments}</div>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="font-medium text-sm">
+							Yesterday's Shipments
+						</CardTitle>
+						<Package className="h-4 w-4 text-muted-foreground" />
+					</CardHeader>
+					<CardContent>
+						<div className="font-bold text-2xl">{kpis.yesterdayShipments}</div>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="font-medium text-sm">
+							Today's Wallet Recharges
+						</CardTitle>
+						<DollarSign className="h-4 w-4 text-muted-foreground" />
+					</CardHeader>
+					<CardContent>
+						<div className="font-bold text-2xl">
+							₹{kpis.todayWalletRecharges.toFixed(2)}
+						</div>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="font-medium text-sm">
+							Yesterday's Wallet Recharges
+						</CardTitle>
+						<DollarSign className="h-4 w-4 text-muted-foreground" />
+					</CardHeader>
+					<CardContent>
+						<div className="font-bold text-2xl">
+							₹{kpis.yesterdayWalletRecharges.toFixed(2)}
+						</div>
+					</CardContent>
+				</Card>
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-2">
