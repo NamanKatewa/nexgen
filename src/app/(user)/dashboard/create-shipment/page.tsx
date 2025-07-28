@@ -64,6 +64,7 @@ export default function CreateShipmentPage() {
 		formState: { errors },
 		getValues,
 		trigger,
+		reset,
 	} = useForm<TShipmentSchema>({
 		resolver: zodResolver(submitShipmentSchema),
 	});
@@ -137,17 +138,14 @@ export default function CreateShipmentPage() {
 	});
 	const recipientName = watch("recipientName");
 
-	const {
-		data: pincodeDetails,
-		isFetching: isFetchingPincodeDetails,
-		error: pincodeError,
-	} = api.pincode.getCityState.useQuery(
-		{ pincode: debouncedDestinationZipCode },
-		{
-			enabled: debouncedDestinationZipCode.length === 6,
-			staleTime: Number.POSITIVE_INFINITY,
-		},
-	);
+	const { data: pincodeDetails, isFetching: isFetchingPincodeDetails } =
+		api.pincode.getCityState.useQuery(
+			{ pincode: debouncedDestinationZipCode },
+			{
+				enabled: debouncedDestinationZipCode.length === 6,
+				staleTime: Number.POSITIVE_INFINITY,
+			},
+		);
 
 	useEffect(() => {
 		if (pincodeDetails) {
@@ -210,6 +208,20 @@ export default function CreateShipmentPage() {
 		onSuccess: () => {
 			setIsLoading(false);
 			toast.success("Shipment created successfully! Redirecting...");
+			reset();
+			setPackageImagePreview(null);
+			setInvoicePreview(null);
+			setCalculatedRate(null);
+			setOrigin(null);
+			setDestination(null);
+			setDestinationZipCodeInput("");
+			setDestinationAddress({
+				zipCode: "",
+				addressLine: "",
+				city: "",
+				state: "",
+				landmark: "",
+			});
 			setTimeout(() => {
 				router.push("/dashboard/shipments");
 			}, 2000);
