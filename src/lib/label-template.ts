@@ -19,8 +19,8 @@ export const getLabelHTML = (
   <meta charset="utf-8" />
 </head>
 
-<body style="font-family: sans-serif; font-size: 12px; line-height: 1.4; color: #000000; background-color: #ffffff;">
-  <div style="width: 794px; height: 1123px; border: 2px solid black;; box-sizing: border-box;">
+<body style="font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #000000; background-color: #ffffff;">
+  <div style="width: 794px; height: 1123px; border: 5px solid black;; box-sizing: border-box;">
     <div style="display:flex; width: 100%;">
 
       <div
@@ -30,7 +30,7 @@ export const getLabelHTML = (
       </div>
       <div
         style="font-size: 20px; display: flex; flex-direction: column; text-align: right; justify-content: space-between; align-items: end; width: 100%; padding-right: 10px; padding-top: 10px;">
-        <p>PREPAID</p>
+        <p style="font-size: 24px;">PREPAID</p>
         <p>${createdAt}</p>
       </div>
     </div>
@@ -61,8 +61,8 @@ export const getLabelHTML = (
       </div>
     </div>
 
-    <div style="text-align: center; padding: 10px; border-bottom: 1px solid black;">
-      <img src="${barcodeSvg}" alt="Barcode" style="width: 100%;" />
+    <div style="text-align: center; padding: 10px; border-bottom: 1px solid black; height:100px;">
+      <img src="${barcodeSvg}" alt="Barcode" style="width: 100%; height:100%;" />
     </div>
     <div
       style="text-align: center; padding: 10px; border-bottom: 1px solid black; display: flex; justify-content: center; align-items: center;">
@@ -71,7 +71,7 @@ export const getLabelHTML = (
 
     <div style="padding: 10px; font-size: 18px;">
       <p>If not Delivered so please Return at below address</p>
-      <p>${shipment.user.kyc?.entity_name}</p>
+      <strong>${shipment.user.kyc?.entity_name}</strong>
       <p><strong>Contact :</strong> ${shipment.user.mobile_number}
       </p>
       <p>
