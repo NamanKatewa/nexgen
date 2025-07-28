@@ -20,23 +20,19 @@ export const labelRouter = createTRPCRouter({
 					shipment_status: "Approved",
 				},
 				select: {
-					shipment_id: true,
-					declared_value: true,
-					user_id: true,
-					human_readable_shipment_id: true,
 					updated_at: true,
-					current_status: true,
-					shipment_status: true,
-					courier_id: true,
-					payment_status: true,
 					awb_number: true,
 					created_at: true,
 					recipient_name: true,
 					recipient_mobile: true,
 					user: {
-						select: { user_id: true, kyc: { select: { entity_name: true } } },
+						select: {
+							user_id: true,
+							mobile_number: true,
+							kyc: { select: { entity_name: true } },
+						},
 					},
-					courier: true,
+					courier: { select: { image_url: true } },
 					destination_address: {
 						select: {
 							address_line: true,
