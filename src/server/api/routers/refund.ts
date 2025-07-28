@@ -20,6 +20,7 @@ export const refundRouter = createTRPCRouter({
 					current_status: true,
 					destination_address: true,
 					origin_address: true,
+					rejection_reason: true,
 				},
 			});
 
@@ -27,6 +28,13 @@ export const refundRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Shipment not found.",
+				});
+			}
+
+			if (shipment.rejection_reason === "Refund") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Refund already processed.",
 				});
 			}
 
@@ -44,22 +52,45 @@ export const refundRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const shipment = await ctx.db.shipment.findUnique({
-				where: { shipment_id: input.shipmentId },
-				select: {
-					shipment_id: true,
-					user_id: true,
-				},
-			});
-
-			if (!shipment) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Shipment not found.",
-				});
-			}
-
 			await ctx.db.$transaction(async (tx) => {
+				const shipment = await ctx.db.shipment.findUnique({
+					where: { shipment_id: input.shipmentId },
+					select: {
+						shipment_id: true,
+						user_id: true,
+						rejection_reason: true,
+						shipment_status: true,
+					},
+				});
+
+				if (!shipment) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Shipment not found.",
+					});
+				}
+
+				if (
+					shipment.shipment_status === "Rejected" &&
+					shipment.rejection_reason === "Refund"
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Refund already processed.",
+					});
+				}
+
+				await tx.transaction.create({
+					data: {
+						amount: input.refundAmount,
+						payment_status: "Completed",
+						transaction_type: "Credit",
+						description: "Refund",
+						user_id: shipment.user_id,
+						shipment_id: shipment.shipment_id,
+					},
+				});
+
 				await tx.shipment.update({
 					where: { shipment_id: shipment.shipment_id },
 					data: { shipment_status: "Rejected", rejection_reason: "Refund" },
