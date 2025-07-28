@@ -1,5 +1,6 @@
 "use client";
 
+import { View } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { DateRange } from "react-day-picker";
@@ -96,6 +97,22 @@ function ApproveOrderContent() {
 			render: (item: ShipmentListItem) =>
 				item.created_at ? formatDate(item.created_at) : "-",
 		},
+		{
+			key: "view",
+			header: "View",
+			className: "w-30 px-4 text-center",
+			render: (item: ShipmentListItem) => (
+				<Button
+					variant="ghost"
+					onClick={() => {
+						setSelectedShipmentItem(item);
+						setShowOrderDetailsModal(true);
+					}}
+				>
+					<View />
+				</Button>
+			),
+		},
 	];
 
 	const filters = [
@@ -120,15 +137,6 @@ function ApproveOrderContent() {
 				idKey="shipment_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
-				actions={(item: ShipmentListItem) => [
-					{
-						label: "View Details",
-						onClick: () => {
-							setSelectedShipmentItem(item);
-							setShowOrderDetailsModal(true);
-						},
-					},
-				]}
 			/>
 
 			<PaginationButtons

@@ -1,4 +1,6 @@
 "use client";
+import { View } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
@@ -68,6 +70,19 @@ export default function AdminUsersPage() {
 			className: "w-40 px-4 whitespace-normal text-center",
 			render: (item: User) => <Badge>{item.pendingShipmentCount}</Badge>,
 		},
+		{
+			key: "view",
+			header: "View",
+			className: " w-40 text-center",
+			render: (item: User) => (
+				<Link
+					href={`/admin/shipment-approve?userId=${item.user_id}`}
+					className="flex items-center justify-center"
+				>
+					<View />
+				</Link>
+			),
+		},
 	];
 
 	const filters = [
@@ -92,14 +107,6 @@ export default function AdminUsersPage() {
 				idKey="user_id"
 				dateRange={dateRange}
 				onDateRangeChange={setDateRange}
-				actions={(item: User) => [
-					{
-						label: "View Pending Shipments",
-						onClick: () => {
-							router.push(`/admin/shipment-approve?userId=${item.user_id}`);
-						},
-					},
-				]}
 			/>
 
 			<PaginationButtons
