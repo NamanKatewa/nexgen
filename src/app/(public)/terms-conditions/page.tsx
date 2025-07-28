@@ -118,8 +118,8 @@ export default function TermsAndConditions() {
 					>
 						<ul className="list-disc pl-5">
 							<li>
-								Any claims for loss or damage must be reported within [specific
-								time frame] of delivery.
+								Any claims for loss or damage must be reported within 72 hours
+								of delivery.
 							</li>
 							<li>
 								Refunds, if applicable, will be processed as per our refund
