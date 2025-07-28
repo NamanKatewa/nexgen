@@ -7,6 +7,7 @@ import { addressRouter } from "./routers/address";
 import { adminRouter } from "./routers/admin";
 import { kycRouter } from "./routers/kyc";
 import { labelRouter } from "./routers/label";
+import { pincodeRouter } from "./routers/pincode";
 import { rateRouter } from "./routers/rate";
 import { refundRouter } from "./routers/refund";
 import { shipmentRouter } from "./routers/shipment";
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
 	export: exportRouter,
 	userDash: userDashRouter,
 	adminDash: adminDashRouter,
+	pincode: pincodeRouter,
 });
 
 export type AppRouter = typeof appRouter;

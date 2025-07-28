@@ -161,10 +161,9 @@ export default function TermsAndConditions() {
 						contentClassName="mt-2 text-blue-950"
 					>
 						<p>
-							These terms and conditions are governed by the laws of [Your
-							Jurisdiction]. Any disputes arising from the use of our services
-							will be subject to the exclusive jurisdiction of the courts in
-							[Your Jurisdiction].
+							These terms and conditions are governed by the laws of India. Any
+							disputes arising from the use of our services will be subject to
+							the exclusive jurisdiction of the courts in India.
 						</p>
 					</ExpandableSection>
 

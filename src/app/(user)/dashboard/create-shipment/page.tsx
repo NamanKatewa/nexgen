@@ -26,6 +26,7 @@ import {
 } from "~/components/ui/input-otp";
 import { Label } from "~/components/ui/label";
 import { fileToBase64 } from "~/lib/file-utils";
+import useDebounce from "~/lib/hooks/useDebounce";
 import type { TFileSchema } from "~/schemas/file";
 import { type TShipmentSchema, submitShipmentSchema } from "~/schemas/shipment";
 import { api } from "~/trpc/react";
@@ -124,6 +125,9 @@ export default function CreateShipmentPage() {
 		);
 	}, [warehouseAddresses, originZipCodeFilter]);
 
+	const [destinationZipCodeInput, setDestinationZipCodeInput] = useState("");
+	const debouncedDestinationZipCode = useDebounce(destinationZipCodeInput, 500);
+
 	const [destinationAddress, setDestinationAddress] = useState({
 		zipCode: "",
 		addressLine: "",
@@ -132,6 +136,39 @@ export default function CreateShipmentPage() {
 		landmark: "",
 	});
 	const recipientName = watch("recipientName");
+
+	const {
+		data: pincodeDetails,
+		isFetching: isFetchingPincodeDetails,
+		error: pincodeError,
+	} = api.pincode.getCityState.useQuery(
+		{ pincode: debouncedDestinationZipCode },
+		{
+			enabled: debouncedDestinationZipCode.length === 6,
+			staleTime: Number.POSITIVE_INFINITY,
+		},
+	);
+
+	useEffect(() => {
+		if (pincodeDetails) {
+			setDestinationAddress((prev) => ({
+				...prev,
+				city: pincodeDetails.city,
+				state: pincodeDetails.state,
+			}));
+			toast.success("City and State autofilled!");
+		} else if (
+			debouncedDestinationZipCode.length === 6 &&
+			pincodeDetails === null
+		) {
+			toast.error("Invalid Pincode. Please enter a valid 6-digit Pincode.");
+			setDestinationAddress((prev) => ({
+				...prev,
+				city: "",
+				state: "",
+			}));
+		}
+	}, [pincodeDetails, debouncedDestinationZipCode]);
 
 	useEffect(() => {
 		if (userAddresses && recipientName) {
@@ -352,14 +389,9 @@ export default function CreateShipmentPage() {
 							<div className="space-y-2">
 								<Label>Zip Code</Label>
 								<Input
-									value={destinationAddress.zipCode}
-									onChange={(e) =>
-										setDestinationAddress((prev) => ({
-											...prev,
-											zipCode: e.target.value,
-										}))
-									}
-									disabled={isLoading}
+									value={destinationZipCodeInput}
+									onChange={(e) => setDestinationZipCodeInput(e.target.value)}
+									disabled={isLoading || isFetchingPincodeDetails}
 								/>
 								<FieldError message={errors.destinationAddressId?.message} />
 							</div>
@@ -401,7 +433,7 @@ export default function CreateShipmentPage() {
 											city: e.target.value,
 										}))
 									}
-									disabled={isLoading}
+									disabled={true}
 								/>
 								<FieldError message={errors.destinationAddressId?.message} />
 							</div>
@@ -415,7 +447,7 @@ export default function CreateShipmentPage() {
 											state: e.target.value,
 										}))
 									}
-									disabled={isLoading}
+									disabled={true}
 								/>
 								<FieldError message={errors.destinationAddressId?.message} />
 							</div>
@@ -428,66 +460,10 @@ export default function CreateShipmentPage() {
 					<ArrowDown className="h-10 w-10 text-blue-950" />
 				</div>
 
-				{/* Origin Address Card */}
-				<Card className="w-full bg-blue-100/20">
-					<CardHeader>
-						<h2 className="font-semibold text-xl">3. Warehouse</h2>
-					</CardHeader>
-					<CardContent>
-						<Input
-							placeholder="Search by Pin Code"
-							onChange={(e) => setOriginZipCodeFilter(e.target.value)}
-							className="mb-2"
-						/>
-						{isLoadingWarehouseAddresses ? (
-							<p>Loading warehouses...</p>
-						) : (
-							<div className="flex gap-4 overflow-x-auto p-4">
-								{filteredWarehouseAddresses?.map((address) => (
-									<Card
-										key={address.address_id}
-										className={`h-48 w-96 flex-shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 ${
-											watch("originAddressId") === address.address_id
-												? "border-blue-500 ring-1 ring-blue-500"
-												: ""
-										}`}
-										onClick={() =>
-											setValue("originAddressId", address.address_id)
-										}
-									>
-										<CardHeader>
-											<h3 className="font-semibold">{address.name}</h3>
-										</CardHeader>
-										<CardContent>
-											<p>{address.address_line}</p>
-											<p>
-												{address.city}, {address.state} - {address.zip_code}
-											</p>
-										</CardContent>
-									</Card>
-								))}
-								<Button
-									type="button"
-									variant="outline"
-									className="h-48 w-96 bg-blue-200 hover:bg-blue-300"
-									onClick={() => setShowOriginAddressModal(true)}
-								>
-									<PlusCircle className="mr-2 h-4 w-4" /> Add New Warehouse
-								</Button>
-							</div>
-						)}
-						<FieldError message={errors.originAddressId?.message} />
-					</CardContent>
-				</Card>
-
-				<div className="flex justify-center py-4">
-					<ArrowDown className="h-10 w-10 text-blue-950" />
-				</div>
-
 				{/* Package Details Card */}
 				<Card className="w-full bg-blue-100/20">
 					<CardHeader>
-						<h2 className="font-semibold text-xl">4. Package Details</h2>
+						<h2 className="font-semibold text-xl">3. Package Details</h2>
 					</CardHeader>
 					<CardContent>
 						<div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
@@ -616,6 +592,62 @@ export default function CreateShipmentPage() {
 								</div>
 							</div>
 						</div>
+					</CardContent>
+				</Card>
+
+				<div className="flex justify-center py-4">
+					<ArrowDown className="h-10 w-10 text-blue-950" />
+				</div>
+
+				{/* Origin Address Card */}
+				<Card className="w-full bg-blue-100/20">
+					<CardHeader>
+						<h2 className="font-semibold text-xl">4. Warehouse</h2>
+					</CardHeader>
+					<CardContent>
+						<Input
+							placeholder="Search by Pin Code"
+							onChange={(e) => setOriginZipCodeFilter(e.target.value)}
+							className="mb-2"
+						/>
+						{isLoadingWarehouseAddresses ? (
+							<p>Loading warehouses...</p>
+						) : (
+							<div className="flex gap-4 overflow-x-auto p-4">
+								{filteredWarehouseAddresses?.map((address) => (
+									<Card
+										key={address.address_id}
+										className={`h-48 w-96 flex-shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 ${
+											watch("originAddressId") === address.address_id
+												? "border-blue-500 ring-1 ring-blue-500"
+												: ""
+										}`}
+										onClick={() =>
+											setValue("originAddressId", address.address_id)
+										}
+									>
+										<CardHeader>
+											<h3 className="font-semibold">{address.name}</h3>
+										</CardHeader>
+										<CardContent>
+											<p>{address.address_line}</p>
+											<p>
+												{address.city}, {address.state} - {address.zip_code}
+											</p>
+										</CardContent>
+									</Card>
+								))}
+								<Button
+									type="button"
+									variant="outline"
+									className="h-48 w-96 bg-blue-200 hover:bg-blue-300"
+									onClick={() => setShowOriginAddressModal(true)}
+								>
+									<PlusCircle className="mr-2 h-4 w-4" /> Add New Warehouse
+								</Button>
+							</div>
+						)}
+						<FieldError message={errors.originAddressId?.message} />
 					</CardContent>
 				</Card>
 
