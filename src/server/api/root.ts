@@ -5,6 +5,7 @@ import { userDashRouter } from "~/server/api/routers/userDash";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { addressRouter } from "./routers/address";
 import { adminRouter } from "./routers/admin";
+import { holdRouter } from "./routers/hold";
 import { kycRouter } from "./routers/kyc";
 import { labelRouter } from "./routers/label";
 import { pincodeRouter } from "./routers/pincode";
@@ -31,6 +32,7 @@ export const appRouter = createTRPCRouter({
 	userDash: userDashRouter,
 	adminDash: adminDashRouter,
 	pincode: pincodeRouter,
+	hold: holdRouter,
 });
 
 export type AppRouter = typeof appRouter;

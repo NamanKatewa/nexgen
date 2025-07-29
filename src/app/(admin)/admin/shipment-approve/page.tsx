@@ -4,6 +4,7 @@ import { View } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { DateRange } from "react-day-picker";
+import { toast } from "sonner";
 import Copyable from "~/components/Copyable";
 import { type ColumnConfig, DataTable } from "~/components/DataTable";
 import PaginationButtons from "~/components/PaginationButtons";
@@ -38,6 +39,8 @@ function ApproveOrderContent() {
 		setDateRange({ from: undefined, to: undefined });
 	};
 
+	const utils = api.useUtils();
+
 	const { data, isLoading } = api.admin.pendingShipments.useQuery(
 		{
 			page,
@@ -52,6 +55,28 @@ function ApproveOrderContent() {
 			refetchOnWindowFocus: false,
 		},
 	);
+
+	const { mutate: holdShipment, isPending: isHolding } =
+		api.hold.holdShipment.useMutation({
+			onSuccess: () => {
+				toast.success("Shipment held successfully!");
+				utils.admin.pendingShipments.invalidate();
+			},
+			onError: (error) => {
+				toast.error(`Failed to hold shipment: ${error.message}`);
+			},
+		});
+
+	const { mutate: releaseShipment, isPending: isReleasing } =
+		api.hold.releaseShipment.useMutation({
+			onSuccess: () => {
+				toast.success("Shipment released successfully!");
+				utils.admin.pendingShipments.invalidate();
+			},
+			onError: (error) => {
+				toast.error(`Failed to release shipment: ${error.message}`);
+			},
+		});
 
 	const columns: ColumnConfig<ShipmentListItem>[] = [
 		{
@@ -87,15 +112,43 @@ function ApproveOrderContent() {
 		{
 			key: "recipient Contact",
 			header: "Recipient Contact",
-			className: "w-30 px-4 text-center whitespace-normal",
+			className: "w-40 px-4 text-center whitespace-normal",
 			render: (item: ShipmentListItem) => item.recipient_mobile,
 		},
 		{
 			key: "date",
 			header: "Date",
-			className: "w-30 px-4",
+			className: "w-40 px-4",
 			render: (item: ShipmentListItem) =>
 				item.created_at ? formatDate(item.created_at) : "-",
+		},
+		{
+			key: "hold",
+			header: "Hold Status",
+			className: "w-30 text-center",
+			render: (item) => {
+				if (item.shipment_status === "PendingApproval") {
+					return (
+						<Button
+							onClick={() => holdShipment({ shipmentId: item.shipment_id })}
+							disabled={isHolding}
+						>
+							{isHolding ? "Holding..." : "Hold"}
+						</Button>
+					);
+				}
+				if (item.shipment_status === "Hold") {
+					return (
+						<Button
+							onClick={() => releaseShipment({ shipmentId: item.shipment_id })}
+							disabled={isReleasing}
+						>
+							{isReleasing ? "Releasing..." : "Release"}
+						</Button>
+					);
+				}
+				return null; // Or some other indicator for other statuses
+			},
 		},
 		{
 			key: "view",

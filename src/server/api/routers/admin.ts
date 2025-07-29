@@ -383,7 +383,7 @@ export const adminRouter = createTRPCRouter({
 			const { page, pageSize, searchFilter, startDate, endDate } = input;
 			const skip = (page - 1) * pageSize;
 			const whereClause: Prisma.ShipmentWhereInput = {
-				shipment_status: "PendingApproval",
+				shipment_status: { in: ["PendingApproval", "Hold"] },
 			};
 			if (searchFilter) {
 				whereClause.OR = [
