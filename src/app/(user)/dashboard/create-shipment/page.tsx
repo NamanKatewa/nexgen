@@ -38,6 +38,7 @@ interface PincodeDetails {
 
 export default function CreateShipmentPage() {
 	const router = useRouter();
+	const utils = api.useUtils();
 	const [isLoading, setIsLoading] = useState(false);
 	const [showOriginAddressModal, setShowOriginAddressModal] = useState(false);
 	const [autofilledAddressDetails, setAutofilledAddressDetails] = useState<
@@ -89,7 +90,6 @@ export default function CreateShipmentPage() {
 					size: file.size,
 				} as TFileSchema);
 			} catch (error) {
-				console.error("Error converting file to Base64:", error);
 				toast.error("Failed to process file");
 				setValue(fieldName, {
 					data: "",
@@ -119,7 +119,15 @@ export default function CreateShipmentPage() {
 		type: ADDRESS_TYPE.User,
 	});
 
-	const addAddressMutation = api.address.createAddress.useMutation();
+	const addAddressMutation = api.address.createAddress.useMutation({
+		onSuccess: () => {
+			utils.address.getAddresses.invalidate();
+			toast.success("New destination address created automatically!");
+		},
+		onError: () => {
+			toast.error("Failed to retrieve address ID for new address.");
+		},
+	});
 
 	const filteredWarehouseAddresses = useMemo(() => {
 		if (!warehouseAddresses) return undefined;
@@ -194,14 +202,24 @@ export default function CreateShipmentPage() {
 	);
 
 	useEffect(() => {
+		const conditions = {
+			recipientName: debouncedAddressForCreation.recipientName,
+			addressLine: debouncedAddressForCreation.addressLine,
+			zipCode: debouncedAddressForCreation.zipCode,
+			city: debouncedAddressForCreation.city,
+			state: debouncedAddressForCreation.state,
+			notAutofilled: !autofilledAddressDetails,
+			destinationAddressIdNotSet: !getValues("destinationAddressId"),
+		};
+
 		if (
-			debouncedAddressForCreation.recipientName &&
-			debouncedAddressForCreation.addressLine &&
-			debouncedAddressForCreation.zipCode &&
-			debouncedAddressForCreation.city &&
-			debouncedAddressForCreation.state &&
-			!autofilledAddressDetails &&
-			!getValues("destinationAddressId")
+			conditions.recipientName &&
+			conditions.addressLine &&
+			conditions.zipCode &&
+			conditions.city &&
+			conditions.state &&
+			conditions.notAutofilled &&
+			conditions.destinationAddressIdNotSet
 		) {
 			setDebouncedDestinationAddressDetails(debouncedAddressForCreation);
 		} else {
@@ -212,41 +230,36 @@ export default function CreateShipmentPage() {
 
 	useEffect(() => {
 		if (debouncedDestinationAddressDetails && !hasAttemptedAddressCreation) {
-			setHasAttemptedAddressCreation(true); // Mark that an attempt has been made
+			setHasAttemptedAddressCreation(true);
 			const createAddress = async () => {
-				// Prevent re-creation if addressId is already set
 				if (getValues("destinationAddressId")) {
 					return;
 				}
 
-				try {
-					const newAddress = await addAddressMutation.mutateAsync({
-						name: debouncedDestinationAddressDetails.recipientName,
-						addressLine: debouncedDestinationAddressDetails.addressLine,
-						zipCode: Number(debouncedDestinationAddressDetails.zipCode),
-						city: debouncedDestinationAddressDetails.city,
-						state: debouncedDestinationAddressDetails.state,
-						landmark: debouncedDestinationAddressDetails.landmark,
-						type: ADDRESS_TYPE.User,
-					});
+				const existingAddressByName = userAddresses?.find(
+					(address) =>
+						address.name.toLowerCase() ===
+						debouncedDestinationAddressDetails.recipientName.toLowerCase(),
+				);
 
-					if ("address_id" in newAddress) {
-						setValue("destinationAddressId", newAddress.address_id);
-						toast.success("New destination address created automatically!");
-					} else {
-						toast.error("Failed to retrieve address ID for new address.");
-					}
-				} catch (error) {
-					let message = "Failed to add new destination address automatically.";
-					if (error instanceof Error) {
-						message = error.message;
-					}
-					toast.error(message);
+				if (existingAddressByName) {
+					setValue("destinationAddressId", existingAddressByName.address_id);
+					return;
 				}
+				await addAddressMutation.mutateAsync({
+					name: debouncedDestinationAddressDetails.recipientName,
+					addressLine: debouncedDestinationAddressDetails.addressLine,
+					zipCode: Number(debouncedDestinationAddressDetails.zipCode),
+					city: debouncedDestinationAddressDetails.city,
+					state: debouncedDestinationAddressDetails.state,
+					landmark: debouncedDestinationAddressDetails.landmark,
+					type: ADDRESS_TYPE.User,
+				});
 			};
 			createAddress();
 		}
 	}, [
+		userAddresses,
 		debouncedDestinationAddressDetails,
 		addAddressMutation,
 		setValue,
@@ -260,10 +273,11 @@ export default function CreateShipmentPage() {
 				(address) => address.name.toLowerCase() === recipientName.toLowerCase(),
 			);
 
-			if (potentialAddresses.length === 1) {
+			if (potentialAddresses.length >= 1) {
 				const matchedAddress = potentialAddresses[0];
 				if (matchedAddress) {
 					setValue("destinationAddressId", matchedAddress.address_id);
+
 					setDestinationAddress({
 						zipCode: String(matchedAddress.zip_code),
 						addressLine: matchedAddress.address_line,
@@ -271,6 +285,7 @@ export default function CreateShipmentPage() {
 						state: matchedAddress.state,
 						landmark: matchedAddress.landmark || "",
 					});
+					setDestinationZipCodeInput(String(matchedAddress.zip_code));
 					setAutofilledAddressDetails(matchedAddress);
 				}
 			} else {
@@ -292,7 +307,6 @@ export default function CreateShipmentPage() {
 
 	const createShipmentMutation = api.shipment.createShipment.useMutation({
 		onSuccess: () => {
-			const utils = api.useUtils();
 			utils.auth.me.invalidate();
 			setIsLoading(false);
 			toast.success("Shipment created successfully! Redirecting...");
