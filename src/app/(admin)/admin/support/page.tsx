@@ -19,7 +19,7 @@ import { api } from "~/trpc/react";
 function AdminSupportContent() {
 	const router = useRouter();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 	const [statusFilter, setStatusFilter] = useState<
 		"Open" | "Closed" | undefined
 	>(undefined);

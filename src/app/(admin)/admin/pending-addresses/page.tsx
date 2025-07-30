@@ -24,7 +24,7 @@ function PendingAddressesContent() {
 		null,
 	);
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 	const [dateRange, setDateRange] = useState<DateRange | undefined>({
 		from: undefined,
 		to: undefined,

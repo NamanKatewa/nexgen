@@ -18,7 +18,7 @@ type User =
 export default function AdminUsersPage() {
 	const router = useRouter();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 	const [searchFilter, setSearchFilter] = useState("");
 	const [dateRange, setDateRange] = useState<DateRange | undefined>({
 		from: undefined,

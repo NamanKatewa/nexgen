@@ -28,7 +28,7 @@ type Shipment =
 function AdminOrdersContent() {
 	const router = useRouter();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 	const [statusFilter, setStatusFilter] = useState<SHIPMENT_STATUS | undefined>(
 		undefined,
 	);

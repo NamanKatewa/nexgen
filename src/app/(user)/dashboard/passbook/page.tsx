@@ -26,7 +26,7 @@ import { paymentStatusTypes, transactionTypes } from "~/constants";
 const PassbookPage = () => {
 	const router = useRouter();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 
 	const [filterStatus, setFilterStatus] = useState("ALL");
 	const [filterTxnType, setFilterTxnType] = useState("ALL");

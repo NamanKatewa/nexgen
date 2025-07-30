@@ -30,7 +30,7 @@ function PassbookContent() {
 	const searchParams = useSearchParams();
 	const initialUserId = searchParams.get("userId") || "";
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 
 	const [filterStatus, setFilterStatus] = useState("ALL");
 	const [filterTxnType, setFilterTxnType] = useState("ALL");

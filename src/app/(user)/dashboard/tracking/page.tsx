@@ -27,7 +27,7 @@ type Shipment =
 function UserOrdersContent() {
 	const router = useRouter();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 	const [searchText, setSearchText] = useState("");
 	const [statusFilter, setStatusFilter] = useState<SHIPMENT_STATUS | undefined>(
 		undefined,

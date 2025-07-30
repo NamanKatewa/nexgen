@@ -22,7 +22,7 @@ type User = RouterOutputs["admin"]["getAllUsers"]["users"][number];
 export default function AdminUsersPage() {
 	const router = useRouter();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 	const [searchFilter, setSearchFilter] = useState("");
 	const [businessTypeFilter, setBusinessTypeFilter] = useState<
 		"Retailer" | "Ecommerce" | "Franchise" | undefined

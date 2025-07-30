@@ -20,7 +20,7 @@ import type { AppRouter } from "~/server/api/root";
 
 const VerifyKycPage = () => {
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 
 	type KycItem =
 		inferRouterOutputs<AppRouter>["admin"]["pendingKyc"]["kycList"][number];

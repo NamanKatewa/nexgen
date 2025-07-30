@@ -22,7 +22,7 @@ type Shipment =
 export default function UserOrdersPage() {
 	const router = useRouter();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(20);
 	const [statusFilter, setStatusFilter] = useState<
 		"PendingApproval" | "Approved" | "Rejected" | "Hold" | undefined
 	>(undefined);
