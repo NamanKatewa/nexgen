@@ -746,7 +746,9 @@ export default function CreateShipmentPage() {
 								isLoading || !calculatedRate || createShipmentMutation.isPending
 							}
 						>
-							{isLoading ? "Creating..." : "Create Shipment"}
+							{createShipmentMutation.isPending
+								? "Creating..."
+								: "Create Shipment"}
 						</Button>
 					</CardContent>
 					<CardFooter className="justify-center">

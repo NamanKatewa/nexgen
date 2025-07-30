@@ -99,7 +99,7 @@ export const exportRouter = createTRPCRouter({
 
 				return shipments;
 			} catch (error) {
-				logger.error("export.allTracking", { ctx, input, error });
+				logger.error("export.allTracking", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -194,7 +194,8 @@ export const exportRouter = createTRPCRouter({
 				return shipments;
 			} catch (error) {
 				logger.error("export.userTracking", {
-					ctx,
+					req: ctx.req,
+					user: ctx.user,
 					input,
 					error,
 				});
@@ -272,7 +273,7 @@ export const exportRouter = createTRPCRouter({
 				});
 				return transactions;
 			} catch (error) {
-				logger.error("export.exportPassbook", { ctx, input, error });
+				logger.error("export.exportPassbook", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -343,7 +344,8 @@ export const exportRouter = createTRPCRouter({
 				return transactions;
 			} catch (error) {
 				logger.error("export.exportUserPassbook", {
-					ctx,
+					req: ctx.req,
+					user: ctx.user,
 					input,
 					error,
 				});
@@ -412,7 +414,8 @@ export const exportRouter = createTRPCRouter({
 				return transactions;
 			} catch (error) {
 				logger.error("export.exportTransactions", {
-					ctx,
+					req: ctx.req,
+					user: ctx.user,
 					input,
 					error,
 				});
@@ -512,7 +515,7 @@ export const exportRouter = createTRPCRouter({
 				});
 				return shipments;
 			} catch (error) {
-				logger.error("export.exportShipments", { ctx, input, error });
+				logger.error("export.exportShipments", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -602,7 +605,7 @@ export const exportRouter = createTRPCRouter({
 				});
 				return users;
 			} catch (error) {
-				logger.error("export.exportUsers", { ctx, input, error });
+				logger.error("export.exportUsers", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

@@ -137,7 +137,8 @@ export const shipmentRouter = createTRPCRouter({
 
 				if (rate === null) {
 					logger.error("shipment.createShipment", {
-						ctx,
+						req: ctx.req,
+						user: ctx.user,
 						input,
 					});
 					throw new TRPCError({
@@ -194,7 +195,7 @@ export const shipmentRouter = createTRPCRouter({
 					});
 
 					if (!wallet) {
-						logger.error("shipment.createShipment", { ctx, input });
+						logger.error("shipment.createShipment", { req: ctx.req, user: ctx.user, input });
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "User wallet not found.",
@@ -241,7 +242,7 @@ export const shipmentRouter = createTRPCRouter({
 					};
 				});
 			} catch (error) {
-				logger.error("shipment.createShipment", { ctx, input, error });
+				logger.error("shipment.createShipment", { req: ctx.req, user: ctx.user, input, error });
 				throw error;
 			}
 		}),

@@ -115,7 +115,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalKyc / pageSize),
 				};
 			} catch (error) {
-				logger.error("admin.pendingKyc", { ctx, input, error });
+				logger.error("admin.pendingKyc", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -152,7 +152,7 @@ export const adminRouter = createTRPCRouter({
 				});
 				return true;
 			} catch (error) {
-				logger.error("admin.verifyKyc", { ctx, input, error });
+				logger.error("admin.verifyKyc", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -190,7 +190,7 @@ export const adminRouter = createTRPCRouter({
 				});
 				return true;
 			} catch (error) {
-				logger.error("admin.rejectKyc", { ctx, input, error });
+				logger.error("admin.rejectKyc", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -268,7 +268,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalTransactions / pageSize),
 				};
 			} catch (error) {
-				logger.error("admin.getTransactions", { ctx, input, error });
+				logger.error("admin.getTransactions", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -362,7 +362,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalTransactions / pageSize),
 				};
 			} catch (error) {
-				logger.error("admin.getPassbook", { ctx, input, error });
+				logger.error("admin.getPassbook", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -458,7 +458,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalShipments / pageSize),
 				};
 			} catch (error) {
-				logger.error("admin.pendingShipments", { ctx, input, error });
+				logger.error("admin.pendingShipments", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -535,11 +535,7 @@ export const adminRouter = createTRPCRouter({
 					message: "Shipment approved and pushed to Shipway.",
 				};
 			} catch (error) {
-				logger.error("admin.approveShipment", {
-					ctx,
-					input,
-					error,
-				});
+				logger.error("admin.approveShipment", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Failed to approve shipment: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -671,7 +667,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalPendingAddresses / pageSize),
 				};
 			} catch (error) {
-				logger.error("admin.pendingAddresses", { ctx, input, error });
+				logger.error("admin.pendingAddresses", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -715,11 +711,7 @@ export const adminRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
-				logger.error("admin.approvePendingAddress", {
-					ctx,
-					input,
-					error,
-				});
+				logger.error("admin.approvePendingAddress", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -749,7 +741,7 @@ export const adminRouter = createTRPCRouter({
 				});
 				return true;
 			} catch (error) {
-				logger.error("admin.rejectPendingAddress", { ctx, input, error });
+				logger.error("admin.rejectPendingAddress", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -879,7 +871,7 @@ export const adminRouter = createTRPCRouter({
 
 				return user;
 			} catch (error) {
-				logger.error("admin.getUserById", { ctx, input, error });
+				logger.error("admin.getUserById", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -967,7 +959,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalUsers / pageSize),
 				};
 			} catch (error) {
-				logger.error("admin.getAllUsers", { ctx, input, error });
+				logger.error("admin.getAllUsers", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -1053,11 +1045,7 @@ export const adminRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalUsers / pageSize),
 				};
 			} catch (error) {
-				logger.error("admin.getUsersWithPendingShipments", {
-					ctx,
-					input,
-					error,
-				});
+				logger.error("admin.getUsersWithPendingShipments", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

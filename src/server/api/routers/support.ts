@@ -41,7 +41,7 @@ export const supportRouter = createTRPCRouter({
 
 				return newTicket;
 			} catch (error) {
-				logger.error("support.createTicket", { ctx, input, error });
+				logger.error("support.createTicket", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to create support ticket",
@@ -86,7 +86,7 @@ export const supportRouter = createTRPCRouter({
 				});
 				return { tickets, totalTickets };
 			} catch (error) {
-				logger.error("support.getUserTickets", { ctx, input, error });
+				logger.error("support.getUserTickets", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch user support tickets",
@@ -112,7 +112,7 @@ export const supportRouter = createTRPCRouter({
 
 				return ticket.messages;
 			} catch (error) {
-				logger.error("support.getTicketMessages", { ctx, input, error });
+				logger.error("support.getTicketMessages", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch ticket messages",
@@ -146,7 +146,7 @@ export const supportRouter = createTRPCRouter({
 				});
 				return newMessage;
 			} catch (error) {
-				logger.error("support.addMessageToTicket", { ctx, input, error });
+				logger.error("support.addMessageToTicket", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to add message to ticket",
@@ -185,7 +185,7 @@ export const supportRouter = createTRPCRouter({
 
 				return { tickets, totalTickets };
 			} catch (error) {
-				logger.error("support.getAllTickets", { ctx, input, error });
+				logger.error("support.getAllTickets", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch all support tickets",
@@ -234,7 +234,7 @@ export const supportRouter = createTRPCRouter({
 				}
 				return ticket;
 			} catch (error) {
-				logger.error("support.getTicketDetails", { ctx, input, error });
+				logger.error("support.getTicketDetails", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch ticket details",
@@ -267,7 +267,7 @@ export const supportRouter = createTRPCRouter({
 				});
 				return newMessage;
 			} catch (error) {
-				logger.error("support.addMessageToTicketAdmin", { ctx, input, error });
+				logger.error("support.addMessageToTicketAdmin", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to add message to ticket",
@@ -289,7 +289,7 @@ export const supportRouter = createTRPCRouter({
 				});
 				return updatedTicket;
 			} catch (error) {
-				logger.error("support.updateTicketStatus", { ctx, input, error });
+				logger.error("support.updateTicketStatus", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to update ticket status",
@@ -310,7 +310,8 @@ export const supportRouter = createTRPCRouter({
 				return updatedTicket;
 			} catch (error) {
 				logger.error("Admin failed to update ticket priority", {
-					ctx,
+					req: ctx.req,
+					user: ctx.user,
 					input,
 					error,
 				});

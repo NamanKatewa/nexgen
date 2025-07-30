@@ -39,7 +39,7 @@ export const authRouter = createTRPCRouter({
 
 			return result;
 		} catch (error) {
-			logger.error("auth.me", { ctx, error });
+			logger.error("auth.me", { req: ctx.req, user: ctx.user, error });
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Something went wrong",
@@ -133,7 +133,7 @@ export const authRouter = createTRPCRouter({
 					user: tokenPayload,
 				};
 			} catch (error) {
-				logger.error("auth.signup", { ctx, input, error });
+				logger.error("auth.signup", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -208,7 +208,7 @@ export const authRouter = createTRPCRouter({
 				user: tokenPayload,
 			};
 		} catch (error) {
-			logger.error("auth.login", { ctx, input, error });
+			logger.error("auth.login", { req: ctx.req, user: ctx.user, input, error });
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Something went wrong",
@@ -261,7 +261,8 @@ export const authRouter = createTRPCRouter({
 				return true;
 			} catch (error) {
 				logger.error("auth.forgotPassword", {
-					ctx,
+					req: ctx.req,
+					user: ctx.user,
 					input,
 					error,
 				});
@@ -302,7 +303,7 @@ export const authRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
-				logger.error("auth.resetPasswordWithOtp", { ctx, input, error });
+				logger.error("auth.resetPasswordWithOtp", { req: ctx.req, user: ctx.user, input, error });
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
