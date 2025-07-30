@@ -13,7 +13,7 @@ export const submitShipmentSchema = z
 			})
 			.int("Weight must be an integer")
 			.min(0, "Can't be lower than 0 Kg")
-			.max(50, "Can't be more than 1000 Kgs"),
+			.max(50, "Can't be more than 50 Kgs"),
 		packageHeight: z
 			.number({
 				required_error: "Height is required",

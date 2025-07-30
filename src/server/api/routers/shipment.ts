@@ -64,9 +64,18 @@ export const shipmentRouter = createTRPCRouter({
 					});
 				}
 				if (!destinationAddress) {
+					logger.error(
+						"shipment.createShipment: Destination address not found",
+						{
+							userId: ctx.user.user_id,
+							destinationAddressId: input.destinationAddressId,
+							input,
+						},
+					);
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "Destination address not found.",
+						message:
+							"Destination address not found. This might be a temporary issue with newly created addresses. Please try again.",
 					});
 				}
 
@@ -195,7 +204,11 @@ export const shipmentRouter = createTRPCRouter({
 					});
 
 					if (!wallet) {
-						logger.error("shipment.createShipment", { req: ctx.req, user: ctx.user, input });
+						logger.error("shipment.createShipment", {
+							req: ctx.req,
+							user: ctx.user,
+							input,
+						});
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "User wallet not found.",
@@ -242,8 +255,16 @@ export const shipmentRouter = createTRPCRouter({
 					};
 				});
 			} catch (error) {
-				logger.error("shipment.createShipment", { req: ctx.req, user: ctx.user, input, error });
-				throw error;
+				logger.error("shipment.createShipment", {
+					req: ctx.req,
+					user: ctx.user,
+					input: input,
+				});
+
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Something Went Wrong",
+				});
 			}
 		}),
 
