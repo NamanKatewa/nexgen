@@ -123,7 +123,12 @@ export const rateRouter = createTRPCRouter({
 					message: "Rate not found for the given parameters",
 				});
 			} catch (error) {
-				logger.error("rate.calculate", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("rate.calculate", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw error;
 			}
 		}),

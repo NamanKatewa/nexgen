@@ -28,7 +28,7 @@ function AdminOrdersContent() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [statusFilter, setStatusFilter] = useState<
-		"PendingApproval" | "Approved" | "Rejected" | undefined
+		"PendingApproval" | "Approved" | "Rejected" | "Hold" | undefined
 	>(undefined);
 	const searchParams = useSearchParams();
 	const initialUserId = searchParams.get("userId") || "";
@@ -85,6 +85,7 @@ function AdminOrdersContent() {
 						"bg-green-200": item.shipment_status === "Approved",
 						"bg-yellow-200": item.shipment_status === "PendingApproval",
 						"bg-red-200": item.shipment_status === "Rejected",
+						"bg-orange-200": item.shipment_status === "Hold",
 					})}
 				>
 					{item.shipment_status}
@@ -160,13 +161,14 @@ function AdminOrdersContent() {
 				{ label: "Pending Approval", value: "PendingApproval" },
 				{ label: "Approved", value: "Approved" },
 				{ label: "Rejected", value: "Rejected" },
+				{ label: "Hold", value: "Hold" },
 			],
 			selectedValue: statusFilter || "all",
 			onValueChange: (value: string) =>
 				setStatusFilter(
 					value === "all"
 						? undefined
-						: (value as "PendingApproval" | "Approved" | "Rejected"),
+						: (value as "PendingApproval" | "Approved" | "Rejected" | "Hold"),
 				),
 		},
 	];

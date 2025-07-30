@@ -40,7 +40,12 @@ export const holdRouter = createTRPCRouter({
 
 				return { success: true, message: "Shipment held successfully." };
 			} catch (error) {
-				logger.error("admin.holdShipment", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("admin.holdShipment", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Failed to hold shipment: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -83,7 +88,12 @@ export const holdRouter = createTRPCRouter({
 
 				return { success: true, message: "Shipment released successfully." };
 			} catch (error) {
-				logger.error("admin.releaseShipment", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("admin.releaseShipment", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Failed to release shipment: ${error instanceof Error ? error.message : "Unknown error"}`,

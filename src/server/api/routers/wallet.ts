@@ -113,7 +113,12 @@ export const walletRouter = createTRPCRouter({
 					paymentUrl: imbResponse.result.payment_url,
 				};
 			} catch (error) {
-				logger.error("wallet.addFunds", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("wallet.addFunds", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: (error as Error).message,
@@ -168,7 +173,12 @@ export const walletRouter = createTRPCRouter({
 					}
 				});
 			} catch (error) {
-				logger.error("support.updateTransaction", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("support.updateTransaction", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw error;
 			}
 		}),
@@ -255,7 +265,11 @@ export const walletRouter = createTRPCRouter({
 				}
 			}
 		} catch (error) {
-			logger.error("wallet.checkPendingTransactions", { req: ctx.req, user: ctx.user, error });
+			logger.error("wallet.checkPendingTransactions", {
+				req: ctx.req,
+				user: ctx.user,
+				error,
+			});
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Failed to check pending transactions",
@@ -346,7 +360,12 @@ export const walletRouter = createTRPCRouter({
 					totalPages: Math.ceil(totalTransactions / pageSize),
 				};
 			} catch (error) {
-				logger.error("wallet.getPassbook", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("wallet.getPassbook", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

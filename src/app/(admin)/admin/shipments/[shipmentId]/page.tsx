@@ -212,6 +212,7 @@ export default function AdminOrderDetailPage() {
 									"bg-yellow-200":
 										shipment.shipment_status === "PendingApproval",
 									"bg-red-200": shipment.shipment_status === "Rejected",
+									"bg-orange-200": shipment.shipment_status === "Hold",
 								})}
 							>
 								{shipment.shipment_status}

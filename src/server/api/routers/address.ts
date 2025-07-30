@@ -28,7 +28,12 @@ export const addressRouter = createTRPCRouter({
 				});
 				return addresses;
 			} catch (error) {
-				logger.error("address.getAddresses", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("address.getAddresses", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
@@ -80,7 +85,12 @@ export const addressRouter = createTRPCRouter({
 				});
 				return address;
 			} catch (error) {
-				logger.error("Failed to create address", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("Failed to create address", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",

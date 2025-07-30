@@ -736,7 +736,9 @@ export const shipmentRouter = createTRPCRouter({
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
-				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+				status: z
+					.enum(["PendingApproval", "Approved", "Rejected", "Hold"])
+					.optional(),
 				userId: z.string().optional(),
 				startDate: z.string().optional(),
 				endDate: z.string().optional(),
@@ -905,7 +907,9 @@ export const shipmentRouter = createTRPCRouter({
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
-				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+				status: z
+					.enum(["PendingApproval", "Approved", "Rejected", "Hold"])
+					.optional(),
 				searchFilter: z.string().optional(),
 				startDate: z.string().optional(),
 				endDate: z.string().optional(),
@@ -986,7 +990,9 @@ export const shipmentRouter = createTRPCRouter({
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
-				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+				status: z
+					.enum(["PendingApproval", "Approved", "Rejected", "Hold"])
+					.optional(),
 				searchFilter: z.string().optional(),
 				currentStatus: z
 					.union([z.nativeEnum(SHIPMENT_STATUS), z.literal("ALL")])
@@ -1204,7 +1210,9 @@ export const shipmentRouter = createTRPCRouter({
 			z.object({
 				page: z.number().min(1).default(1),
 				pageSize: z.number().min(1).max(100).default(10),
-				status: z.enum(["PendingApproval", "Approved", "Rejected"]).optional(),
+				status: z
+					.enum(["PendingApproval", "Approved", "Rejected", "Hold"])
+					.optional(),
 				searchFilter: z.string().optional(),
 				currentStatus: z
 					.union([z.nativeEnum(SHIPMENT_STATUS), z.literal("ALL")])

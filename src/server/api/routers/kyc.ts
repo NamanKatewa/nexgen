@@ -62,7 +62,12 @@ export const kycRouter = createTRPCRouter({
 
 				return null;
 			} catch (error) {
-				logger.error("kyc.kycSubmit", { req: ctx.req, user: ctx.user, input, error });
+				logger.error("kyc.kycSubmit", {
+					req: ctx.req,
+					user: ctx.user,
+					input,
+					error,
+				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Something went wrong",
