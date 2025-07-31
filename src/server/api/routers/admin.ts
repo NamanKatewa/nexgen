@@ -132,7 +132,7 @@ export const adminRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const kyc = await db.kyc.findUnique({
 				where: { kyc_id: input.kycId },
-				include: { user: { select: { email: true } } },
+				include: { user: { select: { email: true, name: true } } },
 			});
 			if (!kyc) {
 				throw new TRPCError({
@@ -153,7 +153,42 @@ export const adminRouter = createTRPCRouter({
 				await sendEmail({
 					to: kyc.user.email,
 					subject: "KYC Verified",
-					html: "Your KYC has been verified. Logout and Login again to start shipping.",
+					html: `Dear ${kyc.user.name},
+
+Welcome to Nex Gen Courier Service!
+We’re excited to have you onboard and look forward to supporting your business logistics needs with speed, security, and reliability.
+
+✅ Your account has been successfully created and verified.
+
+You can now start booking and managing your shipments via our client dashboard:
+
+🔗 Login to Your Account: https://www.nexgencourier.in/login
+
+Need Help Getting Started?
+Your dedicated Account Manager is here to support you with any queries or assistance you may need:
+
+📞 Key Account Manager:
+Name: Kishan
+Phone/WhatsApp: +91-7257080852
+📧 Email: support@nexgencourier.in
+
+Why Nex Gen Courier?
+
+🚚 Pan-India Delivery
+
+🔍 Real-Time Tracking
+
+💼 Dedicated Business Support
+
+💳 Smart Wallet & Secure Payments
+
+
+
+We're confident you’ll love the experience.
+If you have any questions or need help with your first shipment, just reach out!
+
+Warm regards,
+Team Nex Gen Courier Service`,
 				});
 				return true;
 			} catch (error) {
