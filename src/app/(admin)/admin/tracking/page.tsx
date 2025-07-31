@@ -99,13 +99,13 @@ function AdminOrdersContent() {
 		{
 			key: "user.company_name",
 			header: "Company Name",
-			className: "w-40 px-4",
+			className: "w-40 px-4 whitespace-normal",
 			render: (item: Shipment) => item.user.company_name,
 		},
 		{
 			key: "recipient_name",
 			header: "Customer Name",
-			className: "w-30 px-4 text-center",
+			className: "w-40 px-4 whitespace-normal",
 			render: (item: Shipment) => item.recipient_name,
 		},
 		{
