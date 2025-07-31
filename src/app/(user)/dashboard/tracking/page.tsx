@@ -22,7 +22,7 @@ import { exportToXlsx } from "~/lib/xlsx";
 import { type RouterOutputs, api } from "~/trpc/react";
 
 type Shipment =
-	RouterOutputs["shipment"]["getUserShipments"]["shipments"][number];
+	RouterOutputs["shipment"]["getUserTrackingShipments"]["shipments"][number];
 
 function UserOrdersContent() {
 	const router = useRouter();
@@ -97,6 +97,20 @@ function UserOrdersContent() {
 			render: (item) => `₹ ${Number(item.shipping_cost).toFixed(2)}`,
 		},
 		{
+			key: "awb",
+			header: "AWB",
+			className: "px-4 w-30 text-center",
+			render: (item) => {
+				return item.awb_number ? <Copyable content={item.awb_number} /> : null;
+			},
+		},
+		{
+			key: "courier",
+			header: "Courier",
+			className: "px-4 w-30 text-center",
+			render: (item) => (item.courier ? item.courier.name : "N/A"),
+		},
+		{
 			key: "shipment_status",
 			header: "Status",
 			className: "px-4 w-30 text-center",
@@ -105,10 +119,15 @@ function UserOrdersContent() {
 					item.current_status as keyof typeof SHIPMENT_STATUS_MAP
 				] || {
 					displayName: item.current_status,
-					color: "bg-gray-200 text-gray-800",
+					color: "bg-gray-200 text-gray-800 text-center",
 				};
 				return (
-					<Badge className={cn("w-fit text-md capitalize", statusInfo.color)}>
+					<Badge
+						className={cn(
+							"w-fit text-center text-md capitalize",
+							statusInfo.color,
+						)}
+					>
 						{statusInfo.displayName ? statusInfo.displayName : "N/A"}
 					</Badge>
 				);

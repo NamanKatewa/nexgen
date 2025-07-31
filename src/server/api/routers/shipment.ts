@@ -1053,6 +1053,7 @@ export const shipmentRouter = createTRPCRouter({
 						},
 						origin_address: true,
 						destination_address: true,
+						courier: { select: { name: true } },
 					},
 					skip,
 					take: pageSize,
