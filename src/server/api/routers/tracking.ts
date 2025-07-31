@@ -74,170 +74,197 @@ export const trackingRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db.$transaction(async (tx) => {
-				for (const update of status_feed) {
-					const { awbno, current_status, status_time, carrier_id, scans } =
-						update;
+			const emailsToSend: { to: string; subject: string; html: string }[] = [];
 
-					const shipment = await tx.shipment.findUnique({
-						where: { awb_number: awbno },
-					});
+			for (const update of status_feed) {
+				try {
+					await db.$transaction(
+						async (tx) => {
+							const { awbno, current_status, carrier_id, scans } = update;
 
-					if (!shipment) {
-						logger.warn("Shipment not found for AWB", { awbno });
-						continue;
-					}
-
-					const courier = await tx.courier.findUnique({
-						where: { shipway_id: String(carrier_id) },
-					});
-
-					if (!courier) {
-						logger.warn("Courier not found for Shipway ID", { carrier_id });
-						continue;
-					}
-
-					if (scans && scans.length > 0) {
-						for (const scan of scans) {
-							const timestamp = new Date(scan.time || new Date().toISOString()); // Ensure scan.time is string
-							const location = scan.location || "";
-							const status_description = scan.status || "";
-
-							const existingTracking = await tx.tracking.findFirst({
-								where: {
-									shipment_id: shipment.shipment_id,
-									courier_id: courier.id,
-									timestamp: timestamp,
-									location: location,
-									status_description: status_description,
-								},
+							const shipment = await tx.shipment.findUnique({
+								where: { awb_number: awbno },
 							});
 
-							if (!existingTracking) {
-								logger.info("Creating new tracking record", {
-									shipment_id: shipment.shipment_id,
-									courier_id: courier.id,
-									timestamp: timestamp,
-									location: location,
-									status_description: status_description,
-								});
-								await tx.tracking.create({
-									data: {
-										shipment_id: shipment.shipment_id,
-										courier_id: courier.id,
-										timestamp: timestamp,
-										location: location,
-										status_description: status_description,
-									},
-								});
+							if (!shipment) {
+								logger.warn("Shipment not found for AWB", { awbno });
+								return; // Skip to next update
 							}
-						}
-					}
 
-					if (!current_status) {
-						continue;
-					}
-
-					const newShipmentStatus = shipwayStatusMap[current_status];
-					if (newShipmentStatus) {
-						logger.info("Updating shipment status", {
-							awbno,
-							oldStatus: shipment.current_status,
-							newStatus: newShipmentStatus,
-						});
-						await tx.shipment.update({
-							where: { awb_number: awbno },
-							data: { current_status: newShipmentStatus },
-						});
-					} else {
-						logger.warn("Unknown Shipway status code received", {
-							awbno,
-							current_status,
-						});
-					}
-
-					const nonDeliveryStatuses: SHIPMENT_STATUS[] = [
-						SHIPMENT_STATUS.UNDELIVERED,
-						SHIPMENT_STATUS.RTO,
-						SHIPMENT_STATUS.ON_HOLD,
-						SHIPMENT_STATUS.NETWORK_ISSUE,
-						SHIPMENT_STATUS.NOT_FOUND_INCORRECT,
-						SHIPMENT_STATUS.OUT_OF_DELIVERY_AREA,
-						SHIPMENT_STATUS.OTHERS,
-						SHIPMENT_STATUS.DELIVERY_DELAYED,
-						SHIPMENT_STATUS.CUSTOMER_REFUSED,
-						SHIPMENT_STATUS.CONSIGNEE_UNAVAILABLE,
-						SHIPMENT_STATUS.DELIVERY_EXCEPTION,
-						SHIPMENT_STATUS.DELIVERY_RESCHEDULED,
-						SHIPMENT_STATUS.COD_PAYMENT_NOT_READY,
-						SHIPMENT_STATUS.SHIPMENT_LOST,
-						SHIPMENT_STATUS.PICKUP_FAILED,
-						SHIPMENT_STATUS.PICKUP_CANCELLED,
-						SHIPMENT_STATUS.ADDRESS_INCORRECT,
-						SHIPMENT_STATUS.DELIVERY_ATTEMPTED,
-						SHIPMENT_STATUS.PENDING_UNDELIVERED,
-						SHIPMENT_STATUS.DELIVERY_ATTEMPTED_PREMISES_CLOSED,
-					];
-
-					if (
-						newShipmentStatus &&
-						nonDeliveryStatuses.includes(newShipmentStatus)
-					) {
-						logger.info("Non-delivery status detected, sending email", {
-							awbno,
-							newShipmentStatus,
-						});
-
-						const user = await tx.user.findUnique({
-							where: { user_id: shipment.user_id },
-						});
-
-						const admins = await tx.user.findMany({
-							where: { role: USER_ROLE.Admin },
-						});
-
-						if (user?.email) {
-							await sendEmail({
-								to: user.email,
-								subject: `Shipment ${shipment.human_readable_shipment_id} - Non-Delivery Update`,
-								html: `
-								<p>Dear ${user.name || "User"},</p>
-								<p>Your shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has an important update.</p>
-								<p>The current status is: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
-								<p>Please visit our tracking page for more details: <a href="${env.BASE_URL}/track?id=${awbno}">${env.BASE_URL}/track?id=${awbno}</a></p>
-								<p>If you have any concerns, please contact our support team.</p>
-								<p>Thank you,</p>
-								<p>Nexgen Courier Services</p>
-							`,
+							const courier = await tx.courier.findUnique({
+								where: { shipway_id: String(carrier_id) },
 							});
-						}
 
-						for (const admin of admins) {
-							if (admin.email) {
-								await sendEmail({
-									to: admin.email,
-									subject: `ADMIN ALERT: Shipment ${shipment.human_readable_shipment_id} - Non-Delivery Update`,
-									html: `
-									<p>Dear Admin,</p>
-									<p>Shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has a non-delivery status update.</p>
-									<p>User Email: ${user?.email || "N/A"}</p>
-									<p>Current Status: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
-									<p>Please investigate and take necessary action.</p>
-									<p>Thank you,</p>
-									<p>Nexgen Courier Services</p>
-								`,
+							if (!courier) {
+								logger.warn("Courier not found for Shipway ID", { carrier_id });
+								return; // Skip to next update
+							}
+
+							if (scans && scans.length > 0) {
+								for (const scan of scans) {
+									const timestamp = new Date(
+										scan.time || new Date().toISOString(),
+									);
+									const location = scan.location || "";
+									const status_description = scan.status || "";
+
+									const existingTracking = await tx.tracking.findFirst({
+										where: {
+											shipment_id: shipment.shipment_id,
+											courier_id: courier.id,
+											timestamp: timestamp,
+											location: location,
+											status_description: status_description,
+										},
+									});
+
+									if (!existingTracking) {
+										logger.info("Creating new tracking record", {
+											shipment_id: shipment.shipment_id,
+											courier_id: courier.id,
+											timestamp: timestamp,
+											location: location,
+											status_description: status_description,
+										});
+										await tx.tracking.create({
+											data: {
+												shipment_id: shipment.shipment_id,
+												courier_id: courier.id,
+												timestamp: timestamp,
+												location: location,
+												status_description: status_description,
+											},
+										});
+									}
+								}
+							}
+
+							if (!current_status) {
+								return; // Skip to next update
+							}
+
+							const newShipmentStatus = shipwayStatusMap[current_status];
+							if (newShipmentStatus) {
+								logger.info("Updating shipment status", {
+									awbno,
+									oldStatus: shipment.current_status,
+									newStatus: newShipmentStatus,
+								});
+								await tx.shipment.update({
+									where: { awb_number: awbno },
+									data: { current_status: newShipmentStatus },
+								});
+							} else {
+								logger.warn("Unknown Shipway status code received", {
+									awbno,
+									current_status,
 								});
 							}
-						}
-					}
+
+							const nonDeliveryStatuses: SHIPMENT_STATUS[] = [
+								SHIPMENT_STATUS.UNDELIVERED,
+								SHIPMENT_STATUS.RTO,
+								SHIPMENT_STATUS.ON_HOLD,
+								SHIPMENT_STATUS.NETWORK_ISSUE,
+								SHIPMENT_STATUS.NOT_FOUND_INCORRECT,
+								SHIPMENT_STATUS.OUT_OF_DELIVERY_AREA,
+								SHIPMENT_STATUS.OTHERS,
+								SHIPMENT_STATUS.DELIVERY_DELAYED,
+								SHIPMENT_STATUS.CUSTOMER_REFUSED,
+								SHIPMENT_STATUS.CONSIGNEE_UNAVAILABLE,
+								SHIPMENT_STATUS.DELIVERY_EXCEPTION,
+								SHIPMENT_STATUS.DELIVERY_RESCHEDULED,
+								SHIPMENT_STATUS.COD_PAYMENT_NOT_READY,
+								SHIPMENT_STATUS.SHIPMENT_LOST,
+								SHIPMENT_STATUS.PICKUP_FAILED,
+								SHIPMENT_STATUS.PICKUP_CANCELLED,
+								SHIPMENT_STATUS.ADDRESS_INCORRECT,
+								SHIPMENT_STATUS.DELIVERY_ATTEMPTED,
+								SHIPMENT_STATUS.PENDING_UNDELIVERED,
+								SHIPMENT_STATUS.DELIVERY_ATTEMPTED_PREMISES_CLOSED,
+							];
+
+							if (
+								newShipmentStatus &&
+								nonDeliveryStatuses.includes(newShipmentStatus)
+							) {
+								logger.info("Non-delivery status detected, preparing email", {
+									awbno,
+									newShipmentStatus,
+								});
+
+								const user = await tx.user.findUnique({
+									where: { user_id: shipment.user_id },
+								});
+
+								const admins = await tx.user.findMany({
+									where: { role: USER_ROLE.Admin },
+								});
+
+								if (user?.email) {
+									emailsToSend.push({
+										to: user.email,
+										subject: `Shipment ${shipment.human_readable_shipment_id} - Non-Delivery Update`,
+										html: `
+										<p>Dear ${user.name || "User"},</p>
+										<p>Your shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has an important update.</p>
+										<p>The current status is: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
+										<p>Please visit our tracking page for more details: <a href="${env.BASE_URL}/track?id=${awbno}">${env.BASE_URL}/track?id=${awbno}</a></p>
+										<p>If you have any concerns, please contact our support team.</p>
+										<p>Thank you,</p>
+										<p>Nexgen Courier Services</p>
+									`,
+									});
+								}
+
+								for (const admin of admins) {
+									if (admin.email) {
+										emailsToSend.push({
+											to: admin.email,
+											subject: `ADMIN ALERT: Shipment ${shipment.human_readable_shipment_id} - Non-Delivery Update`,
+											html: `
+											<p>Dear Admin,</p>
+											<p>Shipment with AWB number <strong>${awbno}</strong> (ID: ${shipment.human_readable_shipment_id}) has a non-delivery status update.</p>
+											<p>User Email: ${user?.email || "N/A"}</p>
+											<p>Current Status: <strong>${newShipmentStatus.replace(/_/g, " ")}</strong>.</p>
+											<p>Please investigate and take necessary action.</p>
+											<p>Thank you,</p>
+											<p>Nexgen Courier Services</p>
+										`,
+										});
+									}
+								}
+							}
+						},
+						{ timeout: 10000 },
+					); // 10 seconds timeout for each shipment update
+				} catch (error) {
+					logger.error("Error processing single shipment update", {
+						awbno: update.awbno,
+						error: error instanceof Error ? error.message : error,
+						stack: error instanceof Error ? error.stack : undefined,
+					});
 				}
+			}
 
-				return {
-					status: "success",
-					message: "Webhook received and processed",
-				};
-			});
+			// Send all collected emails after all transactions are done
+			for (const emailData of emailsToSend) {
+				try {
+					await sendEmail(emailData);
+				} catch (emailError) {
+					logger.error("Failed to send email", {
+						to: emailData.to,
+						subject: emailData.subject,
+						error:
+							emailError instanceof Error ? emailError.message : emailError,
+					});
+				}
+			}
 
-			return result;
+			return {
+				status: "success",
+				message:
+					"Webhook processing initiated. Check logs for individual shipment statuses and email sending results.",
+			};
 		}),
 });
