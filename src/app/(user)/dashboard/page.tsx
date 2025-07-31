@@ -38,21 +38,6 @@ export default function UserDashboardPage() {
 		averageDeliveryTime,
 	} = data;
 
-	const fakeAverageDeliveryTimeData = [
-		{ month: "Jan", averageDeliveryTimeDays: 3.5 },
-		{ month: "Feb", averageDeliveryTimeDays: 4.2 },
-		{ month: "Mar", averageDeliveryTimeDays: 3.8 },
-		{ month: "Apr", averageDeliveryTimeDays: 4.0 },
-		{ month: "May", averageDeliveryTimeDays: 3.9 },
-		{ month: "Jun", averageDeliveryTimeDays: 4.5 },
-		{ month: "Jul", averageDeliveryTimeDays: 4.1 },
-		{ month: "Aug", averageDeliveryTimeDays: 3.7 },
-		{ month: "Sep", averageDeliveryTimeDays: 4.3 },
-		{ month: "Oct", averageDeliveryTimeDays: 4.0 },
-		{ month: "Nov", averageDeliveryTimeDays: 3.6 },
-		{ month: "Dec", averageDeliveryTimeDays: 4.2 },
-	];
-
 	return (
 		<div className="flex flex-col gap-4 p-4 md:p-8">
 			<h1 className="font-bold text-2xl">
@@ -177,7 +162,7 @@ export default function UserDashboardPage() {
 				<ChartAreaClientShipmentsOverTime data={shipmentsOverTime} />
 				<ChartLineClientShippingVsValue data={shippingCostsDeclaredValue} />
 				<ChartBarClientTopStates data={topDestinationStates} />
-				<ChartLineClientAvgDeliverTime data={fakeAverageDeliveryTimeData} />
+				<ChartLineClientAvgDeliverTime data={averageDeliveryTime} />
 				<ChartBarClientCourierPerformance data={courierPerformance} />
 			</div>
 		</div>
