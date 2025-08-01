@@ -100,7 +100,28 @@ export const trackingRouter = createTRPCRouter({
 								return; // Skip to next update
 							}
 
+							// Optimization: Fetch all existing tracking records for this shipment and courier once
+							// to avoid N+1 queries inside the scans loop.
 							if (scans && scans.length > 0) {
+								const existingTrackingRecords = await tx.tracking.findMany({
+									where: {
+										shipment_id: shipment.shipment_id,
+										courier_id: courier.id,
+									},
+									select: {
+										timestamp: true,
+										location: true,
+										status_description: true,
+									},
+								});
+
+								const existingTrackingSet = new Set(
+									existingTrackingRecords.map(
+										(record) =>
+											`${record.timestamp.toISOString()}-${record.location}-${record.status_description}`,
+									),
+								);
+
 								for (const scan of scans) {
 									const timestamp = new Date(
 										scan.time || new Date().toISOString(),
@@ -108,17 +129,9 @@ export const trackingRouter = createTRPCRouter({
 									const location = scan.location || "";
 									const status_description = scan.status || "";
 
-									const existingTracking = await tx.tracking.findFirst({
-										where: {
-											shipment_id: shipment.shipment_id,
-											courier_id: courier.id,
-											timestamp: timestamp,
-											location: location,
-											status_description: status_description,
-										},
-									});
+									const scanIdentifier = `${timestamp.toISOString()}-${location}-${status_description}`;
 
-									if (!existingTracking) {
+									if (!existingTrackingSet.has(scanIdentifier)) {
 										logger.info("Creating new tracking record", {
 											shipment_id: shipment.shipment_id,
 											courier_id: courier.id,
