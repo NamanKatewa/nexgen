@@ -14,12 +14,41 @@ export default function TrackingPage() {
 	const params = useParams();
 	const id = params.id as string;
 
-	const { data, isLoading, error } = api.tracking.getTrackingData.useQuery(
-		{ identifier: id || "" },
-		{ enabled: !!id },
-	);
-
 	const [progress, setProgress] = useState(0);
+
+	// Show error immediately if no ID is provided
+	if (!id || id.trim() === "") {
+		return (
+			<div className="flex min-h-screen items-center justify-center p-4">
+				<Card className="w-full max-w-md">
+					<CardHeader>
+						<CardTitle className="text-center">Tracking</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<p className="text-center text-red-500">
+							Please provide a valid tracking ID
+						</p>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
+
+	const { data, isLoading, error, isFetching } =
+		api.tracking.getTrackingData.useQuery(
+			{ identifier: id },
+			{
+				enabled: true,
+				refetchOnWindowFocus: false,
+				refetchOnReconnect: false,
+				refetchOnMount: false,
+				staleTime: Number.POSITIVE_INFINITY,
+				gcTime: Number.POSITIVE_INFINITY,
+				suspense: false,
+				networkMode: "offlineFirst",
+				retry: 0,
+			},
+		);
 
 	useEffect(() => {
 		if (data?.shipment) {
@@ -72,10 +101,20 @@ export default function TrackingPage() {
 		);
 	}
 
-	if (isLoading) {
+	// Show loading state only during initial fetch
+	if (isFetching && !data && !error) {
 		return (
 			<div className="flex min-h-screen items-center justify-center p-4">
-				Loading...
+				<Card className="w-full max-w-md">
+					<CardHeader>
+						<CardTitle className="text-center">Tracking</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="flex justify-center">
+							<div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+						</div>
+					</CardContent>
+				</Card>
 			</div>
 		);
 	}
@@ -84,11 +123,8 @@ export default function TrackingPage() {
 		return (
 			<div className="flex min-h-screen items-center justify-center p-4">
 				<Card className="w-full max-w-md">
-					<CardHeader>
-						<CardTitle className="text-center">Tracking</CardTitle>
-					</CardHeader>
 					<CardContent>
-						<p className="text-center text-red-500">Error: {error.message}</p>
+						<p className="text-center text-red-500">{error.message}</p>
 					</CardContent>
 				</Card>
 			</div>
