@@ -468,7 +468,6 @@ export default function CreateShipmentPage() {
 									pattern="\d*"
 									maxLength={6}
 									inputMode="numeric"
-									placeholder="Enter 6-digit pincode"
 								/>
 								<FieldError message={errors.destinationAddressId?.message} />
 							</div>

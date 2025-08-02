@@ -5,7 +5,7 @@ import type { ENTITY_TYPE } from "@prisma/client";
 import { nanoid } from "nanoid";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
@@ -32,6 +32,7 @@ import {
 	SelectValue,
 } from "~/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import useDebounce from "~/lib/hooks/useDebounce";
 import { type TKycSchema, submitKycSchema } from "~/schemas/kyc";
 import { api } from "~/trpc/react";
 
@@ -47,6 +48,8 @@ export default function KycFormPage() {
 		null,
 	);
 	const [panFrontPreview, setPanFrontPreview] = useState<string | null>(null);
+	const [zipCode, setZipCode] = useState("");
+	const debouncedZipCode = useDebounce(zipCode, 500);
 
 	const kycSubmitMutation = api.kyc.kycSubmit.useMutation({
 		onSuccess: () => {
@@ -79,6 +82,23 @@ export default function KycFormPage() {
 		},
 		mode: "onTouched", // Add this line to enable real-time validation on blur
 	});
+
+	const { data: pincodeDetails, isFetching: isFetchingPincodeDetails } =
+		api.pincode.getCityState.useQuery(
+			{ pincode: debouncedZipCode },
+			{
+				enabled: debouncedZipCode.length === 6,
+				staleTime: Number.POSITIVE_INFINITY,
+			},
+		);
+
+	useEffect(() => {
+		if (pincodeDetails) {
+			setValue("billingAddress.city", pincodeDetails.city);
+			setValue("billingAddress.state", pincodeDetails.state);
+			toast.success("City and State autofilled!");
+		}
+	}, [pincodeDetails, setValue]);
 
 	const fileToBase64 = (file: File): Promise<string> => {
 		return new Promise((resolve, reject) => {
@@ -232,20 +252,8 @@ export default function KycFormPage() {
 														value: "SelfEmployement",
 													},
 													{
-														label: "Proprietorship Firm",
-														value: "ProprietorshipFirm",
-													},
-													{
 														label: "Limited Liability Partnership",
 														value: "LimitedLiabilityParternship",
-													},
-													{
-														label: "Private Limited Company",
-														value: "PrivateLimitedCompany",
-													},
-													{
-														label: "Public Limited Company",
-														value: "PublicLimitedCompany",
 													},
 													{
 														label: "Partnership Firm",
@@ -277,18 +285,28 @@ export default function KycFormPage() {
 
 							<TabsContent value="1" className="pt-6">
 								<div className="space-y-4">
-									<Label>Billing Address</Label>
+									<Label>Pickup Address</Label>
 									<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 										<div className="space-y-2">
 											<Label htmlFor="billingAddress.zipCode">Zip Code</Label>
 											<Input
 												id="billingAddress.zipCode"
 												placeholder="Zip Code"
-												type="number"
 												{...register("billingAddress.zipCode", {
 													valueAsNumber: true,
-													onChange: () => clearErrors("billingAddress.zipCode"),
 												})}
+												type="text"
+												pattern="\d*"
+												maxLength={6}
+												inputMode="numeric"
+												onChange={(e) => {
+													const value = e.target.value
+														.replace(/\D/g, "")
+														.slice(0, 6);
+													setZipCode(value);
+													setValue("billingAddress.zipCode", Number(value));
+												}}
+												disabled={isFetchingPincodeDetails}
 											/>
 											<FieldError
 												message={errors.billingAddress?.zipCode?.message}
@@ -302,6 +320,7 @@ export default function KycFormPage() {
 												{...register("billingAddress.city", {
 													onChange: () => clearErrors("billingAddress.city"),
 												})}
+												disabled={true}
 											/>
 											<FieldError
 												message={errors.billingAddress?.city?.message}
@@ -315,6 +334,7 @@ export default function KycFormPage() {
 												{...register("billingAddress.state", {
 													onChange: () => clearErrors("billingAddress.state"),
 												})}
+												disabled={true}
 											/>
 											<FieldError
 												message={errors.billingAddress?.state?.message}

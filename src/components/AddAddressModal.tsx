@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ADDRESS_TYPE } from "@prisma/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FieldError } from "~/components/FieldError";
@@ -14,6 +14,7 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import useDebounce from "~/lib/hooks/useDebounce";
 import { type TAddressSchema, addressSchema } from "~/schemas/address";
 import { api } from "~/trpc/react";
 
@@ -31,15 +32,35 @@ export function AddAddressModal({
 	addressType,
 }: AddAddressModalProps) {
 	const [isLoading, setIsLoading] = useState(false);
+	const [zipCode, setZipCode] = useState("");
+	const debouncedZipCode = useDebounce(zipCode, 500);
 
 	const {
 		register,
 		handleSubmit,
 		reset,
+		setValue,
 		formState: { errors },
 	} = useForm<TAddressSchema>({
 		resolver: zodResolver(addressSchema),
 	});
+
+	const { data: pincodeDetails, isFetching: isFetchingPincodeDetails } =
+		api.pincode.getCityState.useQuery(
+			{ pincode: debouncedZipCode },
+			{
+				enabled: debouncedZipCode.length === 6,
+				staleTime: Number.POSITIVE_INFINITY,
+			},
+		);
+
+	useEffect(() => {
+		if (pincodeDetails) {
+			setValue("city", pincodeDetails.city);
+			setValue("state", pincodeDetails.state);
+			toast.success("City and State autofilled!");
+		}
+	}, [pincodeDetails, setValue]);
 
 	const createAddressMutation = api.address.createAddress.useMutation({
 		onSuccess: () => {
@@ -95,24 +116,32 @@ export function AddAddressModal({
 						<FieldError message={errors.landmark?.message} />
 					</div>
 					<div className="space-y-2">
+						<Label htmlFor="zipCode">Zip Code</Label>
+						<Input
+							id="zipCode"
+							{...register("zipCode", { valueAsNumber: true })}
+							disabled={isLoading || isFetchingPincodeDetails}
+							type="text"
+							pattern="\d*"
+							maxLength={6}
+							inputMode="numeric"
+							onChange={(e) => {
+								const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+								setZipCode(value);
+								setValue("zipCode", Number(value));
+							}}
+						/>
+						<FieldError message={errors.zipCode?.message} />
+					</div>
+					<div className="space-y-2">
 						<Label htmlFor="city">City</Label>
-						<Input id="city" {...register("city")} disabled={isLoading} />
+						<Input id="city" {...register("city")} disabled={true} />
 						<FieldError message={errors.city?.message} />
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="state">State</Label>
-						<Input id="state" {...register("state")} disabled={isLoading} />
+						<Input id="state" {...register("state")} disabled={true} />
 						<FieldError message={errors.state?.message} />
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="zipCode">Zip Code</Label>
-						<Input
-							id="zipCode"
-							type="number"
-							{...register("zipCode", { valueAsNumber: true })}
-							disabled={isLoading}
-						/>
-						<FieldError message={errors.zipCode?.message} />
 					</div>
 					<DialogFooter>
 						<Button type="submit" disabled={createAddressMutation.isPending}>
