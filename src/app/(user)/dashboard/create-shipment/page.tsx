@@ -408,10 +408,10 @@ export default function CreateShipmentPage() {
 			</p>
 			<form
 				onSubmit={handleSubmit(onSubmit)}
-				className="w-full space-y-20 text-blue-950"
+				className="flex w-full flex-col items-center space-y-20 text-blue-950"
 			>
 				{/* Recipient Details Card */}
-				<Card className="w-full bg-blue-100/20">
+				<Card className="w-3/4">
 					<CardHeader>
 						<h2 className="font-semibold text-xl">1. Recipient Details</h2>
 					</CardHeader>
@@ -449,7 +449,7 @@ export default function CreateShipmentPage() {
 				</div>
 
 				{/* Destination Address Card */}
-				<Card className="w-full bg-blue-100/20">
+				<Card className="w-3/4">
 					<CardHeader>
 						<h2 className="font-semibold text-xl">2. Destination Address</h2>
 					</CardHeader>
@@ -459,8 +459,16 @@ export default function CreateShipmentPage() {
 								<Label>Zip Code</Label>
 								<Input
 									value={destinationZipCodeInput}
-									onChange={(e) => setDestinationZipCodeInput(e.target.value)}
+									onChange={(e) => {
+										const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+										setDestinationZipCodeInput(value);
+									}}
 									disabled={isLoading || isFetchingPincodeDetails}
+									type="text"
+									pattern="\d*"
+									maxLength={6}
+									inputMode="numeric"
+									placeholder="Enter 6-digit pincode"
 								/>
 								<FieldError message={errors.destinationAddressId?.message} />
 							</div>
@@ -530,7 +538,7 @@ export default function CreateShipmentPage() {
 				</div>
 
 				{/* Package Details Card */}
-				<Card className="w-full bg-blue-100/20">
+				<Card className="w-3/4">
 					<CardHeader>
 						<h2 className="font-semibold text-xl">3. Package Details</h2>
 					</CardHeader>
@@ -669,7 +677,7 @@ export default function CreateShipmentPage() {
 				</div>
 
 				{/* Origin Address Card */}
-				<Card className="w-full bg-blue-100/20">
+				<Card className="w-3/4">
 					<CardHeader>
 						<h2 className="font-semibold text-xl">4. Warehouse</h2>
 					</CardHeader>
@@ -725,7 +733,7 @@ export default function CreateShipmentPage() {
 				</div>
 
 				{/* Rate Calculation and Submission Card */}
-				<Card className="w-full bg-blue-100/20">
+				<Card className="w-3/4">
 					<CardHeader>
 						<h2 className="font-semibold text-xl">5. Review and Confirm</h2>
 					</CardHeader>
