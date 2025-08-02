@@ -125,10 +125,7 @@ enum BUSINESS_TYPE {
 enum ENTITY_TYPE {
   Individual
   SelfEmployement
-  ProprietorshipFirm
   LimitedLiabilityParternship
-  PrivateLimitedCompany
-  PublicLimitedCompany
   PartnershipFirm
 }
 
